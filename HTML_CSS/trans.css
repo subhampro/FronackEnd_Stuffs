@@ -1,0 +1,27 @@
+body {
+    background-color: #152833;
+}
+
+#but {
+    margin-top: 25%;
+    margin-left: 47.5%;
+    color: rgb(236, 137, 70);
+    font-weight: bold;
+    background-color: #ffffff00;
+    border:3.5px solid rgb(236, 137, 70);
+    height: 2.5rem;
+    width: 7.5rem;
+    transition: all 0.3s;
+}
+
+#but:hover {
+    margin-top: 24.7%;
+    margin-left: 47.5%;
+    color: rgb(255, 255, 255);
+    font-weight: bold;
+    background-color: #ffffff00;
+    border:3.5px solid rgb(177, 226, 43);
+    height: 2.5rem;
+    width: 7.5rem;
+    box-shadow: -0.1px 8.5px 8.5px rgba(177, 226, 43, 0.486);
+}

@@ -1,0 +1,42 @@
+/* .blue {
+    color: blue;
+}
+table {
+    border-collapse: collapse; 
+    }
+td, th {
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.aaa {
+    background-color: #f2f2f2;
+}
+
+.aab {
+    background-color: #c77f7f;
+}
+
+.aac {
+    background-color: #726c6c;
+} */
+.aas {
+    height: 100px;
+    width: 100px;
+    box-sizing: border-box;
+    border: 1px solid black;
+}
+    
+#board {
+    display: flex;
+    margin: 200px auto;
+    width: 500px;
+    flex-wrap: wrap;
+}
+
+
+.aas:nth-of-type(odd) {
+    background-color: red;
+}
+.aas:nth-of-type(2n) {
+    background-color:black;
+}

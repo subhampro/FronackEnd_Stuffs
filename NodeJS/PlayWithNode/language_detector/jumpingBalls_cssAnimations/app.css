@@ -1,0 +1,109 @@
+/* Set the background color of the body */
+body {
+    background-color: blue;
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    justify-content: center;  /* Horizontally center the ball */
+    align-items: center;      /* Vertically center the ball */
+    overflow: hidden;         /* Prevent scrolling */
+  }
+  
+  /* Style for the red ball */
+  .ball {
+    width: 10vw;  /* 10% of viewport width */
+    height: 10vw; /* 10% of viewport width */
+    border-radius: 50%;
+    background-color: red;
+    position: absolute;
+    bottom: 40vh;
+    left: 2vw;
+    animation: dropSpinBounce 3s ease-in-out infinite;
+  }
+  
+  /* Animation for dropping, spinning, and bouncing the ball */
+  @keyframes dropSpinBounce {
+    0% {
+      transform: translateY(0) rotate(0deg) scale(1);
+      opacity: 1;
+    }
+    25% {
+      transform: translateY(25vh) rotate(90deg) scale(1.2);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(50vh) rotate(180deg) scale(0.8);
+      opacity: 0.8;
+    }
+    75% {
+      transform: translateY(35vh) rotate(270deg) scale(1.1);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(0) rotate(360deg) scale(1);
+      opacity: 1;
+    }
+  }
+  
+  /* Make sure the ball scales properly for smaller screens */
+  @media (max-width: 600px) {
+    .ball {
+      width: 20vw; /* Larger ball size on smaller screens */
+      height: 20vw;
+    }
+  
+    @keyframes dropSpinBounce {
+      0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 1;
+      }
+      25% {
+        transform: translateY(40vh) rotate(90deg) scale(1.2);
+        opacity: 1;
+      }
+      50% {
+        transform: translateY(70vh) rotate(180deg) scale(0.8);
+        opacity: 0.8;
+      }
+      75% {
+        transform: translateY(50vh) rotate(270deg) scale(1.1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(0) rotate(360deg) scale(1);
+        opacity: 1;
+      }
+    }
+  }
+  
+  /* Make sure the ball scales properly for larger screens */
+  @media (min-width: 1200px) {
+    .ball {
+      width: 8vw; /* Smaller ball size on larger screens */
+      height: 8vw;
+    }
+  
+    @keyframes dropSpinBounce {
+      0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 1;
+      }
+      25% {
+        transform: translateY(25vh) rotate(90deg) scale(1.2);
+        opacity: 1;
+      }
+      50% {
+        transform: translateY(40vh) rotate(180deg) scale(0.8);
+        opacity: 0.8;
+      }
+      75% {
+        transform: translateY(30vh) rotate(270deg) scale(1.1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(0) rotate(360deg) scale(1);
+        opacity: 1;
+      }
+    }
+  }
+  

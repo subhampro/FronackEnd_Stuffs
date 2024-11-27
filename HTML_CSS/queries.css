@@ -1,0 +1,111 @@
+.roboto-black {
+    font-family: "Roboto", system-ui;
+    font-weight: 900;
+    font-style: normal;
+    font-size: 650%;
+}
+
+.roboto-black-li {
+    font-family: "Roboto", system-ui;
+    font-weight: 600;
+    font-style: normal;
+    font-size: 150%;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.honey {
+    list-style-type: none;
+    width: 25%;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.yoyo {
+    list-style-type: none;
+}
+
+/* .yoyo {
+    list-style-type: none;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 0%;
+}  
+
+.honey {
+    list-style-type: none;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 0%;
+}   */
+
+h1 {
+    text-align: center;
+}
+
+body {
+
+    background-size: cover;
+    background-position: center;
+}
+
+
+@media (max-width:700px) and (min-width:606px) {
+    .roboto-black {
+        font-size: 80px;
+    }
+}
+
+@media (max-width:606px) and (min-width:477px) {
+    .roboto-black {
+        font-size: 70px;
+    }
+}
+
+@media (max-width:477px) and (min-width:0px) {
+    .roboto-black {
+        font-size: 50px;
+    }
+}
+
+@media (max-width:350px) and (min-width:0px) {
+    .roboto-black {
+        font-size: 25px;
+    }
+}
+
+@media (orientation: landscape) {
+    h1 {
+    color: red;
+    }
+}
+
+ li:nth-of-type(1):hover {
+    align-self: flex-start;
+}
+
+ li:nth-of-type(2):hover {
+    align-self: center;
+}
+
+ li:nth-of-type(3):hover {
+    align-self: flex-end;
+}
+
+ li:nth-of-type(4):hover {
+    align-self: center;
+}
+
+li:nth-of-type(5):hover {
+    align-self: flex-start;
+}
+

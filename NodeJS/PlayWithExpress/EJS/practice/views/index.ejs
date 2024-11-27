@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>My First EJS Page</title>
+  </head>
+  <body>
+
+  	My Name is <%= name.first %>.
+	<ul>
+	  	<% for (let test of tests) { %>
+	  			<li>It's number <%= test %></li>
+	  	<% }%>
+	</ul>
+  </body>
+</html>

@@ -1,0 +1,49 @@
+div {
+    height: 200px;
+    width: 200px;
+}
+
+h1 {
+    font-family: "Roboto", sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    margin-left: 0%;
+    display: inline;
+    position: relative;
+}
+
+#mains {
+    background-color: #003049;
+    width: 90%;
+    height: 500px;
+    margin: 0 auto;
+    border: 5px solid #003049;
+    display: flex;
+}
+
+#mains{
+    flex-direction: row;
+    justify-content: center;
+    /* align-items: flex-end; */
+    flex-wrap: wrap;    
+}
+
+div:nth-of-type(1) {
+    align-self: flex-start;
+}
+
+div:nth-of-type(2) {
+    align-self: center;
+}
+
+section div:nth-of-type(3) {
+    align-self: flex-end;
+}
+
+div:nth-of-type(4) {
+    align-self: center;
+}
+
+div:nth-of-type(5) {
+    align-self: flex-start;
+}

@@ -1,0 +1,140 @@
+.montserrat-text {
+    font-family: "Montserrat", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 750;
+    font-style: normal;
+    font-size: x-large;
+    margin-left: 4rem;
+    margin-top: 1em;
+    margin-bottom: 1rem;
+    margin-right: 0;
+}
+
+.hori {
+    width: 26%;
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-right: 0;
+    margin-left: 4rem;
+}  
+
+hr {
+    
+    border: none;
+    height: 2px; 
+    background-color: rgba(128, 128, 128, 0.267);
+    margin: 0rem;
+}
+
+.galary {
+    width: 100%;
+    height: 100%;
+}
+
+.one_row {
+    height: 35rem;
+    width: 35rem;
+    background-image: url("https://images.pexels.com/photos/57905/pexels-photo-57905.jpeg?cs=srgb&dl=pexels-jhawley-57905.jpg");
+    background-size: cover;
+    background-position: center;
+    display: inline-block;
+    padding: 0%;
+    margin-left: 4rem;
+    margin-top: 4rem;
+}
+
+.two_row {
+    height: 35rem;
+    width: 35rem;
+    background-image: url("https://cdn.contrastly.com/wp-content/uploads/2-black-white-secrets.jpg");
+    background-size: cover;
+    background-position: center;
+    display: inline-block;
+    padding: 0%;
+    margin-left: 4rem;
+    margin-top: 4rem;
+}
+
+.three_row {
+    height: 35rem;
+    width: 35rem;
+    background-image: url("https://images.pexels.com/photos/3849160/pexels-photo-3849160.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1");
+    background-size: cover;
+    background-position: center;
+    display: inline-block;
+    padding: 0%;
+    margin-left: 4rem;
+    margin-top: 4rem;
+}
+
+.four {
+    height: 35rem;
+    width: 35rem;
+    background-image: url("https://i0.wp.com/www.toonsarah-travels.blog/wp-content/uploads/2023/03/001-feature-14-012-P1040585-Cayena-Beach-Villas.jpg?resize=1140%2C855&ssl=1");
+    background-size: cover;
+    background-position: center;
+    display: inline-block;
+    padding: 0%;
+    margin-left: 4rem;
+    margin-top: 4rem;
+}
+
+.five {
+    height: 35rem;
+    width: 35rem;
+    background-image: url("https://images.pexels.com/photos/34435/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1");
+    background-size: cover;
+    background-position: center;
+    display: inline-block;
+    padding: 0%;
+    margin-left: 4rem;
+    margin-top: 4rem;
+}
+
+.six {
+    height: 35rem;
+    width: 35rem;
+    background-image: url("https://images.pexels.com/photos/20811499/pexels-photo-20811499/free-photo-of-blossoms-of-cherry.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1");
+    background-size: cover;
+    background-position: center;
+    display: inline-block;
+    padding: 0%;
+    margin-left: 4rem;
+    margin-top: 4rem;
+}
+
+.seven {
+    height: 35rem;
+    width: 35rem;
+    background-image: url("https://images.pexels.com/photos/11878561/pexels-photo-11878561.png?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1");
+    background-size: cover;
+    background-position: center;
+    display: inline-block;
+    padding: 0%;
+    margin-left: 4rem;
+    margin-top: 4rem;
+}
+
+.eight {
+    height: 35rem;
+    width: 35rem;
+    background-image: url("https://images.pexels.com/photos/16055510/pexels-photo-16055510/free-photo-of-close-up-of-a-flower-with-white-petals.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1");
+    background-size: cover;
+    background-position: center;
+    display: inline-block;
+    padding: 0%;
+    margin-left: 4rem;
+    margin-top: 4rem;
+}
+
+.nine {
+    height: 35rem;
+    width: 35rem;
+    background-image: url("https://images.pexels.com/photos/7044352/pexels-photo-7044352.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1");
+    background-size: cover;
+    background-position: center;
+    display: inline-block;
+    padding: 0%;
+    margin-left: 4rem;
+    margin-top: 4rem;
+}

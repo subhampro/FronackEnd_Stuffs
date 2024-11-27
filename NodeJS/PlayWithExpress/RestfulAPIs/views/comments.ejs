@@ -1,0 +1,11 @@
+<%- include('partials/nav') %>
+
+<h2>Comments</h2>
+  <%for(comment of comments){%>
+  <li>
+    <%= comment.comment %> - <b><%= comment.username %></b>
+ <span> <a href="/comments/<%=comment.id%>" class="button">Details</a> </span> </li><br>
+  <%}%>
+    </ul>
+</body>
+</html>

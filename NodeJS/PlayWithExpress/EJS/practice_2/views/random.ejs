@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Number Generator</title>
+</head>
+<body>
+    <h1> Here Is Your Random No From 1 to 1000 : <%= randNum %></h1>
+
+    <h2>Lets Find A Its a even No Or not !</h2>
+    <% if (randNum % 2 == 0) { %>
+        <h2> "Its a even number !"</h2> 
+   <% } else {%>
+    <h2> "Its a odd number !"</h2>
+   <% } %>
+
+   <h2><%= randNum % 2 == 0 ? 'EVEN' : 'ODD' %></h2>
+
+</body>
+</html>
