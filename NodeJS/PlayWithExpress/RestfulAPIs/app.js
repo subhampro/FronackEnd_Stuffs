@@ -25,12 +25,12 @@ let comments = [
     },
     {
         id: uuidv4(),
-        username: 'Sk8erBoi',
+        username: 'SkerBoi',
         comment: 'Plz delete your account, Tods!'
     },
     {
         id: uuidv4(),
-        username: 'onlysayswoof',
+        username: 'Onlysayswoof',
         comment: 'woof woof woof'
     }
 ]
@@ -51,10 +51,21 @@ app.get('/comments/new',(req,res)=>{
 })
 app.get('/comments/:id',(req,res)=>{
     const {id} = req.params;
-    const trimmedId = id.trim();
-    const comment = comments.find( com => com.id === trimmedId);
-    if (!comment) {
-        return res.status(404).send('Comment not found');
-    }
-    res.render('test',{comment})
+    const comment = comments.find( com => com.id === id);
+    res.render('detailed',{comment})
+})
+
+app.get('/comments/:id/edit',(req,res)=>{
+    const {id} = req.params;
+    res.render('edit',{id});
+})
+app.patch('/comments/:id',(req,res)=>{
+    const {id} = req.params;
+    const filteredComment = comments.find(comment => comment.id === id);
+    filteredComment.comment = req.body.comment ;
+    console.log(filteredComment)
+    res.redirect('/comments')
+})
+app.get('*',(req,res)=>{
+    res.redirect('/comments');
 })

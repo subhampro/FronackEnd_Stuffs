@@ -4,22 +4,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Website</title>
+  <title>RestfulAPIs</title>
   <style>
-    /* Navbar styles */
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f7f7f7;
+      color: #333;
+    }
+
     nav {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background-color: #333;
+      background-color: #fff;
       padding: 1rem 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
     }
 
-    nav .logo {
-      color: #fff;
-      font-size: 1.5rem;
+
+    nav .logo a {
+      color: #4a90e2;
+      font-size: 1.8rem;
       font-weight: bold;
       text-transform: uppercase;
+      letter-spacing: 2px;
+      text-decoration: none;
+      transition: color 0.3s ease;
+      margin-right: 20px;
+    }
+
+    nav .logo a:hover {
+      color: #0097a7;
     }
 
     nav ul {
@@ -30,38 +55,85 @@
     }
 
     nav ul li {
-      margin: 0 1rem;
+      margin: 0 1.5rem;
+    }
+
+    nav .button {
+      margin-left: 20px;
     }
 
     nav ul li a {
       text-decoration: none;
-      color: #fff;
+      color: #333;
       font-size: 1rem;
-      transition: color 0.3s;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      transition: color 0.3s ease, transform 0.3s ease;
     }
 
     nav ul li a:hover {
       color: #00bcd4;
+      transform: scale(1.1);
     }
-    /* Button styles */
+
     .button {
-      margin-left: 10px;
-    padding: 1px 6px;
-    border: 1px outset buttonborder;
-    border-radius: 3px;
-    color: buttontext;
-    background-color: buttonface;
-    text-decoration: none;
-}
+      padding: 8px 16px;
+      border: none;
+      border-radius: 25px;
+      background-color: #4a90e2;
+      color: #fff;
+      text-decoration: none;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .button:hover {
+      background-color: #357ab7;
+      transform: translateY(-2px);
+    }
+
+    .button:active {
+      transform: translateY(1px);
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        flex-direction: column;
+        padding: 1rem;
+      }
+
+      nav .logo {
+        margin-bottom: 1rem;
+        text-align: center;
+        margin-right: 20px;
+      }
+
+      nav ul {
+        flex-direction: column;
+        width: 100%;
+        text-align: center;
+      }
+
+      nav ul li {
+        margin: 0.5rem 0;
+      }
+    }
   </style>
 </head>
 
 <body>
   <nav>
-    <div class="logo">MySite</div>
+    <div class="logo">
+      <a href="http://localhost:3000/comments">Home</a>
+    </div>
     <ul>
-      <li><a href="http://localhost:3000/comments">Home</a></li>
-      <li><a href="http://localhost:3000/comments/new">New Request</a></li>
-      <!-- <li><a href="#">N/A</a></li> -->
     </ul>
+    <a href="http://localhost:3000/comments/new" class="button">Create Comment</a>
   </nav>
+  
+
+  <br><br>
+</body>
+
+</html>

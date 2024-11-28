@@ -1,0 +1,127 @@
+<%- include('partials/nav') %>
+
+<form method="PATCH" action="/comments/<%= id %>" class="edit-form">
+    <h1>Edit Your Comment</h1>
+    
+    <label for="comment" class="input-label">Please enter new comment to Edit</label>
+    
+    <textarea id="comment" name="comment" rows="5" cols="50" class="input-field" placeholder="Enter your comment here..."></textarea>
+    
+    <button type="submit" class="submit-btn">Submit</button>
+</form>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Roboto', sans-serif;
+        background: #f7f7f7; 
+        color: #333;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        padding: 20px;
+    }
+
+    .edit-form {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 600px;
+        transition: transform 0.3s ease-out;
+    }
+
+    .edit-form:hover {
+        transform: scale(1.02);
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 2rem;
+        color: #4a90e2;
+        margin-bottom: 1rem;
+    }
+
+
+    .input-label {
+        font-size: 1.1rem;
+        color: #555;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 1.2rem;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        outline: none;
+        margin-bottom: 1.5rem;
+        transition: border 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .input-field:focus {
+        border-color: #00bcd4;
+        box-shadow: 0 0 12px rgba(0, 188, 212, 0.2);
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 1rem;
+        background: #00bcd4;
+        color: white;
+        font-size: 1rem;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: 600;
+        letter-spacing: 1px;
+        transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .submit-btn:hover {
+        background: #0097a7;
+        transform: translateY(-2px);
+    }
+
+    .submit-btn:active {
+        transform: translateY(1px);
+    }
+
+    @media (max-width: 768px) {
+        .edit-form {
+            padding: 1.5rem;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+        }
+
+        .input-field {
+            font-size: 0.95rem;
+            padding: 1rem;
+        }
+
+        .submit-btn {
+            padding: 0.9rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .edit-form {
+            width: 100%;
+        }
+
+        .input-field {
+            font-size: 0.9rem;
+        }
+    }
+</style>

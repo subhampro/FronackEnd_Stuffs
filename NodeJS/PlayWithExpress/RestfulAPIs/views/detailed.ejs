@@ -1,0 +1,132 @@
+<%- include('partials/nav') %>
+
+<div class="comment-detail-container">
+    <h3 class="comment-header">Comment Details</h3>
+    <div class="comment-detail">
+        <!-- <h4>Comment ID: <%= comment.id %></h4> -->
+        <b>Username : </b><%= comment.username %>
+        <p class="comment-text">Comment : <%= comment.comment %></p>
+    </div>
+    <div class="button-container">
+        <a href="/comments/<%= comment.id %>/edit" class="button">Edit Comment</a>
+        <a href="/comments" class="button">Back to Comments</a>
+    </div>
+</div>
+
+<style>
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f9f9f9;
+    color: #333;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .comment-detail-container {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 800px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .comment-detail-container:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+
+
+  .comment-header {
+    font-size: 2rem;
+    color: #4a90e2;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+
+  .comment-detail h4, .comment-detail h3 {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 1rem;
+  }
+
+  .comment-text {
+    font-size: 1rem;
+    color: #555;
+    line-height: 1.6;
+    margin-top: 1rem;
+  }
+
+
+  .button-container {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .button {
+    padding: 10px 20px;
+    background-color: #4a90e2;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 25px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .button:hover {
+    background-color: #357ab7;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .button:active {
+    transform: translateY(1px);
+  }
+
+  @media (max-width: 768px) {
+    .comment-detail-container {
+      padding: 1.5rem;
+    }
+
+    .comment-header {
+      font-size: 1.8rem;
+    }
+
+    .button {
+      padding: 8px 16px;
+      font-size: 0.9rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .comment-header {
+      font-size: 1.6rem;
+    }
+
+    .button {
+      padding: 8px 14px;
+      font-size: 0.8rem;
+    }
+  }
+</style>
+
+</body>
+</html>

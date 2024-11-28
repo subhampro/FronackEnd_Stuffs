@@ -1,11 +1,139 @@
 <%- include('partials/nav') %>
 
-<h1>Please Submit the form for makeing New Comment</h1>
-<form action="/comments" method="post">
-  <p><input type="text" name="username" placeholder="Please Enter Your UserID"></p>
-  <p><input type="text" name="comment" placeholder="Please Enter a Comment !"></p>
-  <button>Submit</button>
-</form>
-</body>
+<div class="comment-form-container">
+  <h1 class="form-header">Submit Your Comment</h1>
+  <form action="/comments" method="post" class="comment-form">
+    <div class="form-group">
+      <input type="text" name="username" class="input-field" placeholder="Enter Your Username" required>
+    </div>
+    <div class="form-group">
+      <textarea name="comment" class="input-field" placeholder="Enter Your Comment" rows="5" required></textarea>
+    </div>
+    <button type="submit" class="submit-btn">Submit</button>
+  </form>
+</div>
 
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f9f9f9;
+    color: #333;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .comment-form-container {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .comment-form-container:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .form-header {
+    font-size: 2rem;
+    color: #4a90e2;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+
+  .input-field {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.3s ease;
+  }
+
+  .input-field:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 10px rgba(74, 144, 226, 0.2);
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 1rem;
+    background-color: #4a90e2;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .submit-btn:hover {
+    background-color: #357ab7;
+    transform: translateY(-2px);
+  }
+
+  .submit-btn:active {
+    transform: translateY(1px);
+  }
+
+  @media (max-width: 768px) {
+    .comment-form-container {
+      padding: 1.5rem;
+    }
+
+    .form-header {
+      font-size: 1.8rem;
+    }
+
+    .input-field {
+      font-size: 0.9rem;
+      padding: 0.9rem;
+    }
+
+    .submit-btn {
+      padding: 0.9rem;
+      font-size: 1rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .form-header {
+      font-size: 1.6rem;
+    }
+
+    .input-field {
+      font-size: 0.8rem;
+      padding: 0.8rem;
+    }
+
+    .submit-btn {
+      padding: 0.8rem;
+      font-size: 0.9rem;
+    }
+  }
+</style>
+
+</body>
 </html>
