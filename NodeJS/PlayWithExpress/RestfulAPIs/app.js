@@ -57,19 +57,11 @@ app.get('/comments/:id',(req,res)=>{
     res.render('detailed',{comment})
 })
 
-// app.get('/comments/:id/edit',(req,res)=>{
-//     const {id} = req.params;
-//     res.render('edit',{id});
-// })
-app.get('/comments/:id/edit', (req, res) => {
-    const { id } = req.params;
-    const comment = comments.find(com => com.id === id);
-    if (comment) {
-        res.render('edit', { id: comment.id });
-    } else {
-        res.status(404).send('Comment not found');
-    }
-});
+app.get('/comments/:id/edit',(req,res)=>{
+    const {id} = req.params;
+    const comment = comments.find( com => com.id === id);
+    res.render('edit',{comment});
+})
 
 app.patch('/comments/:id',(req,res)=>{
     const {id} = req.params;
@@ -78,6 +70,12 @@ app.patch('/comments/:id',(req,res)=>{
     console.log(filteredComment)
     res.redirect('/comments')
 })
+app.delete('/comments/:id',(req,res)=>{
+    const {id} = req.params;
+    comments = comments.filter(comment => comment.id !== id);
+    res.redirect('/comments');
+})
 app.get('*',(req,res)=>{
     res.redirect('/comments');
 })
+

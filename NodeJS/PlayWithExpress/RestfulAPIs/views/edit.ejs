@@ -1,128 +1,102 @@
 <%- include('partials/nav') %>
 
-<form method="POST" action="/comments/<%=id%>" class="edit-form">
-    <input type="hidden" name="_method" value="PATCH" />
-    <h1>Edit Your Comment</h1>
+<form method="POST" action="/comments/<%=comment.id%>?_method=PATCH" class="edit-form">
+    <h2>Edit Your Comment</h2>
     
-    <label for="comment" class="input-label">Please enter new comment to Edit</label>
     
-    <textarea id="comment" name="comment" rows="5" cols="50" class="input-field" placeholder="Enter your comment here..."></textarea>
+    <textarea id="comment" name="comment" rows="5" cols="50" class="input-field"><%=comment.comment%></textarea>
     
     <button type="submit" class="submit-btn">Submit</button>
 </form>
 
-<style>a
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-    body {
-        font-family: 'Roboto', sans-serif;
-        background: #f7f7f7; 
-        color: #333;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        padding: 20px;
-    }
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
+    padding: 20px;
+}
 
+.edit-form {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.edit-form h2 {
+    font-size: 24px;
+    color: #2C3E50;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.input-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2C3E50;
+    margin-bottom: 8px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    color: #333;
+    resize: vertical;
+    transition: border 0.3s ease-in-out;
+}
+
+.input-field:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.submit-btn {
+    background-color: #3498db;
+    color: #fff;
+    font-size: 16px;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.submit-btn:hover {
+    background-color: #2980b9;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
     .edit-form {
-        background: white;
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 600px;
-        transition: transform 0.3s ease-out;
-    }
-
-    .edit-form:hover {
-        transform: scale(1.02);
-    }
-
-    h1 {
-        text-align: center;
-        font-size: 2rem;
-        color: #4a90e2;
-        margin-bottom: 1rem;
-    }
-
-
-    .input-label {
-        font-size: 1.1rem;
-        color: #555;
-        margin-bottom: 0.5rem;
-        display: block;
+        padding: 20px;
+        margin: 20px;
     }
 
     .input-field {
-        width: 100%;
-        padding: 1.2rem;
-        font-size: 1rem;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        outline: none;
-        margin-bottom: 1.5rem;
-        transition: border 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .input-field:focus {
-        border-color: #00bcd4;
-        box-shadow: 0 0 12px rgba(0, 188, 212, 0.2);
+        font-size: 14px;
     }
 
     .submit-btn {
-        width: 100%;
-        padding: 1rem;
-        background: #00bcd4;
-        color: white;
-        font-size: 1rem;
-        border: none;
-        border-radius: 25px;
-        cursor: pointer;
-        font-weight: 600;
-        letter-spacing: 1px;
-        transition: background-color 0.3s ease, transform 0.3s ease;
+        font-size: 14px;
     }
+}
 
-    .submit-btn:hover {
-        background: #0097a7;
-        transform: translateY(-2px);
-    }
-
-    .submit-btn:active {
-        transform: translateY(1px);
-    }
-
-    @media (max-width: 768px) {
-        .edit-form {
-            padding: 1.5rem;
-        }
-
-        h1 {
-            font-size: 1.8rem;
-        }
-
-        .input-field {
-            font-size: 0.95rem;
-            padding: 1rem;
-        }
-
-        .submit-btn {
-            padding: 0.9rem;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .edit-form {
-            width: 100%;
-        }
-
-        .input-field {
-            font-size: 0.9rem;
-        }
-    }
 </style>

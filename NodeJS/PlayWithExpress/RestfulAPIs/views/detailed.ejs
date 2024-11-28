@@ -3,12 +3,15 @@
 <div class="comment-detail-container">
     <h3 class="comment-header">Comment Details</h3>
     <div class="comment-detail">
-        <!-- <h4>Comment ID: <%= comment.id %></h4> -->
-        <b>Username : </b><%= comment.username %>
+        <p class="comment-text"><b>Comment ID: <%= comment.id %></b></p>
+        <p class="comment-text"></p><b>Username : </b><%= comment.username %></p>
         <p class="comment-text">Comment : <%= comment.comment %></p>
     </div>
     <div class="button-container">
         <a href="/comments/<%= comment.id %>/edit" class="button">Edit Comment</a>
+        <form method="POST" action="/comments/<%= comment.id %>?_method=DELETE" class="edit-form">
+          <button class="button">Delete Comment</button>
+        </form>
         <a href="/comments" class="button">Back to Comments</a>
     </div>
 </div>
@@ -90,10 +93,27 @@
     text-decoration: none;
     transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
   }
+  .button:nth-of-type(2) {
+    padding: 10px 20px;
+    background-color: #ff0000;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 25px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
 
   .button:hover {
     background-color: #357ab7;
     transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  .button:hover:nth-of-type(2) {
+    background-color: #000000;
+    transition: all 1s;
+    transform: translateY(-10px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
