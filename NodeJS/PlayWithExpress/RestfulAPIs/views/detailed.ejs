@@ -10,13 +10,35 @@
     <div class="button-container">
         <a href="/comments/<%= comment.id %>/edit" class="button">Edit Comment</a>
         <form method="POST" action="/comments/<%= comment.id %>?_method=DELETE" class="edit-form">
-          <button class="button">Delete Comment</button>
+          <button class="delete-button">Delete Comment</button>
         </form>
         <a href="/comments" class="button">Back to Comments</a>
     </div>
 </div>
 
 <style>
+
+.delete-button {
+    background-color: #ff0000;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 25px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .delete-button:hover {
+    background-color: #0a0a0a;
+    transform: translateY(-2px);
+    transition: all 1s;
+    transform: translateY(-10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .delete-button:active {
+    transform: translateY(1px);
+  }
 
   * {
     margin: 0;
@@ -93,25 +115,10 @@
     text-decoration: none;
     transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
   }
-  .button:nth-of-type(2) {
-    padding: 10px 20px;
-    background-color: #ff0000;
-    color: white;
-    font-size: 1rem;
-    font-weight: 600;
-    border-radius: 25px;
-    text-decoration: none;
-    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
 
   .button:hover {
     background-color: #357ab7;
     transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-  .button:hover:nth-of-type(2) {
-    background-color: #000000;
     transition: all 1s;
     transform: translateY(-10px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
