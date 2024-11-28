@@ -1,6 +1,7 @@
 <%- include('partials/nav') %>
 
-<form method="PATCH" action="/comments/<%= id %>" class="edit-form">
+<form method="POST" action="/comments/<%=id%>" class="edit-form">
+    <input type="hidden" name="_method" value="PATCH" />
     <h1>Edit Your Comment</h1>
     
     <label for="comment" class="input-label">Please enter new comment to Edit</label>
@@ -10,7 +11,7 @@
     <button type="submit" class="submit-btn">Submit</button>
 </form>
 
-<style>
+<style>a
     * {
         margin: 0;
         padding: 0;

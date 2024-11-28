@@ -2,12 +2,14 @@ const express = require('express');
 const app = express();
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const methodOverride = require('method-override');
 
 app.set('view engine','ejs')
 app.set('views',path.join(__dirname,'views'))
 app.use(express.static(path.join(__dirname,'public')))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true })) 
+app.use(methodOverride('_method'));
 app.listen(3000,()=>{
     console.log('Listening on Port : 3000')
 })
@@ -55,10 +57,20 @@ app.get('/comments/:id',(req,res)=>{
     res.render('detailed',{comment})
 })
 
-app.get('/comments/:id/edit',(req,res)=>{
-    const {id} = req.params;
-    res.render('edit',{id});
-})
+// app.get('/comments/:id/edit',(req,res)=>{
+//     const {id} = req.params;
+//     res.render('edit',{id});
+// })
+app.get('/comments/:id/edit', (req, res) => {
+    const { id } = req.params;
+    const comment = comments.find(com => com.id === id);
+    if (comment) {
+        res.render('edit', { id: comment.id });
+    } else {
+        res.status(404).send('Comment not found');
+    }
+});
+
 app.patch('/comments/:id',(req,res)=>{
     const {id} = req.params;
     const filteredComment = comments.find(comment => comment.id === id);
