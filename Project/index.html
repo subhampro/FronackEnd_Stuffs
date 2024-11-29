@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -40,13 +41,14 @@
         }
     </style>
 </head>
+
 <body>
     <div>
         <h1>Your ID: <span id="id-text"></span></h1>
         <input type="text" placeholder="Enter remote ID" id="remote-id">
         <button onclick="startCall()">Connect</button>
     </div>
-  
+
     <div>
         <video class="secondary-video" autoplay id="remote-video"></video>
         <video class="primary-video" autoplay muted id="local-video"></video>
@@ -71,14 +73,17 @@
 
         function init(userId) {
             peer = new Peer(userId);
+            peer.on('open', (id) => {
+                console.log('My peer ID is: ' + id);
+                listen();
+            });
             peer.on('error', handleError);
-            listen();
         }
 
         function listen() {
             peer.on('call', (call) => {
                 navigator.mediaDevices.getUserMedia({
-                    audio: true, 
+                    audio: true,
                     video: true
                 }).then((stream) => {
                     localVideo.srcObject = stream;
@@ -122,25 +127,25 @@
             if (localStream) {
                 localStream.getVideoTracks()[0].enabled = !localStream.getVideoTracks()[0].enabled;
             }
-        } 
+        }
 
         function toggleAudio() {
             if (localStream) {
                 localStream.getAudioTracks()[0].enabled = !localStream.getAudioTracks()[0].enabled;
             }
-        } 
+        }
 
         function app() {
             let id = localStorage.getItem("contestId");
-            if(!id){
+            if (!id) {
                 id = generateID();
                 localStorage.setItem("contestId", id);
             }
-            
+
             let cid = document.querySelector("#id-text");
             cid.innerText = id;
             init(id);
-        } 
+        }
 
         function generateID() {
             return (Math.random() + 1).toString(36).substring(7);
@@ -154,4 +159,5 @@
         app();
     </script>
 </body>
+
 </html>
