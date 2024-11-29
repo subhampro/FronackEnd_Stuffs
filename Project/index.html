@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Video Chat Application</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
     <style>
         html,
         body {
             padding: 0;
             margin: 0;
+            font-family: Arial, sans-serif;
         }
 
         .primary-video {
@@ -16,7 +18,7 @@
             width: 500px;
             height: 500px;
             object-fit: cover;
-            background-color: "#555"
+            background-color: #555;
         }
 
         .secondary-video {
@@ -27,129 +29,129 @@
             border-radius: 16px;
             transform: scaleX(-1);
         }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
-    
-<div>
-    <h1>your id: <span id="id-text"></span></h1>
-    <input type="text" value="enterId" id="remote-id">
-    <button onclick="startC()">Connect</button>
-  </div>
+    <div>
+        <h1>Your ID: <span id="id-text"></span></h1>
+        <input type="text" placeholder="Enter remote ID" id="remote-id">
+        <button onclick="startCall()">Connect</button>
+    </div>
   
-  <div>
-    <video class="secondary-video" autoplay id="remote-video"></video>
-    <video class="primary-video" autoplay muted id="local-video"></video>
-  </div>
-  <script>
-    let localVideo = document.getElementById("local-video")
-let remoteVideo = document.getElementById("remote-video")
+    <div>
+        <video class="secondary-video" autoplay id="remote-video"></video>
+        <video class="primary-video" autoplay muted id="local-video"></video>
+    </div>
 
-localVideo.style.opacity = 0
-remoteVideo.style.opacity = 0
+    <div class="controls">
+        <button onclick="toggleVideo()">Toggle Video</button>
+        <button onclick="toggleAudio()">Toggle Audio</button>
+    </div>
 
-localVideo.onplaying = () => { localVideo.style.opacity = 1 }
-remoteVideo.onplaying = () => { remoteVideo.style.opacity = 1 }
+    <script>
+        let localVideo = document.getElementById("local-video");
+        let remoteVideo = document.getElementById("remote-video");
+        let localStream;
+        let peer;
 
-let peer
-function init(userId) {
-    peer = new Peer(userId, {
-      // host: "3.111.164.3",
-      // port: 9000,
-      // secure: false,
-      // path: "/myapp"
-    })
-    listen()
-}
+        localVideo.style.opacity = 0;
+        remoteVideo.style.opacity = 0;
 
-let localStream
-function listen() {
-    peer.on('call', (call) => {
+        localVideo.onplaying = () => { localVideo.style.opacity = 1 };
+        remoteVideo.onplaying = () => { remoteVideo.style.opacity = 1 };
 
-        navigator.getUserMedia({
-            audio: true, 
-            video: true
-        }, (stream) => {
-            localVideo.srcObject = stream
-            localStream = stream
+        function init(userId) {
+            peer = new Peer(userId);
+            peer.on('error', handleError);
+            listen();
+        }
 
-            call.answer(stream)
-            call.on('stream', (remoteStream) => {
-                remoteVideo.srcObject = remoteStream
+        function listen() {
+            peer.on('call', (call) => {
+                navigator.mediaDevices.getUserMedia({
+                    audio: true, 
+                    video: true
+                }).then((stream) => {
+                    localVideo.srcObject = stream;
+                    localStream = stream;
 
-                remoteVideo.className = "primary-video"
-                localVideo.className = "secondary-video"
+                    call.answer(stream);
+                    call.on('stream', (remoteStream) => {
+                        remoteVideo.srcObject = remoteStream;
+                        remoteVideo.className = "primary-video";
+                        localVideo.className = "secondary-video";
+                    });
+                }).catch(handleError);
+            });
+        }
 
-            })
+        function startCall() {
+            let remoteId = document.querySelector("#remote-id").value;
+            if (!remoteId) {
+                alert("Please enter a remote ID");
+                return;
+            }
 
-        })
-        
-    })
-}
+            navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: true
+            }).then((stream) => {
+                localVideo.srcObject = stream;
+                localStream = stream;
 
-function startCall(otherUserId) {
-    console.log("startCall")
-    navigator.getUserMedia({
-        audio: true,
-        video: true
-    }, (stream) => {
+                const call = peer.call(remoteId, stream);
+                call.on('stream', (remoteStream) => {
+                    remoteVideo.srcObject = remoteStream;
+                    remoteVideo.className = "primary-video";
+                    localVideo.className = "secondary-video";
+                });
+                call.on('error', handleError);
+            }).catch(handleError);
+        }
 
-        localVideo.srcObject = stream
-        localStream = stream
+        function toggleVideo() {
+            if (localStream) {
+                localStream.getVideoTracks()[0].enabled = !localStream.getVideoTracks()[0].enabled;
+            }
+        } 
 
-        const call = peer.call(otherUserId, stream)
-        call.on('stream', (remoteStream) => {
-            remoteVideo.srcObject = remoteStream
+        function toggleAudio() {
+            if (localStream) {
+                localStream.getAudioTracks()[0].enabled = !localStream.getAudioTracks()[0].enabled;
+            }
+        } 
 
-            remoteVideo.className = "primary-video"
-            localVideo.className = "secondary-video"
-        })
+        function app() {
+            let id = localStorage.getItem("contestId");
+            if(!id){
+                id = generateID();
+                localStorage.setItem("contestId", id);
+            }
+            
+            let cid = document.querySelector("#id-text");
+            cid.innerText = id;
+            init(id);
+        } 
 
-    })
-}
+        function generateID() {
+            return (Math.random() + 1).toString(36).substring(7);
+        }
 
-function toggleVideo(b) {
-    if (b) {
-        localStream.getVideoTracks()[0].enabled = true
-    } else {
-        localStream.getVideoTracks()[0].enabled = false
-    }
-} 
+        function handleError(error) {
+            console.error('Error:', error);
+            alert(`An error occurred: ${error.message}`);
+        }
 
-function toggleAudio(b) {
-    if (b) {
-        localStream.getAudioTracks()[0].enabled = true
-    } else {
-        localStream.getAudioTracks()[0].enabled = false
-    }
-} 
-
-function app() {
-  let id = null
-  if(!id){
-    id = generateID()
-    localStorage.setItem("contestId", id);
-  }
-  
-  let cid = document.querySelector("#id-text")
-  cid.innerText = id
-  init(id)
-  
-} 
-
-function startC(){
-  console.log("start call")
-  let rid = document.querySelector("#remote-id")
-  let id = rid.value
-  startCall(id)
-}
-app()
-
-function generateID() {
-  let r = (Math.random() + 1).toString(36).substring(7);
-  return r;
-}
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
+        app();
+    </script>
 </body>
 </html>
