@@ -555,7 +555,7 @@ class ImageConverter:
     def select_single_file(self):
         self.source_file = filedialog.askopenfilename(
             title="Select Image File",
-            filetypes=(("Image files", "*.png *.jpg *.jpeg *.bmp *.tiff"),)
+            filetypes=(("Image files", "*.png *.jpg *.jpeg *.bmp *.tiff *.webp"),)
         )
         if self.source_file:
             self.source_dir = os.path.dirname(self.source_file)
@@ -753,7 +753,7 @@ class ImageConverter:
             image_files = [os.path.basename(self.source_file)]
         else:
             image_files = [f for f in os.listdir(self.source_dir) 
-                          if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))]
+                          if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp'))]
 
         if not image_files:
             messagebox.showinfo("Info", "No image files found!")
