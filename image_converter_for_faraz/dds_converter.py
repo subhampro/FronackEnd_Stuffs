@@ -123,43 +123,47 @@ class DDSViewer(PreviewWindow):
 
 class UsageTracker:
     def __init__(self):
-        self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/track.php'  
+        self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/track.php'
         self.user_id = self.get_machine_id()
+        # Track initial startup
+        self.track_usage('startup')
         
-    def get_machine_id(self):
-        """Generate a unique machine ID that persists across runs"""
-        try:
-            system_info = f"{platform.node()}-{platform.machine()}-{platform.processor()}"
-            machine_id = hashlib.md5(system_info.encode()).hexdigest()
-            return machine_id
-        except:
-            return hashlib.md5(os.urandom(32)).hexdigest()
-            
     def track_usage(self, event_type='start'):
-        """Track usage with retry mechanism"""
         try:
             data = {
                 'user_id': self.user_id,
                 'event': event_type,
-                'system': platform.system(),
-                'version': '1.0.0',  
-                'timestamp': datetime.datetime.now().isoformat()
+                'system': platform.system() + ' ' + platform.release(),
+                'version': '1.0.0'
             }
             
-            for _ in range(3):
+            headers = {
+                'Content-Type': 'application/json',
+                'User-Agent': 'DDS-Converter/1.0'
+            }
+            
+            for attempt in range(3):
                 try:
                     response = requests.post(
                         self.api_url, 
-                        json=data, 
-                        timeout=2,
-                        headers={'User-Agent': 'DDS-Converter/1.0'}
+                        json=data,
+                        headers=headers,
+                        timeout=5
                     )
+                    
+                    print(f"Tracking response: {response.status_code}")
+                    print(f"Response content: {response.text}")
+                    
                     if response.status_code == 200:
                         return True
-                except:
-                    continue
-        except:
-            pass
+                except Exception as e:
+                    print(f"Tracking attempt {attempt + 1} failed: {str(e)}")
+                    if attempt == 2:  # Last attempt
+                        raise
+                    time.sleep(1)
+                    
+        except Exception as e:
+            print(f"Failed to track usage: {str(e)}")
         return False
 
 class LicenseManager:
