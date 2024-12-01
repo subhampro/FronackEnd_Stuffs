@@ -98,7 +98,7 @@ class PreviewWindow:
         self.is_active = False
         self.window.withdraw()
 
-class DDSViewer(PreviewWindow:
+class DDSViewer(PreviewWindow): 
     def __init__(self, parent):
         super().__init__(parent, "DDS Viewer")
         self.window.geometry("1024x768")
