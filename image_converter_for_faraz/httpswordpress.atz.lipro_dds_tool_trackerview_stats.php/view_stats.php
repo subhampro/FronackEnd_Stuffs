@@ -111,7 +111,7 @@ try {
         LIMIT 20
     ")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Replace the user_license_info query with this updated version
+    // Update the user_license_info query with precise time calculation
     $user_license_info = $db->query("
         SELECT 
             u.user_id,
@@ -128,27 +128,38 @@ try {
             END as status,
             CASE 
                 WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'active' THEN 
-                    DATEDIFF(MAX(l.expires_at), NOW())
+                    TIMESTAMPDIFF(SECOND, NOW(), MAX(l.expires_at))
                 WHEN MIN(us.created_at) IS NOT NULL THEN 
-                    GREATEST(0, 7 - DATEDIFF(NOW(), MIN(us.created_at)))
-                ELSE 7
-            END as days_remaining,
-            CASE 
-                WHEN MIN(us.created_at) IS NOT NULL THEN 
-                    MOD(TIMESTAMPDIFF(HOUR, NOW(), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY)), 24)
-                ELSE 0
-            END as hours_remaining,
-            CASE 
-                WHEN MIN(us.created_at) IS NOT NULL THEN 
-                    MOD(TIMESTAMPDIFF(MINUTE, NOW(), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY)), 60)
-                ELSE 0
-            END as minutes_remaining
+                    TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY))
+                ELSE 7 * 24 * 3600
+            END as total_seconds_remaining
         FROM users u
         LEFT JOIN usage_stats us ON u.user_id = us.user_id
         LEFT JOIN licenses l ON u.user_id = l.machine_id
         GROUP BY u.user_id
         ORDER BY MAX(u.last_seen) DESC
     ")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Process the remaining time more accurately
+    foreach ($user_license_info as &$user) {
+        $seconds = max(0, $user['total_seconds_remaining']);
+        $days = floor($seconds / 86400);
+        $hours = floor(($seconds % 86400) / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+        
+        // Ensure trial period doesn't exceed 7 days
+        if ($user['status'] === 'trial' && $days >= 7) {
+            $days = 7;
+            $hours = 0;
+            $minutes = 0;
+        }
+        
+        $user['remaining'] = [
+            'days' => $days,
+            'hours' => $hours,
+            'minutes' => $minutes
+        ];
+    }
 
     ?>
     <!DOCTYPE html>
@@ -487,7 +498,13 @@ try {
                         <td><?= $user['first_seen'] ?></td>
                         <td><?= $user['last_seen'] ?></td>
                         <td class="<?= $is_expiring_soon ? 'expiring-soon' : '' ?>">
-                            <?= htmlspecialchars($remaining_text) ?>
+                            <?php 
+                                if (isset($user['remaining'])) {
+                                    echo "{$user['remaining']['days']}d {$user['remaining']['hours']}h {$user['remaining']['minutes']}m";
+                                } else {
+                                    echo "Expired";
+                                }
+                            ?>
                         </td>
                         <td>
                             <?php if ($user['license_key']): ?>
