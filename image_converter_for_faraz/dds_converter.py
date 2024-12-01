@@ -6,10 +6,9 @@ import numpy as np
 
 class ImageConverter:
     def __init__(self):
-        # Add default values as class constants
         self.NORMAL_DEFAULTS = {
             'blur': 0,
-            'scale': 100,
+            'scale': 300,
             'high': 100,
             'medium': 100,
             'low': 100
@@ -20,14 +19,14 @@ class ImageConverter:
             'detail_scale': 100,
             'low': 50,
             'medium': 50,
-            'high': 51,
+            'high': 50,
             'bump': 10
         }
         self.dimensions = {
             "Original Size": "original",
+            "Custom Size": "custom",  # Add custom option
             "4x4": (4, 4),
             "128x128": (128, 128),
-            "289x289": (289, 289),
             "512x512": (512, 512),
             "1024x1024": (1024, 1024),
             "2048x2048": (2048, 2048),
@@ -102,7 +101,6 @@ class ImageConverter:
 
             control_frame = ttk.LabelFrame(self.window, text=title, padding=5)
             
-            # Add reset button at the top
             reset_button = tk.Button(
                 control_frame, 
                 text="Reset to Default", 
@@ -123,7 +121,6 @@ class ImageConverter:
             scale_label = tk.Label(scale_frame, text="100%")
             scale_label.pack(side=tk.RIGHT)
             
-            # Update initial values to defaults
             scale_var = tk.DoubleVar(value=self.NORMAL_DEFAULTS['scale'])
             scale_slider = ttk.Scale(
                 sliders_frame, from_=0, to=300,
@@ -139,7 +136,6 @@ class ImageConverter:
             blur_label = tk.Label(blur_frame, text="0px")
             blur_label.pack(side=tk.RIGHT)
             
-            # Update initial values to defaults
             blur_var = tk.DoubleVar(value=self.NORMAL_DEFAULTS['blur'])
             blur_slider = ttk.Scale(
                 sliders_frame, from_=0, to=100,
@@ -161,7 +157,6 @@ class ImageConverter:
                 label = tk.Label(frame, text="50%")
                 label.pack(side=tk.RIGHT)
                 
-                # Update initial values to defaults
                 var = tk.DoubleVar(value=self.NORMAL_DEFAULTS[detail.lower()])
                 setattr(self, f"normal_{detail.lower()}_var", var)
                 slider = ttk.Scale(
@@ -182,7 +177,6 @@ class ImageConverter:
         """Create roughness specific controls"""
         control_frame = ttk.LabelFrame(self.window, text=title, padding=5)
         
-        # Add reset button at the top
         reset_button = tk.Button(
             control_frame, 
             text="Reset to Default", 
@@ -204,7 +198,6 @@ class ImageConverter:
         blur_label = tk.Label(blur_frame, text="0px")
         blur_label.pack(side=tk.RIGHT)
         
-        # Update initial values
         blur_var = tk.DoubleVar(value=self.ROUGHNESS_DEFAULTS['blur'])
         ttk.Scale(
             controls_frame, from_=0, to=100,
@@ -219,7 +212,6 @@ class ImageConverter:
         scale_label = tk.Label(scale_frame, text="50%")
         scale_label.pack(side=tk.RIGHT)
         
-        # Update initial values
         detail_scale_var = tk.DoubleVar(value=self.ROUGHNESS_DEFAULTS['detail_scale'])
         ttk.Scale(
             controls_frame, from_=0, to=150,
@@ -239,7 +231,6 @@ class ImageConverter:
             label = tk.Label(frame, text="50%")
             label.pack(side=tk.RIGHT)
             
-            # Update contrast details initial values
             var = tk.DoubleVar(value=self.ROUGHNESS_DEFAULTS[level.lower()])
             contrast_vars[level.lower()] = var
             ttk.Scale(
@@ -258,7 +249,6 @@ class ImageConverter:
         bump_label = tk.Label(bump_frame, text="50%")
         bump_label.pack(side=tk.RIGHT)
         
-        # Update material preview initial value
         bump_var = tk.DoubleVar(value=self.ROUGHNESS_DEFAULTS['bump'])
         ttk.Scale(
             material_frame, from_=0, to=100,
@@ -412,25 +402,20 @@ class ImageConverter:
             offset_u = float(self.roughness_offset_u.get())
             offset_v = float(self.roughness_offset_v.get())
             
-            # Get image dimensions
             height, width = height_map.shape
             
-            # Create coordinate grids
             y, x = np.mgrid[0:height, 0:width]
             
-            # Apply tiling and offset
             x = (x / width * tile_u + offset_u) % 1
             y = (y / height * tile_v + offset_v) % 1
             
-            # Convert coordinates to indices
             x = (x * width).astype(np.int32)
             y = (y * height).astype(np.int32)
             
-            # Apply the transformation
             height_map = height_map[y, x]
             
         except ValueError:
-            pass  # Keep original mapping if values are invalid
+            pass  
 
         processed_map = np.clip(height_map, 0, 1)
         roughness_map = (processed_map * 255).astype(np.uint8)
