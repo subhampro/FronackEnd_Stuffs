@@ -193,8 +193,11 @@ class LicenseManager:
             
             system_info = f"{cpu_id}-{hdd_serial}-{sid}"
             return hashlib.sha256(system_info.encode()).hexdigest()
-        except:
-            return None
+        except Exception as e:
+            print(f"Debug - Error getting machine ID: {str(e)}")
+            # Fallback to a basic machine ID if secure method fails
+            backup_info = f"{platform.node()}-{platform.machine()}-{platform.processor()}"
+            return hashlib.md5(backup_info.encode()).hexdigest()
             
     def check_license(self):
         """Check license status with server"""
