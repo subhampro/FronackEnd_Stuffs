@@ -43,8 +43,8 @@ try {
                 WHEN l.status = 'expired' THEN 'expired'
                 ELSE 'trial_expired'
             END as user_status,
-            GREATEST(
-                COALESCE(l.expires_at, DATE_ADD(u.first_seen, INTERVAL 7 DAY)),
+            COALESCE(
+                l.expires_at,
                 DATE_ADD(u.first_seen, INTERVAL 7 DAY)
             ) as effective_expiry
         FROM users u
@@ -61,16 +61,21 @@ try {
     $now = new DateTime();
     $expiry = new DateTime($user['effective_expiry']);
     $interval = $now->diff($expiry);
-    $seconds_remaining = $expiry->getTimestamp() - $now->getTimestamp();
+    $seconds_remaining = max(0, $expiry->getTimestamp() - $now->getTimestamp());
     
-    // Update last check time
-    $stmt = $db->prepare("UPDATE users SET last_check = NOW() WHERE user_id = ?");
-    $stmt->execute([$data['machine_id']]);
+    // Try to update last check time if column exists
+    try {
+        $stmt = $db->prepare("UPDATE users SET last_check = NOW() WHERE user_id = ?");
+        $stmt->execute([$data['machine_id']]);
+    } catch (PDOException $e) {
+        // Ignore error if column doesn't exist
+        error_log("Warning: Could not update last_check time: " . $e->getMessage());
+    }
     
     echo json_encode([
         'status' => 'valid',
         'type' => $user['license_status'] == 'active' ? 'licensed' : 'trial',
-        'seconds_remaining' => max(0, $seconds_remaining),
+        'seconds_remaining' => $seconds_remaining,
         'user_status' => $user['user_status'],
         'expires_at' => $user['effective_expiry']
     ]);

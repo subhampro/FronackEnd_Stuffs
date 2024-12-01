@@ -259,6 +259,11 @@ class LicenseManager:
                 data = response.json()
                 if data.get('status') == 'valid':
                     seconds = int(data.get('seconds_remaining', 0))
+                    
+                    # Ensure we don't exceed 7 days for trial
+                    if data.get('type') == 'trial':
+                        seconds = min(seconds, 7 * 24 * 3600)
+                        
                     return {
                         'days': seconds // 86400,
                         'hours': (seconds % 86400) // 3600,
