@@ -38,11 +38,30 @@ if (empty($data['user_id']) || empty($data['event'])) {
     exit(json_encode(['status' => 'error', 'message' => 'Missing required fields']));
 }
 
+// Add this function at the top
+function get_ip_info($ip) {
+    try {
+        $url = "http://ip-api.com/json/" . $ip;
+        $response = file_get_contents($url);
+        $data = json_decode($response, true);
+        
+        if ($data && $data['status'] === 'success') {
+            return [
+                'country' => $data['country'],
+                'region' => $data['regionName'],
+                'city' => $data['city']
+            ];
+        }
+    } catch (Exception $e) {
+        error_log("IP lookup failed: " . $e->getMessage());
+    }
+    return null;
+}
+
 try {
     $db = new PDO('mysql:host=localhost;dbname=wordpres_test', 'wordpres_test', '$$$Pro381998');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-
     $stmt = $db->prepare("INSERT INTO users (user_id, last_seen) 
                          VALUES (:user_id, NOW()) 
                          ON DUPLICATE KEY UPDATE 
@@ -51,16 +70,22 @@ try {
     
     $stmt->execute(['user_id' => $data['user_id']]);
 
+    $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
+    $ip_info = $ip_address ? get_ip_info($ip_address) : null;
 
     $stmt = $db->prepare("INSERT INTO usage_stats 
-                         (user_id, event_type, system_info, version, created_at) 
-                         VALUES (:user_id, :event, :system, :version, NOW())");
+                         (user_id, event_type, system_info, version, ip_address, country, region, city, created_at) 
+                         VALUES (:user_id, :event, :system, :version, :ip, :country, :region, :city, NOW())");
     
     $params = [
         'user_id' => $data['user_id'],
         'event' => $data['event'],
         'system' => isset($data['system']) ? $data['system'] : null,
-        'version' => isset($data['version']) ? $data['version'] : '1.0.0'
+        'version' => isset($data['version']) ? $data['version'] : '1.0.0',
+        'ip' => $ip_address,
+        'country' => $ip_info ? $ip_info['country'] : null,
+        'region' => $ip_info ? $ip_info['region'] : null,
+        'city' => $ip_info ? $ip_info['city'] : null
     ];
     
     $stmt->execute($params);
