@@ -8,6 +8,13 @@ import struct
 import io
 import signal
 import sys
+import uuid
+import json
+import requests
+from pathlib import Path
+import platform
+import datetime
+import hashlib
 
 class PreviewWindow:
     def __init__(self, parent, title):
@@ -107,10 +114,54 @@ class DDSViewer(PreviewWindow):
         self.fullscreen = False
         self.window.attributes('-fullscreen', False)
 
+class UsageTracker:
+    def __init__(self):
+        self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/track.php'  
+        self.user_id = self.get_machine_id()
+        
+    def get_machine_id(self):
+        """Generate a unique machine ID that persists across runs"""
+        try:
+            system_info = f"{platform.node()}-{platform.machine()}-{platform.processor()}"
+            machine_id = hashlib.md5(system_info.encode()).hexdigest()
+            return machine_id
+        except:
+            return hashlib.md5(os.urandom(32)).hexdigest()
+            
+    def track_usage(self, event_type='start'):
+        """Track usage with retry mechanism"""
+        try:
+            data = {
+                'user_id': self.user_id,
+                'event': event_type,
+                'system': platform.system(),
+                'version': '1.0.0',  
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+            
+            for _ in range(3):
+                try:
+                    response = requests.post(
+                        self.api_url, 
+                        json=data, 
+                        timeout=2,
+                        headers={'User-Agent': 'DDS-Converter/1.0'}
+                    )
+                    if response.status_code == 200:
+                        return True
+                except:
+                    continue
+        except:
+            pass
+        return False
+
 class ImageConverter:
     def __init__(self):
+        self.tracker = UsageTracker()
+        self.tracker.track_usage('start')
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
+        self.version = '1.0.0'
         
         self.NORMAL_DEFAULTS = {
             'blur': 0,
@@ -771,6 +822,7 @@ class ImageConverter:
         return compressed
 
     def convert_images(self):
+        self.tracker.track_usage('conversion')
         if not hasattr(self, 'source_dir') or not hasattr(self, 'output_dir'):
             messagebox.showerror("Error", "Please select both source and output locations!")
             return
@@ -921,8 +973,10 @@ class ImageConverter:
         try:
             self.window.mainloop()
         except KeyboardInterrupt:
+            self.tracker.track_usage('stop')
             self.signal_handler(signal.SIGINT, None)
         except Exception as e:
+            self.tracker.track_usage('error')
             print(f"Error: {str(e)}")
             self.signal_handler(signal.SIGTERM, None)
 

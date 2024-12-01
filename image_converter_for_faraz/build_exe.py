@@ -64,6 +64,7 @@ options.extend([
     '--hidden-import=PIL.ImageTk',
     '--hidden-import=PIL.Image',
     '--hidden-import=numpy',
+    '--hidden-import=requests',  # Add this line
     '--collect-all=tkinter',
     '--collect-all=PIL',
 ])
