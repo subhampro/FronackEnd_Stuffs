@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 02, 2024 at 03:08 AM
+-- Generation Time: Dec 02, 2024 at 03:35 AM
 -- Server version: 8.0.39
 -- PHP Version: 8.1.29
 
@@ -73,7 +73,13 @@ INSERT INTO `usage_stats` (`id`, `user_id`, `event_type`, `system_info`, `versio
 (12, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 02:54:05', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
 (13, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 02:54:06', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
 (14, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 02:57:05', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
-(15, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 02:57:05', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL);
+(15, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 02:57:05', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(16, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 03:12:24', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(17, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 03:12:25', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(18, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 03:19:48', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(19, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 03:19:49', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(20, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 03:21:44', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(21, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 03:21:44', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL);
 
 -- --------------------------------------------------------
 
@@ -94,7 +100,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `user_id`, `first_seen`, `last_seen`, `total_uses`) VALUES
-(4, '81b8e21070bfd0eb96f206dbeda983dd', '2024-12-02 02:22:12', '2024-12-02 02:57:05', 12);
+(4, '81b8e21070bfd0eb96f206dbeda983dd', '2024-12-02 02:22:12', '2024-12-02 03:21:44', 18);
 
 --
 -- Indexes for dumped tables
@@ -115,7 +121,9 @@ ALTER TABLE `licenses`
 ALTER TABLE `usage_stats`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`),
-  ADD KEY `created_at` (`created_at`);
+  ADD KEY `created_at` (`created_at`),
+  ADD KEY `idx_location` (`country`,`region`,`city`),
+  ADD KEY `idx_ip` (`ip_address`);
 
 --
 -- Indexes for table `users`
@@ -139,13 +147,13 @@ ALTER TABLE `licenses`
 -- AUTO_INCREMENT for table `usage_stats`
 --
 ALTER TABLE `usage_stats`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

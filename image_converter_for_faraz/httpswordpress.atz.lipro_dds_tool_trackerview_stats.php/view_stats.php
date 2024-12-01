@@ -11,6 +11,11 @@ function get_geo_data($ip) {
     }
 }
 
+function safe_html($str) {
+    // Fix null parameter warning by providing empty string default
+    return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
+}
+
 try {
     $db = new PDO('mysql:host=localhost;dbname=wordpres_test', 'wordpres_test', '$$$Pro381998');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -125,40 +130,29 @@ try {
             u.user_id,
             COALESCE(MIN(us.created_at), u.first_seen) as first_seen,
             MAX(u.last_seen) as last_seen,
-            MAX(l.license_key) as license_key,
-            MAX(l.expires_at) as expires_at,
-            MAX(l.status) as license_status,
-            COALESCE(
-                CASE 
-                    WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'active' THEN 'licensed'
-                    WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'expired' THEN 'expired'
-                    WHEN TIMESTAMPDIFF(DAY, MIN(us.created_at), NOW()) <= 7 THEN 'trial'
-                    ELSE 'trial_expired'
-                END,
-                'trial'
-            ) as status,
+            l.license_key,
+            l.expires_at,
+            l.status as license_status,
+            CASE 
+                WHEN l.license_key IS NOT NULL AND l.status = 'active' THEN 'licensed'
+                WHEN l.license_key IS NOT NULL AND l.status = 'expired' THEN 'expired'
+                WHEN TIMESTAMPDIFF(DAY, COALESCE(MIN(us.created_at), u.first_seen), NOW()) <= 7 THEN 'trial'
+                ELSE 'trial_expired'
+            END as status,
             COALESCE(
                 CASE
-                    WHEN MAX(l.license_key) IS NOT NULL THEN 
-                        TIMESTAMPDIFF(DAY, NOW(), MAX(l.expires_at))
-                    ELSE 
-                        7 - TIMESTAMPDIFF(DAY, COALESCE(MIN(us.created_at), u.first_seen), NOW())
-                END,
-                7
-            ) as days_remaining,
-            COALESCE(
-                CASE
-                    WHEN MAX(l.license_key) IS NOT NULL THEN 
-                        TIMESTAMPDIFF(SECOND, NOW(), MAX(l.expires_at))
+                    WHEN l.license_key IS NOT NULL AND l.status = 'active' THEN 
+                        TIMESTAMPDIFF(SECOND, NOW(), l.expires_at)
                     ELSE 
                         (7 * 86400) - TIMESTAMPDIFF(SECOND, COALESCE(MIN(us.created_at), u.first_seen), NOW())
                 END,
-                7 * 86400
+                0
             ) as total_seconds_remaining
         FROM users u
         LEFT JOIN usage_stats us ON u.user_id = us.user_id
         LEFT JOIN licenses l ON u.user_id = l.machine_id
-        GROUP BY u.user_id, u.last_seen
+        GROUP BY u.user_id, l.license_key, l.expires_at, l.status
+        HAVING total_seconds_remaining > 0
         ORDER BY u.last_seen DESC
     ")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -339,7 +333,7 @@ try {
                 ?>
                 <div class="user-panel">
                     <div class="user-header">
-                        <h3>User ID: <?= htmlspecialchars(substr($user['user_id'], 0, 8)) ?>...</h3>
+                        <h3>User ID: <?= safe_html(substr($user['user_id'], 0, 8)) ?>...</h3>
                         <span class="status-badge <?= $is_active ? 'active' : 'inactive' ?>">
                             <?= $is_active ? '● Active' : '○ Inactive' ?>
                         </span>
@@ -370,7 +364,7 @@ try {
                     </tr>
                     <?php foreach ($events as $event): ?>
                     <tr>
-                        <td><?= htmlspecialchars($event['event_type']) ?></td>
+                        <td><?= safe_html($event['event_type']) ?></td>
                         <td><?= $event['count'] ?></td>
                         <td><?= $event['unique_users'] ?></td>
                         <td><?= $event['first_seen'] ?></td>
@@ -390,7 +384,7 @@ try {
                     </tr>
                     <?php foreach ($systems as $system): ?>
                     <tr>
-                        <td><?= htmlspecialchars($system['system_info']) ?></td>
+                        <td><?= safe_html($system['system_info']) ?></td>
                         <td><?= $system['users'] ?></td>
                         <td><?= $system['events'] ?></td>
                     </tr>
@@ -412,10 +406,10 @@ try {
                     </tr>
                     <?php foreach ($geo_stats as $geo): ?>
                     <tr>
-                        <td><?= htmlspecialchars($geo['country']) ?></td>
+                        <td><?= safe_html($geo['country']) ?></td>
                         <td><?= $geo['unique_users'] ?></td>
                         <td><?= $geo['total_events'] ?></td>
-                        <td><?= htmlspecialchars($geo['cities']) ?></td>
+                        <td><?= safe_html($geo['cities']) ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </table>
@@ -434,17 +428,17 @@ try {
                     <?php foreach ($recent_connections as $conn): ?>
                     <tr>
                         <td><?= $conn['created_at'] ?></td>
-                        <td><?= htmlspecialchars(substr($conn['user_id'], 0, 8)) ?>...</td>
-                        <td><?= htmlspecialchars($conn['event_type']) ?></td>
+                        <td><?= safe_html(substr($conn['user_id'], 0, 8)) ?>...</td>
+                        <td><?= safe_html($conn['event_type']) ?></td>
                         <td>
                             <?php if ($conn['country']): ?>
-                                <?= htmlspecialchars($conn['city'] ? "{$conn['city']}, " : "") ?>
-                                <?= htmlspecialchars($conn['country']) ?>
+                                <?= safe_html($conn['city'] ? "{$conn['city']}, " : "") ?>
+                                <?= safe_html($conn['country']) ?>
                             <?php else: ?>
                                 Unknown
                             <?php endif; ?>
                         </td>
-                        <td><?= htmlspecialchars($conn['system_info']) ?></td>
+                        <td><?= safe_html($conn['system_info']) ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </table>
@@ -490,7 +484,7 @@ try {
                         $is_expiring_soon = (($user['days_remaining'] ?? 0) <= 2 && ($user['days_remaining'] ?? 0) > 0);
                     ?>
                     <tr>
-                        <td><?= htmlspecialchars(substr($user['user_id'] ?? '', 0, 8)) ?>...</td>
+                        <td><?= safe_html(substr($user['user_id'] ?? '', 0, 8)) ?>...</td>
                         <td>
                             <?php 
                             $status = $user['status'] ?? 'unknown';

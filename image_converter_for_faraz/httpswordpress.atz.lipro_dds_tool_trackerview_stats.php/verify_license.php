@@ -23,87 +23,81 @@ if (!$data || !isset($data['machine_id'])) {
 $machine_id = $data['machine_id'];
 
 try {
-    $stmt = $db->prepare("SELECT * FROM licenses WHERE machine_id = ?");
+    $stmt = $db->prepare("
+        SELECT l.*, 
+               TIMESTAMPDIFF(SECOND, NOW(), l.expires_at) as seconds_remaining,
+               CASE 
+                   WHEN l.status = 'active' AND l.expires_at > NOW() THEN 'valid'
+                   ELSE l.status
+               END as current_status
+        FROM licenses l
+        WHERE l.machine_id = ?
+    ");
     $stmt->execute([$machine_id]);
     $license = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if ($license) {
-        // Add expiration check - 30 days from activation
-        $activation_date = strtotime($license['activated_at']);
-        $expires_at = $activation_date + (30 * 24 * 3600); // 30 days in seconds
-        $now = time();
-        
-        if ($expires_at > $now) {
-            $remaining = $expires_at - $now;
-            echo json_encode([
-                'status' => 'valid',
-                'type' => 'full',
-                'expires_at' => date('Y-m-d H:i:s', $expires_at),
-                'remaining' => [
-                    'days' => floor($remaining / 86400),
-                    'hours' => floor(($remaining % 86400) / 3600),
-                    'minutes' => floor(($remaining % 3600) / 60)
-                ]
-            ]);
-            exit;
-        }
-        
-        // Update license status to expired
-        $stmt = $db->prepare("UPDATE licenses SET status = 'expired' WHERE machine_id = ?");
-        $stmt->execute([$machine_id]);
-        
+    if ($license && $license['current_status'] === 'valid') {
+        $remaining = max(0, $license['seconds_remaining']);
         echo json_encode([
-            'status' => 'expired',
-            'message' => 'License has expired. Please renew your license.'
+            'status' => 'valid',
+            'type' => 'full',
+            'expires_at' => $license['expires_at'],
+            'remaining' => [
+                'days' => floor($remaining / 86400),
+                'hours' => floor(($remaining % 86400) / 3600),
+                'minutes' => floor(($remaining % 3600) / 60)
+            ]
         ]);
         exit;
     }
     
-    $stmt = $db->prepare("SELECT * FROM usage_stats WHERE user_id = ? ORDER BY created_at ASC LIMIT 1");
+    // Check for trial period
+    $stmt = $db->prepare("
+        SELECT 
+            MIN(created_at) as first_use,
+            TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(MIN(created_at), INTERVAL 7 DAY)) as trial_remaining
+        FROM usage_stats 
+        WHERE user_id = ?
+    ");
     $stmt->execute([$machine_id]);
-    $first_use = $stmt->fetch(PDO::FETCH_ASSOC);
+    $trial = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if ($first_use) {
-        $trial_end = strtotime($first_use['created_at'] . ' +7 days');
-        $now = time();
-        
-        if ($now <= $trial_end) {
-            $remaining = $trial_end - $now;
-            echo json_encode([
-                'status' => 'valid',
-                'type' => 'trial',
-                'remaining' => [
-                    'days' => floor($remaining / 86400),
-                    'hours' => floor(($remaining % 86400) / 3600),
-                    'minutes' => floor(($remaining % 3600) / 60)
-                ]
-            ]);
-            exit;
-        }
-        
+    if ($trial && $trial['trial_remaining'] > 0) {
+        $remaining = max(0, $trial['trial_remaining']);
+        echo json_encode([
+            'status' => 'valid',
+            'type' => 'trial',
+            'remaining' => [
+                'days' => floor($remaining / 86400),
+                'hours' => floor(($remaining % 86400) / 3600),
+                'minutes' => floor(($remaining % 3600) / 60)
+            ]
+        ]);
+        exit;
+    }
+    
+    // Trial or license expired
+    if ($trial) {
         echo json_encode([
             'status' => 'expired',
             'message' => 'Trial period has expired. Please activate a license to continue.'
         ]);
-        exit;
+    } else {
+        echo json_encode([
+            'status' => 'valid',
+            'type' => 'trial',
+            'remaining' => [
+                'days' => 7,
+                'hours' => 0,
+                'minutes' => 0
+            ]
+        ]);
     }
-    
-    echo json_encode([
-        'status' => 'valid',
-        'type' => 'trial',
-        'remaining' => [
-            'days' => 7,
-            'hours' => 0,
-            'minutes' => 0
-        ],
-        'message' => 'Trial period started'
-    ]);
     
 } catch (Exception $e) {
     error_log("License verification error: " . $e->getMessage());
     echo json_encode([
         'status' => 'error',
-        'message' => 'Verification failed. Please try again later.',
-        'debug' => $e->getMessage()
+        'message' => 'Verification failed. Please try again later.'
     ]);
 }
