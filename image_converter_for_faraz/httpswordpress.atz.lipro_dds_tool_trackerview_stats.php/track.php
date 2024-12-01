@@ -62,28 +62,30 @@ try {
     $db = new PDO('mysql:host=localhost;dbname=wordpres_test', 'wordpres_test', '$$$Pro381998');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Modified license insertion to only include necessary fields
-    $stmt = $db->prepare("
-        INSERT INTO licenses (machine_id, created_at, expires_at, status)
-        SELECT :user_id, NOW(), DATE_ADD(NOW(), INTERVAL 7 DAY), 'active'
-        WHERE NOT EXISTS (
-            SELECT 1 FROM licenses WHERE machine_id = :user_id
-        )
-    ");
-    
+    // Get existing license info
+    $stmt = $db->prepare("SELECT id, status, expires_at FROM licenses WHERE machine_id = :user_id");
     $stmt->execute(['user_id' => $data['user_id']]);
+    $license = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Update license status if needed
-    $stmt = $db->prepare("
-        UPDATE licenses 
-        SET status = CASE
-            WHEN expires_at > NOW() THEN 'active'
-            ELSE 'expired'
-        END
-        WHERE machine_id = :user_id
-    ");
-    
-    $stmt->execute(['user_id' => $data['user_id']]);
+    if (!$license) {
+        // Create new trial license if none exists
+        $stmt = $db->prepare("
+            INSERT INTO licenses (machine_id, created_at, activated_at, expires_at, status)
+            VALUES (:user_id, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 7 DAY), 'active')
+        ");
+        $stmt->execute(['user_id' => $data['user_id']]);
+    } else {
+        // Update existing license status
+        $stmt = $db->prepare("
+            UPDATE licenses 
+            SET status = CASE
+                WHEN expires_at > NOW() THEN 'active'
+                ELSE 'expired'
+            END
+            WHERE machine_id = :user_id
+        ");
+        $stmt->execute(['user_id' => $data['user_id']]);
+    }
 
     $stmt = $db->prepare("INSERT INTO users (user_id, last_seen) 
                          VALUES (:user_id, NOW()) 

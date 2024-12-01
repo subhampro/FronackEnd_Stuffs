@@ -176,9 +176,7 @@ class UsageTracker:
 class LicenseManager:
     def __init__(self):
         self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/'
-        self.registry_key = r'Software\DDSConverter'
         self.machine_id = self.get_secure_machine_id()
-        self.offline_mode = False
         
     def get_secure_machine_id(self):
         """Generate a tamper-proof machine ID"""
@@ -197,9 +195,8 @@ class LicenseManager:
             return None
             
     def check_license(self):
-        """Check license status with offline fallback"""
+        """Check license status with server"""
         try:
-            # Try online verification first
             response = requests.post(
                 f"{self.api_url}verify_license.php",
                 json={'machine_id': self.machine_id},
@@ -207,54 +204,44 @@ class LicenseManager:
                 timeout=5
             )
             
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('status') == 'valid':
-                    return True, None
-                    
+            if response.status_code != 200:
+                messagebox.showerror("Error", "Cannot connect to license server. Internet connection required.")
+                return False, "Internet connection required"
+                
+            result = response.json()
+            if result.get('status') == 'valid':
+                return True, None
+            return False, result.get('message', 'License validation failed')
+            
         except requests.exceptions.ConnectionError:
-            print("Warning: Operating in offline mode - using cached license data")
-            self.offline_mode = True
+            messagebox.showerror("Error", "Cannot connect to license server. Internet connection required.")
+            return False, "Internet connection required"
         except Exception as e:
-            print(f"License check warning: {e}")
-            self.offline_mode = True
+            return False, str(e)
 
-        # Fallback to local registry check if online verification fails
+    def get_trial_time_remaining(self):
+        """Get remaining time from server"""
         try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
-            stored_data = winreg.QueryValueEx(key, "license_data")[0]
-            license_data = json.loads(base64.b64decode(stored_data))
-            winreg.CloseKey(key)
+            response = requests.post(
+                f"{self.api_url}verify_license.php",
+                json={'machine_id': self.machine_id},
+                timeout=5
+            )
             
-            if license_data.get('type') == 'full':
-                activation_date = datetime.fromisoformat(license_data['activated'])
-                expires_at = activation_date + timedelta(days=30)
-                
-                if datetime.now() > expires_at:
-                    return False, "License has expired. Please renew your license."
-                    
-                return True, None
-                
-            if license_data.get('type') == 'trial':
-                first_launch = datetime.fromisoformat(license_data['first_launch'])
-                trial_end = first_launch + timedelta(days=7)
-                if datetime.now() > trial_end:
-                    return False, "Trial period expired"
-                    
-                return True, None
-                
-        except WindowsError:
-            if not self.offline_mode:
-                self.start_trial()
-            return True, None
-            
-        except Exception as e:
-            print(f"Registry check error: {e}")
-            if not self.offline_mode:
-                self.start_trial()
-            return True, None
-            
-        return True, None
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 'valid':
+                    seconds = int(data.get('seconds_remaining', 0))
+                    return {
+                        'days': seconds // 86400,
+                        'hours': (seconds % 86400) // 3600,
+                        'minutes': (seconds % 3600) // 60,
+                        'total_seconds': seconds,
+                        'type': data.get('type', 'trial')
+                    }
+            return None
+        except:
+            return None
 
     def get_license_expiry(self):
         """Get license expiration details"""

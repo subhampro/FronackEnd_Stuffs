@@ -124,49 +124,34 @@ try {
         LIMIT 20
     ")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Replace the user_license_info query with this safer version
+    // Update the license status query
     $user_license_info = $db->query("
         SELECT 
             u.user_id,
-            COALESCE(MIN(us.created_at), u.first_seen) as first_seen,
-            MAX(u.last_seen) as last_seen,
+            u.first_seen,
+            u.last_seen,
             l.license_key,
+            l.created_at as license_created,
             l.expires_at,
             l.status as license_status,
             CASE 
-                WHEN l.license_key IS NOT NULL AND l.status = 'active' THEN 'licensed'
-                WHEN l.license_key IS NOT NULL AND l.status = 'expired' THEN 'expired'
-                WHEN TIMESTAMPDIFF(DAY, COALESCE(MIN(us.created_at), u.first_seen), NOW()) <= 7 THEN 'trial'
-                ELSE 'trial_expired'
-            END as status,
-            COALESCE(
-                CASE
-                    WHEN l.license_key IS NOT NULL AND l.status = 'active' THEN 
-                        TIMESTAMPDIFF(SECOND, NOW(), l.expires_at)
-                    ELSE 
-                        (7 * 86400) - TIMESTAMPDIFF(SECOND, COALESCE(MIN(us.created_at), u.first_seen), NOW())
-                END,
-                0
-            ) as total_seconds_remaining
+                WHEN l.id IS NOT NULL AND l.status = 'active' THEN 'Active'
+                WHEN l.id IS NOT NULL AND l.status = 'expired' THEN 'Expired'
+                WHEN l.id IS NULL AND TIMESTAMPDIFF(DAY, u.first_seen, NOW()) <= 7 THEN 'Trial'
+                ELSE 'Expired'
+            END as display_status,
+            TIMESTAMPDIFF(SECOND, NOW(), COALESCE(l.expires_at, DATE_ADD(u.first_seen, INTERVAL 7 DAY))) as seconds_remaining
         FROM users u
-        LEFT JOIN usage_stats us ON u.user_id = us.user_id
         LEFT JOIN licenses l ON u.user_id = l.machine_id
-        GROUP BY u.user_id, l.license_key, l.expires_at, l.status
-        HAVING total_seconds_remaining > 0
         ORDER BY u.last_seen DESC
     ")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Process the remaining time more accurately
     foreach ($user_license_info as &$user) {
-        $status = $user['status'] ?? 'trial';
-        $days_remaining = max(0, intval($user['days_remaining'] ?? 0));
-        $total_seconds = max(0, intval($user['total_seconds_remaining'] ?? 0));
-        
-        $user['status'] = $status;
+        $seconds_remaining = max(0, intval($user['seconds_remaining']));
         $user['remaining'] = [
-            'days' => min($days_remaining, ($status === 'trial' ? 7 : 30)),
-            'hours' => floor(($total_seconds % 86400) / 3600),
-            'minutes' => floor(($total_seconds % 3600) / 60)
+            'days' => floor($seconds_remaining / 86400),
+            'hours' => floor(($seconds_remaining % 86400) / 3600),
+            'minutes' => floor(($seconds_remaining % 3600) / 60)
         ];
     }
 
