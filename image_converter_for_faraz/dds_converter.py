@@ -16,6 +16,7 @@ class ImageConverter:
             "2048x2048": (2048, 2048),
         }
         self.preview_image = None
+        self.preview_roughness_image = None
         self.setup_gui()
 
     def setup_gui(self):
@@ -57,46 +58,62 @@ class ImageConverter:
         
         ttk.Checkbutton(
             checkbox_frame, 
-            text="Generate Height Map/Roughness Map",
+            text="Generate Height/Roughness Map",
             variable=self.generate_roughness
         ).pack(side=tk.LEFT, padx=5)
 
-        self.normal_controls_frame = ttk.LabelFrame(self.window, text="Normal Map Controls", padding=5)
+        self.normal_controls_frame = self.create_map_controls("Normal Map Controls", self.update_preview)
+        self.roughness_controls_frame = self.create_map_controls("Height/Roughness Map Controls", self.update_roughness_preview)
         
-        self.preview_canvas = tk.Canvas(self.normal_controls_frame, width=200, height=200)
-        self.preview_canvas.pack(side=tk.RIGHT, padx=5)
+        self.normal_controls_frame.pack_forget()
+        self.roughness_controls_frame.pack_forget()
 
-        sliders_frame = ttk.Frame(self.normal_controls_frame)
+        self.generate_heightmap.trace('w', self.toggle_normal_controls)
+        self.generate_roughness.trace('w', self.toggle_roughness_controls)
+
+        self.convert_button = tk.Button(self.window, text="Convert Images", command=self.convert_images)
+        self.convert_button.pack(pady=20)
+
+        self.status_label = tk.Label(self.window, text="")
+        self.status_label.pack(pady=10)
+
+    def create_map_controls(self, title, preview_callback):
+        """Create a control frame with sliders and preview for map generation"""
+        control_frame = ttk.LabelFrame(self.window, text=title, padding=5)
+        
+        preview_canvas = tk.Canvas(control_frame, width=200, height=200)
+        preview_canvas.pack(side=tk.RIGHT, padx=5)
+
+        sliders_frame = ttk.Frame(control_frame)
         sliders_frame.pack(side=tk.LEFT, fill="x", expand=True)
 
         scale_frame = ttk.Frame(sliders_frame)
         scale_frame.pack(fill="x")
         tk.Label(scale_frame, text="Scale:").pack(side=tk.LEFT)
-        self.scale_label = tk.Label(scale_frame, text="100%")
-        self.scale_label.pack(side=tk.RIGHT)
+        scale_label = tk.Label(scale_frame, text="100%")
+        scale_label.pack(side=tk.RIGHT)
         
-        self.scale_var = tk.DoubleVar(value=100)
-        self.scale_slider = ttk.Scale(
+        scale_var = tk.DoubleVar(value=100)
+        scale_slider = ttk.Scale(
             sliders_frame, from_=0, to=300,
-            variable=self.scale_var,
-            command=lambda v: self.update_slider_label(v, self.scale_label, "%")
+            variable=scale_var,
+            command=lambda v: self.update_slider_label(v, scale_label, "%", preview_callback)
         )
-        self.scale_slider.pack(fill="x")
+        scale_slider.pack(fill="x")
 
         blur_frame = ttk.Frame(sliders_frame)
         blur_frame.pack(fill="x")
         tk.Label(blur_frame, text="Blur:").pack(side=tk.LEFT)
-        self.blur_label = tk.Label(blur_frame, text="0px")
-        self.blur_label.pack(side=tk.RIGHT)
+        blur_label = tk.Label(blur_frame, text="0px")
+        blur_label.pack(side=tk.RIGHT)
         
-        self.blur_var = tk.DoubleVar(value=0)
-        self.blur_slider = ttk.Scale(
+        blur_var = tk.DoubleVar(value=0)
+        blur_slider = ttk.Scale(
             sliders_frame, from_=0, to=100,
-            variable=self.blur_var,
-            command=lambda v: self.update_slider_label(v, self.blur_label, "px")
+            variable=blur_var,
+            command=lambda v: self.update_slider_label(v, blur_label, "px", preview_callback)
         )
-        self.blur_slider.pack(fill="x")
-
+        blur_slider.pack(fill="x")
 
         detail_ranges = {
             "High": 150,
@@ -117,24 +134,30 @@ class ImageConverter:
             slider = ttk.Scale(
                 sliders_frame, from_=0, to=detail_ranges[detail],
                 variable=var,
-                command=lambda v, l=label: self.update_slider_label(v, l, "%")
+                command=lambda v, l=label: self.update_slider_label(v, l, "%", preview_callback)
             )
             slider.pack(fill="x")
 
-        self.normal_controls_frame.pack_forget()
-        self.generate_heightmap.trace('w', self.toggle_normal_controls)
+            for item in ['var', 'slider', 'label']:
+                setattr(self, f"{title.split()[0].lower()}_{detail.lower()}_{item}", locals()[item])
 
-        self.convert_button = tk.Button(self.window, text="Convert Images", command=self.convert_images)
-        self.convert_button.pack(pady=20)
+        setattr(self, f"{title.split()[0].lower()}_preview_canvas", preview_canvas)
+        setattr(self, f"{title.split()[0].lower()}_scale_var", scale_var)
+        setattr(self, f"{title.split()[0].lower()}_blur_var", blur_var)
 
-        self.status_label = tk.Label(self.window, text="")
-        self.status_label.pack(pady=10)
+        return control_frame
 
     def toggle_normal_controls(self, *args):
         if self.generate_heightmap.get():
             self.normal_controls_frame.pack(fill="x", padx=5, pady=5)
         else:
             self.normal_controls_frame.pack_forget()
+
+    def toggle_roughness_controls(self, *args):
+        if self.generate_roughness.get():
+            self.roughness_controls_frame.pack(fill="x", padx=5, pady=5)
+        else:
+            self.roughness_controls_frame.pack_forget()
 
     def update_preview(self, *args):
         if not hasattr(self, 'preview_source'):
@@ -143,12 +166,21 @@ class ImageConverter:
         preview = self.generate_normal_map(self.preview_source)
         preview = preview.resize((200, 200), Image.Resampling.LANCZOS)
         self.preview_image = ImageTk.PhotoImage(preview)
-        self.preview_canvas.create_image(100, 100, image=self.preview_image, anchor="center")
+        self.normal_preview_canvas.create_image(100, 100, image=self.preview_image, anchor="center")
 
-    def update_slider_label(self, value, label, unit):
+    def update_slider_label(self, value, label, unit, callback):
         """Update the label with the current slider value"""
         label.config(text=f"{float(value):.1f}{unit}")
-        self.update_preview()
+        callback()
+
+    def update_roughness_preview(self, *args):
+        if not hasattr(self, 'preview_source'):
+            return
+        
+        preview = self.generate_roughness_map(self.preview_source)
+        preview = preview.resize((200, 200), Image.Resampling.LANCZOS)
+        self.preview_roughness_image = ImageTk.PhotoImage(preview)
+        self.roughness_preview_canvas.create_image(100, 100, image=self.preview_roughness_image, anchor="center")
 
     def generate_normal_map(self, image):
         gray = image.convert('L')
@@ -190,6 +222,27 @@ class ImageConverter:
         normal_map = (normal_map * 255).astype(np.uint8)
         return Image.fromarray(normal_map, 'RGB')
 
+    def generate_roughness_map(self, image):
+        gray = image.convert('L')
+        
+        blur_radius = self.roughness_blur_var.get() / 10
+        if blur_radius > 0:
+            gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+
+        height_map = np.array(gray).astype(np.float32) / 255.0
+
+        high = (self.roughness_high_var.get() / 100.0) * 1.5
+        med = (self.roughness_medium_var.get() / 100.0) * 1.5
+        low = (self.roughness_low_var.get() / 100.0) * 1.5
+
+        scale = (self.roughness_scale_var.get() / 100.0) * 3.0
+
+        processed_map = height_map * scale
+        processed_map = np.clip(processed_map, 0, 1)
+        
+        roughness_map = (processed_map * 255).astype(np.uint8)
+        return Image.fromarray(roughness_map, 'L')
+
     def select_single_file(self):
         self.source_file = filedialog.askopenfilename(
             title="Select Image File",
@@ -219,14 +272,6 @@ class ImageConverter:
 
         height_map = image.convert('L')
         return height_map
-
-    def generate_roughness_map(self, image):
-
-        roughness_map = image.convert('L')
-
-        enhancer = ImageEnhance.Contrast(roughness_map)
-        roughness_map = enhancer.enhance(1.5)
-        return roughness_map
 
     def convert_images(self):
         if not hasattr(self, 'source_dir') or not hasattr(self, 'output_dir'):
