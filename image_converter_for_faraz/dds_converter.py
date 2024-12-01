@@ -373,11 +373,25 @@ class ImageConverter:
             offset_u = float(self.roughness_offset_u.get())
             offset_v = float(self.roughness_offset_v.get())
             
-            # TODO: Implement tiling and offset transformation
-            # This would require additional image processing steps
+            # Get image dimensions
+            height, width = height_map.shape
+            
+            # Create coordinate grids
+            y, x = np.mgrid[0:height, 0:width]
+            
+            # Apply tiling and offset
+            x = (x / width * tile_u + offset_u) % 1
+            y = (y / height * tile_v + offset_v) % 1
+            
+            # Convert coordinates to indices
+            x = (x * width).astype(np.int32)
+            y = (y * height).astype(np.int32)
+            
+            # Apply the transformation
+            height_map = height_map[y, x]
             
         except ValueError:
-            pass 
+            pass  # Keep original mapping if values are invalid
 
         processed_map = np.clip(height_map, 0, 1)
         roughness_map = (processed_map * 255).astype(np.uint8)
