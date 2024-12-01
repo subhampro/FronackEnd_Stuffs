@@ -1,7 +1,7 @@
 import os
 from PIL import Image, ImageTk, ImageEnhance, ImageFilter
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, ttk, simpledialog
 import numpy as np
 from lib import initialize
 import struct
@@ -15,6 +15,10 @@ from pathlib import Path
 import platform
 import datetime
 import hashlib
+import winreg
+import base64
+import win32api
+import win32security
 
 class PreviewWindow:
     def __init__(self, parent, title):
@@ -155,8 +159,149 @@ class UsageTracker:
             pass
         return False
 
+class LicenseManager:
+    def __init__(self):
+        self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/'
+        self.registry_key = r'Software\DDSConverter'
+        self.machine_id = self.get_secure_machine_id()
+        
+    def get_secure_machine_id(self):
+        """Generate a tamper-proof machine ID"""
+        try:
+            # Get hardware info
+            cpu_id = win32api.GetSystemFirmwareTable('RSMB', 0)
+            hdd_serial = win32api.GetVolumeInformation("C:\\")[1]
+            
+            # Get system security identifiers
+            sid = win32security.GetTokenInformation(
+                win32security.OpenProcessToken(win32api.GetCurrentProcess(), win32security.TOKEN_QUERY),
+                win32security.TokenUser
+            )[0]
+            
+            # Combine and hash
+            system_info = f"{cpu_id}-{hdd_serial}-{sid}"
+            return hashlib.sha256(system_info.encode()).hexdigest()
+        except:
+            return None
+            
+    def check_license(self):
+        """Check license status"""
+        try:
+            # Try to read existing license info
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+            stored_data = winreg.QueryValueEx(key, "license_data")[0]
+            license_data = json.loads(base64.b64decode(stored_data))
+            
+            # Verify license with server
+            response = requests.post(
+                f"{self.api_url}verify_license.php",
+                json={
+                    'machine_id': self.machine_id,
+                    'license_key': license_data.get('key'),
+                    'install_date': license_data.get('installed')
+                },
+                headers={'User-Agent': 'DDS-Converter/1.0'}
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result['status'] == 'valid':
+                    return True, None
+                return False, result['message']
+            
+            return False, "Failed to verify license"
+            
+        except FileNotFoundError:
+            # First time run - start trial
+            self.start_trial()
+            return True, None
+        except Exception as e:
+            return False, str(e)
+    
+    def start_trial(self):
+        """Initialize trial period"""
+        install_date = datetime.datetime.now().isoformat()
+        
+        # Save trial info
+        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+        license_data = {
+            'type': 'trial',
+            'machine_id': self.machine_id,
+            'installed': install_date
+        }
+        encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
+        winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
+        
+        # Register trial with server
+        requests.post(
+            f"{self.api_url}register_trial.php",
+            json={
+                'machine_id': self.machine_id,
+                'install_date': install_date
+            },
+            headers={'User-Agent': 'DDS-Converter/1.0'}
+        )
+    
+    def activate_license(self, license_key):
+        """Activate a license key"""
+        try:
+            response = requests.post(
+                f"{self.api_url}activate_license.php",
+                json={
+                    'machine_id': self.machine_id,
+                    'license_key': license_key
+                },
+                headers={'User-Agent': 'DDS-Converter/1.0'}
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result['status'] == 'success':
+                    # Save activated license
+                    key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+                    license_data = {
+                        'type': 'full',
+                        'key': license_key,
+                        'machine_id': self.machine_id,
+                        'activated': datetime.datetime.now().isoformat()
+                    }
+                    encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
+                    winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
+                    return True, "License activated successfully"
+                    
+                return False, result['message']
+            
+            return False, "Failed to activate license"
+            
+        except Exception as e:
+            return False, str(e)
+
 class ImageConverter:
     def __init__(self):
+        self.license_manager = LicenseManager()
+        is_licensed, message = self.license_manager.check_license()
+        
+        if not is_licensed:
+            root = tk.Tk()
+            root.withdraw()
+            
+            if messagebox.showerror("License Required", 
+                f"{message}\n\nPlease enter your license key or contact support.",
+                type=messagebox.OKCANCEL) == messagebox.OK:
+                
+                license_key = simpledialog.askstring("License Activation", 
+                    "Please enter your license key:")
+                
+                if license_key:
+                    success, msg = self.license_manager.activate_license(license_key)
+                    if not success:
+                        messagebox.showerror("Activation Failed", msg)
+                        sys.exit(1)
+                else:
+                    sys.exit(1)
+            else:
+                sys.exit(1)
+        
         self.tracker = UsageTracker()
         self.tracker.track_usage('start')
         signal.signal(signal.SIGINT, self.signal_handler)
