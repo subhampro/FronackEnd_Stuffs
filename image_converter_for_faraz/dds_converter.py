@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import numpy as np
 import struct
+import io
 
 class PreviewWindow:
     def __init__(self, parent, title):
@@ -80,6 +81,29 @@ class PreviewWindow:
         self.is_active = False
         self.window.withdraw()
 
+class DDSViewer(PreviewWindow):
+    def __init__(self, parent):
+        super().__init__(parent, "DDS Viewer")
+        self.window.geometry("1024x768")
+        
+        self.fullscreen = False
+        self.fullscreen_btn = ttk.Button(
+            self.controls_frame,
+            text="Toggle Fullscreen",
+            command=self.toggle_fullscreen
+        )
+        self.fullscreen_btn.pack(fill="x", pady=5)
+        
+        self.window.bind('<Escape>', lambda e: self.exit_fullscreen())
+    
+    def toggle_fullscreen(self):
+        self.fullscreen = not self.fullscreen
+        self.window.attributes('-fullscreen', self.fullscreen)
+    
+    def exit_fullscreen(self):
+        self.fullscreen = False
+        self.window.attributes('-fullscreen', False)
+
 class ImageConverter:
     def __init__(self):
         self.NORMAL_DEFAULTS = {
@@ -118,6 +142,7 @@ class ImageConverter:
         self.preview_roughness_image = None
         self.normal_preview_window = None
         self.roughness_preview_window = None
+        self.dds_viewer = None
         self.setup_gui()
 
     def setup_gui(self):
@@ -136,6 +161,9 @@ class ImageConverter:
         
         self.single_file_button = tk.Button(source_frame, text="Select Single File", command=self.select_single_file)
         self.single_file_button.pack(side="left", padx=5)
+
+        self.view_dds_button = tk.Button(source_frame, text="View DDS File", command=self.open_dds_viewer)
+        self.view_dds_button.pack(side="left", padx=5)
 
         tk.Label(self.window, text="Select Output Directory:").pack(pady=5)
         self.output_button = tk.Button(self.window, text="Browse", command=self.select_output_dir)
@@ -829,6 +857,51 @@ class ImageConverter:
             self.custom_dim_frame.pack(pady=5)
         else:
             self.custom_dim_frame.pack_forget()
+
+    def read_dds_file(self, dds_file):
+        """Custom DDS file reader"""
+        with open(dds_file, 'rb') as f:
+            header = f.read(128)
+            if not header.startswith(b'DDS '):
+                raise ValueError("Not a valid DDS file")
+                
+            height = struct.unpack('<I', header[12:16])[0]
+            width = struct.unpack('<I', header[16:20])[0]
+            
+            flags = struct.unpack('<I', header[76:80])[0]
+            fourcc = header[80:84]
+            
+            pixel_data = f.read()
+            
+            if fourcc == b'DXT1':
+                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
+                img_array = img_array.reshape((height, width, 4))
+            elif fourcc == b'DXT5':
+                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
+                img_array = img_array.reshape((height, width, 4))
+            else:
+                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
+                img_array = img_array.reshape((height, width, 4))
+            
+            return Image.fromarray(img_array, 'RGBA')
+
+    def open_dds_viewer(self):
+        dds_file = filedialog.askopenfilename(
+            title="Select DDS File",
+            filetypes=(("DDS files", "*.dds"),)
+        )
+        if dds_file:
+            try:
+                img = self.read_dds_file(dds_file)
+                
+                if not self.dds_viewer:
+                    self.dds_viewer = DDSViewer(self.window)
+                self.dds_viewer.show()
+                self.dds_viewer.update_preview(img)
+            except Exception as e:
+                messagebox.showerror("Error", f"Error opening DDS file: {str(e)}")
+                if self.dds_viewer:
+                    self.dds_viewer.hide()
 
     def run(self):
         self.window.mainloop()
