@@ -78,72 +78,198 @@ class ImageConverter:
         self.status_label.pack(pady=10)
 
     def create_map_controls(self, title, preview_callback):
-        """Create a control frame with sliders and preview for map generation"""
+        prefix = title.split()[0].lower()
+        if prefix == "height/roughness":
+            return self.create_roughness_controls(title, preview_callback)
+        elif prefix == "normal":
+
+            control_frame = ttk.LabelFrame(self.window, text=title, padding=5)
+            
+            preview_canvas = tk.Canvas(control_frame, width=200, height=200)
+            preview_canvas.pack(side=tk.RIGHT, padx=5)
+
+            sliders_frame = ttk.Frame(control_frame)
+            sliders_frame.pack(side=tk.LEFT, fill="x", expand=True)
+
+
+            scale_frame = ttk.Frame(sliders_frame)
+            scale_frame.pack(fill="x")
+            tk.Label(scale_frame, text="Scale:").pack(side=tk.LEFT)
+            scale_label = tk.Label(scale_frame, text="100%")
+            scale_label.pack(side=tk.RIGHT)
+            
+            scale_var = tk.DoubleVar(value=100)
+            scale_slider = ttk.Scale(
+                sliders_frame, from_=0, to=300,
+                variable=scale_var,
+                command=lambda v: self.update_slider_label(v, scale_label, "%", preview_callback)
+            )
+            scale_slider.pack(fill="x")
+
+
+            blur_frame = ttk.Frame(sliders_frame)
+            blur_frame.pack(fill="x")
+            tk.Label(blur_frame, text="Blur:").pack(side=tk.LEFT)
+            blur_label = tk.Label(blur_frame, text="0px")
+            blur_label.pack(side=tk.RIGHT)
+            
+            blur_var = tk.DoubleVar(value=0)
+            blur_slider = ttk.Scale(
+                sliders_frame, from_=0, to=100,
+                variable=blur_var,
+                command=lambda v: self.update_slider_label(v, blur_label, "px", preview_callback)
+            )
+            blur_slider.pack(fill="x")
+
+            detail_ranges = {
+                "High": 150,
+                "Medium": 150,
+                "Low": 150
+            }
+            
+            for detail in detail_ranges:
+                frame = ttk.Frame(sliders_frame)
+                frame.pack(fill="x")
+                tk.Label(frame, text=f"{detail} Detail:").pack(side=tk.LEFT)
+                label = tk.Label(frame, text="50%")
+                label.pack(side=tk.RIGHT)
+                
+                var = tk.DoubleVar(value=50)
+                setattr(self, f"normal_{detail.lower()}_var", var)
+                slider = ttk.Scale(
+                    sliders_frame, from_=0, to=detail_ranges[detail],
+                    variable=var,
+                    command=lambda v, l=label: self.update_slider_label(v, l, "%", preview_callback)
+                )
+                slider.pack(fill="x")
+
+
+            setattr(self, "normal_preview_canvas", preview_canvas)
+            setattr(self, "normal_scale_var", scale_var)
+            setattr(self, "normal_blur_var", blur_var)
+
+            return control_frame
+
+    def create_roughness_controls(self, title, preview_callback):
+        """Create roughness specific controls"""
         control_frame = ttk.LabelFrame(self.window, text=title, padding=5)
         
+
         preview_canvas = tk.Canvas(control_frame, width=200, height=200)
         preview_canvas.pack(side=tk.RIGHT, padx=5)
 
-        sliders_frame = ttk.Frame(control_frame)
-        sliders_frame.pack(side=tk.LEFT, fill="x", expand=True)
 
-        scale_frame = ttk.Frame(sliders_frame)
-        scale_frame.pack(fill="x")
-        tk.Label(scale_frame, text="Scale:").pack(side=tk.LEFT)
-        scale_label = tk.Label(scale_frame, text="100%")
-        scale_label.pack(side=tk.RIGHT)
-        
-        scale_var = tk.DoubleVar(value=100)
-        scale_slider = ttk.Scale(
-            sliders_frame, from_=0, to=300,
-            variable=scale_var,
-            command=lambda v: self.update_slider_label(v, scale_label, "%", preview_callback)
-        )
-        scale_slider.pack(fill="x")
+        controls_frame = ttk.Frame(control_frame)
+        controls_frame.pack(side=tk.LEFT, fill="x", expand=True)
 
-        blur_frame = ttk.Frame(sliders_frame)
+
+        blur_frame = ttk.Frame(controls_frame)
         blur_frame.pack(fill="x")
         tk.Label(blur_frame, text="Blur:").pack(side=tk.LEFT)
         blur_label = tk.Label(blur_frame, text="0px")
         blur_label.pack(side=tk.RIGHT)
         
         blur_var = tk.DoubleVar(value=0)
-        blur_slider = ttk.Scale(
-            sliders_frame, from_=0, to=100,
+        ttk.Scale(
+            controls_frame, from_=0, to=100,
             variable=blur_var,
             command=lambda v: self.update_slider_label(v, blur_label, "px", preview_callback)
-        )
-        blur_slider.pack(fill="x")
+        ).pack(fill="x")
 
-        detail_ranges = {
-            "High": 150,
-            "Medium": 150,
-            "Low": 150
-        }
+
+        scale_frame = ttk.Frame(controls_frame)
+        scale_frame.pack(fill="x")
+        tk.Label(scale_frame, text="Detail Scale:").pack(side=tk.LEFT)
+        scale_label = tk.Label(scale_frame, text="50%")
+        scale_label.pack(side=tk.RIGHT)
         
-        for detail in detail_ranges:
-            frame = ttk.Frame(sliders_frame)
+        detail_scale_var = tk.DoubleVar(value=50)
+        ttk.Scale(
+            controls_frame, from_=0, to=150,
+            variable=detail_scale_var,
+            command=lambda v: self.update_slider_label(v, scale_label, "%", preview_callback)
+        ).pack(fill="x")
+
+
+        contrast_frame = ttk.LabelFrame(controls_frame, text="Contrast Details", padding=5)
+        contrast_frame.pack(fill="x", pady=5)
+        
+        contrast_vars = {}
+        for level in ["Low", "Medium", "High"]:
+            frame = ttk.Frame(contrast_frame)
             frame.pack(fill="x")
-            tk.Label(frame, text=f"{detail} Detail:").pack(side=tk.LEFT)
+            tk.Label(frame, text=f"{level}:").pack(side=tk.LEFT)
             label = tk.Label(frame, text="50%")
             label.pack(side=tk.RIGHT)
-            setattr(self, f"{detail.lower()}_label", label)
             
             var = tk.DoubleVar(value=50)
-            setattr(self, f"{detail.lower()}_detail_var", var)
-            slider = ttk.Scale(
-                sliders_frame, from_=0, to=detail_ranges[detail],
+            contrast_vars[level.lower()] = var
+            ttk.Scale(
+                contrast_frame, from_=0, to=100,
                 variable=var,
                 command=lambda v, l=label: self.update_slider_label(v, l, "%", preview_callback)
-            )
-            slider.pack(fill="x")
+            ).pack(fill="x")
 
-            for item in ['var', 'slider', 'label']:
-                setattr(self, f"{title.split()[0].lower()}_{detail.lower()}_{item}", locals()[item])
 
-        setattr(self, f"{title.split()[0].lower()}_preview_canvas", preview_canvas)
-        setattr(self, f"{title.split()[0].lower()}_scale_var", scale_var)
-        setattr(self, f"{title.split()[0].lower()}_blur_var", blur_var)
+        material_frame = ttk.LabelFrame(controls_frame, text="Material Preview", padding=5)
+        material_frame.pack(fill="x", pady=5)
+        
+        bump_frame = ttk.Frame(material_frame)
+        bump_frame.pack(fill="x")
+        tk.Label(bump_frame, text="Bump:").pack(side=tk.LEFT)
+        bump_label = tk.Label(bump_frame, text="50%")
+        bump_label.pack(side=tk.RIGHT)
+        
+        bump_var = tk.DoubleVar(value=50)
+        ttk.Scale(
+            material_frame, from_=0, to=100,
+            variable=bump_var,
+            command=lambda v: self.update_slider_label(v, bump_label, "%", preview_callback)
+        ).pack(fill="x")
+
+
+        tiling_frame = ttk.LabelFrame(controls_frame, text="Tiling and Offset", padding=5)
+        tiling_frame.pack(fill="x", pady=5)
+        
+
+        tile_frame = ttk.Frame(tiling_frame)
+        tile_frame.pack(fill="x")
+        tk.Label(tile_frame, text="Tile U/X:").pack(side=tk.LEFT)
+        tile_u = ttk.Entry(tile_frame, width=8)
+        tile_u.pack(side=tk.LEFT, padx=5)
+        tile_u.insert(0, "1.0")
+        
+        tk.Label(tile_frame, text="V/Y:").pack(side=tk.LEFT)
+        tile_v = ttk.Entry(tile_frame, width=8)
+        tile_v.pack(side=tk.LEFT, padx=5)
+        tile_v.insert(0, "1.0")
+
+
+        offset_frame = ttk.Frame(tiling_frame)
+        offset_frame.pack(fill="x", pady=2)
+        tk.Label(offset_frame, text="Offset U/X:").pack(side=tk.LEFT)
+        offset_u = ttk.Entry(offset_frame, width=8)
+        offset_u.pack(side=tk.LEFT, padx=5)
+        offset_u.insert(0, "0.0")
+        
+        tk.Label(offset_frame, text="V/Y:").pack(side=tk.LEFT)
+        offset_v = ttk.Entry(offset_frame, width=8)
+        offset_v.pack(side=tk.LEFT, padx=5)
+        offset_v.insert(0, "0.0")
+
+
+        setattr(self, "roughness_preview_canvas", preview_canvas)
+        setattr(self, "roughness_blur_var", blur_var)
+        setattr(self, "roughness_detail_scale_var", detail_scale_var)
+        setattr(self, "roughness_bump_var", bump_var)
+        
+        for level, var in contrast_vars.items():
+            setattr(self, f"roughness_{level}_contrast_var", var)
+        
+        setattr(self, "roughness_tile_u", tile_u)
+        setattr(self, "roughness_tile_v", tile_v)
+        setattr(self, "roughness_offset_u", offset_u)
+        setattr(self, "roughness_offset_v", offset_v)
 
         return control_frame
 
@@ -220,21 +346,40 @@ class ImageConverter:
     def generate_roughness_map(self, image):
         gray = image.convert('L')
         
+
         blur_radius = self.roughness_blur_var.get() / 10
         if blur_radius > 0:
             gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
 
+
         height_map = np.array(gray).astype(np.float32) / 255.0
 
-        high = (self.roughness_high_var.get() / 100.0) * 1.5
-        med = (self.roughness_medium_var.get() / 100.0) * 1.5
-        low = (self.roughness_low_var.get() / 100.0) * 1.5
 
-        scale = (self.roughness_scale_var.get() / 100.0) * 3.0
+        detail_scale = self.roughness_detail_scale_var.get() / 100.0 * 1.5
+        height_map *= detail_scale
 
-        processed_map = height_map * scale
-        processed_map = np.clip(processed_map, 0, 1)
+
+        low = self.roughness_low_contrast_var.get() / 100.0
+        med = self.roughness_medium_contrast_var.get() / 100.0
+        high = self.roughness_high_contrast_var.get() / 100.0
         
+
+        height_map = (height_map * high + height_map * med + height_map * low) / 3
+
+ 
+        try:
+            tile_u = float(self.roughness_tile_u.get())
+            tile_v = float(self.roughness_tile_v.get())
+            offset_u = float(self.roughness_offset_u.get())
+            offset_v = float(self.roughness_offset_v.get())
+            
+            # TODO: Implement tiling and offset transformation
+            # This would require additional image processing steps
+            
+        except ValueError:
+            pass 
+
+        processed_map = np.clip(height_map, 0, 1)
         roughness_map = (processed_map * 255).astype(np.uint8)
         return Image.fromarray(roughness_map, 'L')
 
