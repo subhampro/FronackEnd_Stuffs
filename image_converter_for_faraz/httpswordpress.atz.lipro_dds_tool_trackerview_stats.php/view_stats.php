@@ -20,7 +20,14 @@ try {
         'total_users' => $db->query("SELECT COUNT(DISTINCT user_id) FROM users")->fetchColumn(),
         'active_today' => $db->query("SELECT COUNT(DISTINCT user_id) FROM users WHERE last_seen >= DATE_SUB(NOW(), INTERVAL 24 HOUR)")->fetchColumn(),
         'total_conversions' => $db->query("SELECT COUNT(*) FROM usage_stats WHERE event_type = 'conversion'")->fetchColumn(),
-        'total_events' => $db->query("SELECT COUNT(*) FROM usage_stats")->fetchColumn()
+        'total_events' => $db->query("SELECT COUNT(*) FROM usage_stats")->fetchColumn(),
+        'active_licenses' => $db->query("SELECT COUNT(*) FROM licenses WHERE status = 'active'")->fetchColumn(),
+        'trial_users' => $db->query("
+            SELECT COUNT(DISTINCT u.user_id) 
+            FROM users u 
+            LEFT JOIN licenses l ON u.user_id = l.machine_id 
+            WHERE l.id IS NULL AND DATEDIFF(NOW(), u.first_seen) <= 7
+        ")->fetchColumn()
     ];
     
     // Simplified users query
@@ -86,10 +93,11 @@ try {
             COALESCE(country, 'Unknown') as country,
             COUNT(DISTINCT user_id) as unique_users,
             COUNT(*) as total_events,
-            GROUP_CONCAT(DISTINCT city) as cities,
-            GROUP_CONCAT(DISTINCT ip_address) as ip_addresses
+            GROUP_CONCAT(DISTINCT city ORDER BY city) as cities,
+            GROUP_CONCAT(DISTINCT region ORDER BY region) as regions,
+            GROUP_CONCAT(DISTINCT isp ORDER BY isp) as isps
         FROM usage_stats
-        WHERE ip_address IS NOT NULL
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
         GROUP BY country
         ORDER BY unique_users DESC
     ")->fetchAll(PDO::FETCH_ASSOC);
@@ -111,7 +119,7 @@ try {
         LIMIT 20
     ")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Update the user_license_info query with precise time calculation
+    // Update the user_license_info query to comply with ONLY_FULL_GROUP_BY
     $user_license_info = $db->query("
         SELECT 
             u.user_id,
@@ -126,18 +134,13 @@ try {
                 WHEN DATEDIFF(NOW(), MIN(us.created_at)) <= 7 THEN 'trial'
                 ELSE 'trial_expired'
             END as status,
-            CASE 
-                WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'active' THEN 
-                    TIMESTAMPDIFF(SECOND, NOW(), MAX(l.expires_at))
-                WHEN MIN(us.created_at) IS NOT NULL THEN 
-                    TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY))
-                ELSE 7 * 24 * 3600
-            END as total_seconds_remaining
+            TIMESTAMPDIFF(DAY, NOW(), COALESCE(MAX(l.expires_at), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY))) as days_remaining,
+            TIMESTAMPDIFF(SECOND, NOW(), COALESCE(MAX(l.expires_at), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY))) as total_seconds_remaining
         FROM users u
         LEFT JOIN usage_stats us ON u.user_id = us.user_id
         LEFT JOIN licenses l ON u.user_id = l.machine_id
-        GROUP BY u.user_id
-        ORDER BY MAX(u.last_seen) DESC
+        GROUP BY u.user_id, u.last_seen
+        ORDER BY u.last_seen DESC
     ")->fetchAll(PDO::FETCH_ASSOC);
 
     // Process the remaining time more accurately
@@ -319,9 +322,8 @@ try {
                     $trial_start = strtotime($user['first_seen']);
                     $trial_end = $trial_start + (7 * 24 * 3600);
                     $trial_remaining = $trial_end - time();
-                    $connections = array_filter(array_map(function($conn) {
-                        return explode('|', $conn);
-                    }, explode(',', $user['connection_history'])));
+                    
+                    // Remove connection history handling as it's not needed
                 ?>
                 <div class="user-panel">
                     <div class="user-header">
@@ -338,19 +340,6 @@ try {
                             <p>Last Seen: <?= $user['last_seen'] ?></p>
                             <p>Total Uses: <?= $user['total_uses'] ?></p>
                             <p>Events: <?= $user['total_events'] ?></p>
-                        </div>
-                        
-                        <div class="info-block">
-                            <h4>Connection History</h4>
-                            <div class="connection-details">
-                                <?php foreach (array_slice($connections, 0, 5) as $conn): ?>
-                                <div class="connection-item">
-                                    <span><?= htmlspecialchars($conn[0]) ?></span>
-                                    <span><?= htmlspecialchars($conn[1]) ?>, <?= htmlspecialchars($conn[2]) ?></span>
-                                    <span><?= date('Y-m-d H:i', strtotime($conn[3])) ?></span>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -462,28 +451,31 @@ try {
                         <th>License Details</th>
                     </tr>
                     <?php foreach ($user_license_info as $user): 
-                        $status_class = match($user['status']) {
+                        $status_class = match($user['status'] ?? 'unknown') {
                             'licensed' => 'status-active',
                             'trial' => 'status-trial',
-                            'expired', 'trial_expired' => 'status-inactive'
+                            'expired', 'trial_expired' => 'status-inactive',
+                            default => 'status-inactive'
                         };
                         
                         $remaining_text = '';
-                        if ($user['status'] === 'licensed') {
-                            $remaining_text = $user['days_remaining'] > 0 ? 
-                                "{$user['days_remaining']} days left" : "License expired";
-                        } else if ($user['status'] === 'trial') {
-                            $remaining_text = sprintf(
-                                "%d days, %d hours, %d minutes", 
-                                max(0, $user['days_remaining']),
-                                max(0, $user['hours_remaining']),
-                                max(0, $user['minutes_remaining'])
-                            );
-                        } else {
-                            $remaining_text = $user['status'] === 'trial_expired' ? "Trial expired" : "License expired";
+                        if (isset($user['status'])) {
+                            if ($user['status'] === 'licensed') {
+                                $remaining_text = ($user['days_remaining'] ?? 0) > 0 ? 
+                                    "{$user['days_remaining']} days left" : "License expired";
+                            } else if ($user['status'] === 'trial') {
+                                $remaining_text = sprintf(
+                                    "%d days, %d hours, %d minutes", 
+                                    max(0, $user['days_remaining'] ?? 0),
+                                    max(0, ($user['total_seconds_remaining'] ?? 0) % 86400 / 3600),
+                                    max(0, ($user['total_seconds_remaining'] ?? 0) % 3600 / 60)
+                                );
+                            } else {
+                                $remaining_text = $user['status'] === 'trial_expired' ? "Trial expired" : "License expired";
+                            }
                         }
-
-                        $is_expiring_soon = ($user['days_remaining'] <= 2 && $user['days_remaining'] > 0);
+                        
+                        $is_expiring_soon = (($user['days_remaining'] ?? 0) <= 2 && ($user['days_remaining'] ?? 0) > 0);
                     ?>
                     <tr>
                         <td><?= htmlspecialchars(substr($user['user_id'], 0, 8)) ?>...</td>

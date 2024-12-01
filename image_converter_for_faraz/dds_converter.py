@@ -178,6 +178,7 @@ class LicenseManager:
         self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/'
         self.registry_key = r'Software\DDSConverter'
         self.machine_id = self.get_secure_machine_id()
+        self.offline_mode = False
         
     def get_secure_machine_id(self):
         """Generate a tamper-proof machine ID"""
@@ -196,7 +197,29 @@ class LicenseManager:
             return None
             
     def check_license(self):
-        """Check license status"""
+        """Check license status with offline fallback"""
+        try:
+            # Try online verification first
+            response = requests.post(
+                f"{self.api_url}verify_license.php",
+                json={'machine_id': self.machine_id},
+                headers={'User-Agent': 'DDS-Converter/1.0'},
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('status') == 'valid':
+                    return True, None
+                    
+        except requests.exceptions.ConnectionError:
+            print("Warning: Operating in offline mode - using cached license data")
+            self.offline_mode = True
+        except Exception as e:
+            print(f"License check warning: {e}")
+            self.offline_mode = True
+
+        # Fallback to local registry check if online verification fails
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
             stored_data = winreg.QueryValueEx(key, "license_data")[0]
@@ -218,26 +241,20 @@ class LicenseManager:
                 if datetime.now() > trial_end:
                     return False, "Trial period expired"
                     
-                try:
-                    key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-                    winreg.SetValueEx(key, "last_check", 0, winreg.REG_SZ, 
-                                    datetime.now().isoformat())
-                    winreg.CloseKey(key)
-                except:
-                    pass
-                    
                 return True, None
                 
-            return True, None
-                
         except WindowsError:
-            self.start_trial()
+            if not self.offline_mode:
+                self.start_trial()
             return True, None
-                
+            
         except Exception as e:
-            print(f"License check error: {e}")
-            self.start_trial()
+            print(f"Registry check error: {e}")
+            if not self.offline_mode:
+                self.start_trial()
             return True, None
+            
+        return True, None
 
     def get_license_expiry(self):
         """Get license expiration details"""
