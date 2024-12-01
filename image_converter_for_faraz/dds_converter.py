@@ -199,6 +199,16 @@ class LicenseManager:
                     trial_end = first_launch + timedelta(days=7)
                     if datetime.now() > trial_end:
                         return False, "Trial period expired"
+                        
+                    # Write current time to registry to track offline time
+                    try:
+                        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+                        winreg.SetValueEx(key, "last_check", 0, winreg.REG_SZ, 
+                                        datetime.now().isoformat())
+                        winreg.CloseKey(key)
+                    except:
+                        pass
+                        
                     return True, None
                     
                 return True, None
@@ -281,12 +291,34 @@ class LicenseManager:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, 
                                 winreg.KEY_READ)
             stored_data = winreg.QueryValueEx(key, "license_data")[0]
+            last_check = None
+            try:
+                last_check = winreg.QueryValueEx(key, "last_check")[0]
+            except:
+                pass
             winreg.CloseKey(key)
             
             license_data = json.loads(base64.b64decode(stored_data))
             
             if license_data.get('type') == 'trial':
                 first_launch = datetime.fromisoformat(license_data['first_launch'])
+                
+                # If last_check exists, verify no time manipulation
+                if last_check:
+                    last_check_time = datetime.fromisoformat(last_check)
+                    current_time = datetime.now()
+                    if (current_time - last_check_time) > timedelta(minutes=2):
+                        # Time was manipulated, adjust first_launch
+                        time_diff = current_time - last_check_time
+                        first_launch = first_launch + time_diff
+                        
+                        # Update first_launch in registry
+                        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+                        license_data['first_launch'] = first_launch.isoformat()
+                        encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
+                        winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
+                        winreg.CloseKey(key)
+                
                 trial_end = first_launch + timedelta(days=7)
                 remaining = trial_end - datetime.now()
                 
@@ -387,13 +419,14 @@ class ImageConverter:
                 self.window, 
                 text="", 
                 font=("Helvetica", 10, "bold"),
-                fg="#666666"
+                fg="#FF0000"  # Red color
             )
             self.countdown_label.pack(pady=5, before=self.status_label)
             
+            # Start countdown in separate thread
             self.countdown_thread = threading.Thread(
                 target=self.update_countdown,
-                daemon=True
+                daemon=False  # Change to non-daemon so it continues running
             )
             self.countdown_thread.start()
 
@@ -1184,13 +1217,22 @@ class ImageConverter:
     def update_countdown(self):
         """Update trial countdown timer"""
         while True:
-            remaining = self.license_manager.get_trial_time_remaining()
-            if remaining:
-                countdown_text = f"Trial expires in: {remaining['days']}d {remaining['hours']}d {remaining['minutes']}m"
-                self.countdown_label.config(text=countdown_text)
-            else:
-                self.countdown_label.config(text="Trial expired! Please activate full version.")
-            time.sleep(60)  # Update every minute
+            try:
+                remaining = self.license_manager.get_trial_time_remaining()
+                if remaining:
+                    countdown_text = f"TRIAL EXPIRES IN: {remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
+                    if hasattr(self, 'countdown_label'):
+                        self.countdown_label.config(text=countdown_text)
+                    if remaining['total_seconds'] <= 0:
+                        # Trial expired, force restart
+                        messagebox.showerror("Trial Expired", 
+                            "Your trial period has expired. Please activate a license to continue.")
+                        self.window.quit()
+                        sys.exit(1)
+                time.sleep(60)
+            except:
+                time.sleep(60)  # Continue running even if errors occur
+                continue
 
 if __name__ == "__main__":
     converter = ImageConverter()
