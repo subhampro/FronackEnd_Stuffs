@@ -1,8 +1,8 @@
 import os
-from PIL import Image
+from PIL import Image, ImageTk, ImageEnhance, ImageFilter
 import tkinter as tk
-from tkinter import filedialog, messagebox
-from tkinter import ttk
+from tkinter import filedialog, messagebox, ttk
+import numpy as np
 
 class ImageConverter:
     def __init__(self):
@@ -15,6 +15,7 @@ class ImageConverter:
             "1024x1024": (1024, 1024),
             "2048x2048": (2048, 2048),
         }
+        self.preview_image = None
         self.setup_gui()
 
     def setup_gui(self):
@@ -22,6 +23,9 @@ class ImageConverter:
         self.window.title("Image to DDS Converter by SubhaM")
         self.window.geometry("500x400")
 
+        # Initialize BooleanVars after creating root window
+        self.generate_heightmap = tk.BooleanVar()
+        self.generate_roughness = tk.BooleanVar()
 
         source_frame = ttk.LabelFrame(self.window, text="Source Selection", padding=5)
         source_frame.pack(fill="x", padx=5, pady=5)
@@ -43,11 +47,129 @@ class ImageConverter:
         self.dim_combo.set("Original Size")
         self.dim_combo.pack(pady=5)
 
+        # Add checkbox frame
+        checkbox_frame = ttk.LabelFrame(self.window, text="Additional Maps", padding=5)
+        checkbox_frame.pack(fill="x", padx=5, pady=5)
+
+        ttk.Checkbutton(
+            checkbox_frame, 
+            text="Generate Height/Normal Map",
+            variable=self.generate_heightmap
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Checkbutton(
+            checkbox_frame, 
+            text="Generate Roughness Map",
+            variable=self.generate_roughness
+        ).pack(side=tk.LEFT, padx=5)
+
+        # Add Normal Map Controls frame
+        self.normal_controls_frame = ttk.LabelFrame(self.window, text="Normal Map Controls", padding=5)
+        
+        # Create preview canvas
+        self.preview_canvas = tk.Canvas(self.normal_controls_frame, width=200, height=200)
+        self.preview_canvas.pack(side=tk.RIGHT, padx=5)
+
+        # Sliders frame
+        sliders_frame = ttk.Frame(self.normal_controls_frame)
+        sliders_frame.pack(side=tk.LEFT, fill="x", expand=True)
+
+        # Scale slider
+        tk.Label(sliders_frame, text="Scale:").pack()
+        self.scale_var = tk.DoubleVar(value=100)
+        self.scale_slider = ttk.Scale(
+            sliders_frame, from_=0, to=200,
+            variable=self.scale_var,
+            command=self.update_preview
+        )
+        self.scale_slider.pack(fill="x")
+
+        # Blur slider
+        tk.Label(sliders_frame, text="Blur:").pack()
+        self.blur_var = tk.DoubleVar(value=1)
+        self.blur_slider = ttk.Scale(
+            sliders_frame, from_=0, to=10,
+            variable=self.blur_var,
+            command=self.update_preview
+        )
+        self.blur_slider.pack(fill="x")
+
+        # Detail sliders
+        for detail in ["High", "Medium", "Low"]:
+            tk.Label(sliders_frame, text=f"{detail} Detail:").pack()
+            var = tk.DoubleVar(value=50)
+            setattr(self, f"{detail.lower()}_detail_var", var)
+            slider = ttk.Scale(
+                sliders_frame, from_=0, to=100,
+                variable=var,
+                command=self.update_preview
+            )
+            slider.pack(fill="x")
+
+        # Show/hide normal controls based on checkbox
+        self.normal_controls_frame.pack_forget()
+        self.generate_heightmap.trace('w', self.toggle_normal_controls)
+
         self.convert_button = tk.Button(self.window, text="Convert Images", command=self.convert_images)
         self.convert_button.pack(pady=20)
 
         self.status_label = tk.Label(self.window, text="")
         self.status_label.pack(pady=10)
+
+    def toggle_normal_controls(self, *args):
+        if self.generate_heightmap.get():
+            self.normal_controls_frame.pack(fill="x", padx=5, pady=5)
+        else:
+            self.normal_controls_frame.pack_forget()
+
+    def update_preview(self, *args):
+        if not hasattr(self, 'preview_source'):
+            return
+        
+        preview = self.generate_normal_map(self.preview_source)
+        # Resize preview for display
+        preview = preview.resize((200, 200), Image.Resampling.LANCZOS)
+        self.preview_image = ImageTk.PhotoImage(preview)
+        self.preview_canvas.create_image(100, 100, image=self.preview_image, anchor="center")
+
+    def generate_normal_map(self, image):
+        # Convert to grayscale
+        gray = image.convert('L')
+        
+        # Apply blur based on slider
+        blur_radius = self.blur_var.get()
+        if blur_radius > 0:
+            gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+
+        # Convert to numpy array for processing
+        height_map = np.array(gray).astype(np.float32) / 255.0
+
+        # Apply detail weights
+        high = self.high_detail_var.get() / 100.0
+        med = self.medium_detail_var.get() / 100.0
+        low = self.low_detail_var.get() / 100.0
+
+        # Calculate sobel gradients
+        dy, dx = np.gradient(height_map)
+        
+        # Apply scale factor
+        scale = self.scale_var.get() / 100.0
+        dx = dx * scale
+        dy = dy * scale
+
+        # Create normal map
+        z = np.ones_like(dx)
+        strength = np.sqrt(dx**2 + dy**2 + z**2)
+        
+        normal_map = np.stack([
+            ((dx / strength) + 1) / 2,
+            ((dy / strength) + 1) / 2,
+            (z / strength)
+        ], axis=-1)
+        
+        # Convert back to PIL Image
+        normal_map = (normal_map * 255).astype(np.uint8)
+        return Image.fromarray(normal_map, 'RGB')
 
     def select_single_file(self):
         self.source_file = filedialog.askopenfilename(
@@ -59,6 +181,9 @@ class ImageConverter:
             self.single_file_mode = True
             self.source_button.config(text="Single File Selected")
             self.single_file_button.config(text=f"File: {os.path.basename(self.source_file)}")
+            # Add preview update
+            self.preview_source = Image.open(self.source_file)
+            self.update_preview()
 
     def select_source_dir(self):
         self.source_dir = filedialog.askdirectory(title="Select Source Directory")
@@ -70,6 +195,19 @@ class ImageConverter:
     def select_output_dir(self):
         self.output_dir = filedialog.askdirectory(title="Select Output Directory")
         self.output_button.config(text=f"Output: {os.path.basename(self.output_dir)}")
+
+    def generate_height_map(self, image):
+        # Convert to grayscale for height map
+        height_map = image.convert('L')
+        return height_map
+
+    def generate_roughness_map(self, image):
+        # Convert to grayscale and adjust levels for roughness
+        roughness_map = image.convert('L')
+        # Enhance contrast for better roughness representation
+        enhancer = ImageEnhance.Contrast(roughness_map)
+        roughness_map = enhancer.enhance(1.5)
+        return roughness_map
 
     def convert_images(self):
         if not hasattr(self, 'source_dir') or not hasattr(self, 'output_dir'):
@@ -95,6 +233,7 @@ class ImageConverter:
         for image_file in image_files:
             try:
                 input_path = self.source_file if hasattr(self, 'single_file_mode') and self.single_file_mode else os.path.join(self.source_dir, image_file)
+                base_name = os.path.splitext(os.path.basename(image_file))[0]
                 
                 with Image.open(input_path) as img:
                     img = img.convert('RGBA')
@@ -104,15 +243,31 @@ class ImageConverter:
                     else:
                         resized_img = img.resize(selected_dim, Image.Resampling.LANCZOS)
                     
-                    output_path = os.path.join(self.output_dir, 
-                                             os.path.splitext(os.path.basename(image_file))[0] + '.dds')
+                    # Save DDS file
+                    output_path = os.path.join(self.output_dir, base_name + '.dds')
                     resized_img.save(output_path, "DDS")
+
+                    # Generate additional maps if checked
+                    if self.generate_heightmap.get():
+                        height_path = os.path.join(self.output_dir, base_name + '_normal.png')
+                        self.generate_normal_map(resized_img).save(height_path)
+                        
+                    if self.generate_roughness.get():
+                        roughness_path = os.path.join(self.output_dir, base_name + '_roughness.png')
+                        self.generate_roughness_map(resized_img).save(roughness_path)
+                    
                     processed += 1
                     
             except Exception as e:
                 messagebox.showerror("Error", f"Error processing {image_file}: {str(e)}")
 
-        self.status_label.config(text=f"Successfully converted {processed} images!")
+        # Update status message to include additional maps
+        status_msg = f"Successfully converted {processed} images to DDS"
+        if self.generate_heightmap.get():
+            status_msg += " with height maps"
+        if self.generate_roughness.get():
+            status_msg += " and roughness maps"
+        self.status_label.config(text=status_msg + "!")
 
     def run(self):
         self.window.mainloop()
