@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 02, 2024 at 02:13 AM
+-- Generation Time: Dec 02, 2024 at 03:08 AM
 -- Server version: 8.0.39
 -- PHP Version: 8.1.29
 
@@ -44,21 +44,36 @@ CREATE TABLE `licenses` (
 --
 
 CREATE TABLE `usage_stats` (
-  `id` int NOT NULL AUTO_INCREMENT,
+  `id` int NOT NULL,
   `user_id` varchar(32) NOT NULL,
   `event_type` varchar(50) NOT NULL,
   `system_info` varchar(255) DEFAULT NULL,
   `version` varchar(20) DEFAULT NULL,
+  `created_at` datetime NOT NULL,
   `ip_address` varchar(45) DEFAULT NULL,
   `country` varchar(100) DEFAULT NULL,
   `region` varchar(100) DEFAULT NULL,
   `city` varchar(100) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `user_id` (`user_id`),
-  KEY `created_at` (`created_at`),
-  KEY `event_type` (`event_type`)
+  `isp` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `usage_stats`
+--
+
+INSERT INTO `usage_stats` (`id`, `user_id`, `event_type`, `system_info`, `version`, `created_at`, `ip_address`, `country`, `region`, `city`, `isp`) VALUES
+(4, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 02:22:12', NULL, NULL, NULL, NULL, NULL),
+(5, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 02:22:12', NULL, NULL, NULL, NULL, NULL),
+(6, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 02:36:52', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(7, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 02:36:53', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(8, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 02:49:38', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(9, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 02:49:39', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(10, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 02:51:03', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(11, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 02:51:04', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(12, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 02:54:05', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(13, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 02:54:06', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(14, '81b8e21070bfd0eb96f206dbeda983dd', 'startup', 'Windows 11', '1.0.0', '2024-12-02 02:57:05', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL),
+(15, '81b8e21070bfd0eb96f206dbeda983dd', 'start', 'Windows 11', '1.0.0', '2024-12-02 02:57:05', '202.8.112.89', 'India', 'West Bengal', 'Kolkata', NULL);
 
 -- --------------------------------------------------------
 
@@ -73,6 +88,13 @@ CREATE TABLE `users` (
   `last_seen` datetime NOT NULL,
   `total_uses` int DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `user_id`, `first_seen`, `last_seen`, `total_uses`) VALUES
+(4, '81b8e21070bfd0eb96f206dbeda983dd', '2024-12-02 02:22:12', '2024-12-02 02:57:05', 12);
 
 --
 -- Indexes for dumped tables
@@ -117,27 +139,13 @@ ALTER TABLE `licenses`
 -- AUTO_INCREMENT for table `usage_stats`
 --
 ALTER TABLE `usage_stats`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
--- Add new columns to usage_stats table if they don't exist
-ALTER TABLE `usage_stats` 
-  ADD COLUMN IF NOT EXISTS `ip_address` varchar(45) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS `country` varchar(100) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS `region` varchar(100) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS `city` varchar(100) DEFAULT NULL;
-
--- Add new indices if they don't exist
-CREATE INDEX IF NOT EXISTS `event_type` ON `usage_stats` (`event_type`);
-
--- No need to recreate existing tables and indexes
--- The above commands will only add what's missing
-
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
