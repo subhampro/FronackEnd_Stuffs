@@ -115,23 +115,30 @@ try {
         LIMIT 20
     ")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Add this query after other queries to get trial/license info
+    // Replace the user_license_info query with this updated version
     $user_license_info = $db->query("
         SELECT 
             u.user_id,
             MIN(us.created_at) as first_seen,
             MAX(u.last_seen) as last_seen,
             l.license_key,
-            l.expires_at as license_expires,
+            l.expires_at,
+            l.status as license_status,
             CASE 
-                WHEN l.license_key IS NOT NULL THEN 'licensed'
+                WHEN l.license_key IS NOT NULL AND l.status = 'active' THEN 'licensed'
+                WHEN l.license_key IS NOT NULL AND l.status = 'expired' THEN 'expired'
                 WHEN DATEDIFF(NOW(), MIN(us.created_at)) <= 7 THEN 'trial'
-                ELSE 'expired'
+                ELSE 'trial_expired'
             END as status,
             CASE 
-                WHEN l.license_key IS NOT NULL THEN DATEDIFF(l.expires_at, NOW())
-                ELSE 7 - DATEDIFF(NOW(), MIN(us.created_at))
-            END as days_remaining
+                WHEN l.license_key IS NOT NULL AND l.status = 'active' THEN 
+                    DATEDIFF(l.expires_at, NOW())
+                WHEN l.license_key IS NULL THEN 
+                    7 - DATEDIFF(NOW(), MIN(us.created_at))
+                ELSE 0
+            END as days_remaining,
+            TIMESTAMPDIFF(HOUR, NOW(), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY)) % 24 as hours_remaining,
+            TIMESTAMPDIFF(MINUTE, NOW(), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY)) % 60 as minutes_remaining
         FROM users u
         LEFT JOIN usage_stats us ON u.user_id = us.user_id
         LEFT JOIN licenses l ON u.user_id = l.machine_id
@@ -237,6 +244,14 @@ try {
             }
             @keyframes blink {
                 50% { opacity: 0.5; }
+            }
+            .trial-badge {
+                background: #ff9800;
+                color: white;
+                padding: 2px 6px;
+                border-radius: 10px;
+                font-size: 0.8em;
+                margin-left: 5px;
             }
         </style>
     </head>
@@ -419,6 +434,7 @@ try {
                 </table>
             </div>
 
+            <!-- Replace the User License Status section with this updated version -->
             <div class="stat-box">
                 <h2>User License Status</h2>
                 <table>
@@ -428,37 +444,55 @@ try {
                         <th>First Seen</th>
                         <th>Last Seen</th>
                         <th>Time Remaining</th>
-                        <th>License Key</th>
+                        <th>License Details</th>
                     </tr>
                     <?php foreach ($user_license_info as $user): 
                         $status_class = match($user['status']) {
                             'licensed' => 'status-active',
                             'trial' => 'status-trial',
-                            'expired' => 'status-inactive'
+                            'expired', 'trial_expired' => 'status-inactive'
                         };
                         
-                        $days_remaining = (int)$user['days_remaining'];
                         $remaining_text = '';
-                        
                         if ($user['status'] === 'licensed') {
-                            $remaining_text = $days_remaining > 0 ? 
-                                "$days_remaining days left" : "Expired";
+                            $remaining_text = $user['days_remaining'] > 0 ? 
+                                "{$user['days_remaining']} days left" : "License expired";
                         } else if ($user['status'] === 'trial') {
-                            $remaining_text = $days_remaining > 0 ? 
-                                "$days_remaining days left in trial" : "Trial expired";
+                            $remaining_text = sprintf(
+                                "%d days, %d hours, %d minutes", 
+                                max(0, $user['days_remaining']),
+                                max(0, $user['hours_remaining']),
+                                max(0, $user['minutes_remaining'])
+                            );
                         } else {
-                            $remaining_text = "Trial expired";
+                            $remaining_text = $user['status'] === 'trial_expired' ? "Trial expired" : "License expired";
                         }
+
+                        $is_expiring_soon = ($user['days_remaining'] <= 2 && $user['days_remaining'] > 0);
                     ?>
                     <tr>
                         <td><?= htmlspecialchars(substr($user['user_id'], 0, 8)) ?>...</td>
-                        <td><span class="<?= $status_class ?>"><?= ucfirst($user['status']) ?></span></td>
+                        <td>
+                            <span class="<?= $status_class ?>">
+                                <?= ucfirst($user['status']) ?>
+                                <?php if ($user['status'] === 'trial'): ?>
+                                    <span class="trial-badge">Trial</span>
+                                <?php endif; ?>
+                            </span>
+                        </td>
                         <td><?= $user['first_seen'] ?></td>
                         <td><?= $user['last_seen'] ?></td>
-                        <td class="<?= $days_remaining <= 2 ? 'expiring-soon' : '' ?>">
+                        <td class="<?= $is_expiring_soon ? 'expiring-soon' : '' ?>">
                             <?= htmlspecialchars($remaining_text) ?>
                         </td>
-                        <td><?= $user['license_key'] ? "•••" . substr($user['license_key'], -4) : "No license" ?></td>
+                        <td>
+                            <?php if ($user['license_key']): ?>
+                                Key: •••<?= substr($user['license_key'], -4) ?><br>
+                                Expires: <?= $user['expires_at'] ?>
+                            <?php else: ?>
+                                No license
+                            <?php endif; ?>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                 </table>
