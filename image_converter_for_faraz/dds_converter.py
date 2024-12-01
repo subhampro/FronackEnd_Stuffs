@@ -187,50 +187,34 @@ class LicenseManager:
     def check_license(self):
         """Check license status"""
         try:
-            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-            stored_data = winreg.QueryValueEx(key, "license_data")[0]
-            license_data = json.loads(base64.b64decode(stored_data))
-            
-            response = requests.post(
-                f"{self.api_url}verify_license.php",
-                json={
-                    'machine_id': self.machine_id,
-                    'license_key': license_data.get('key'),
-                    'install_date': license_data.get('installed')
-                },
-                headers={'User-Agent': 'DDS-Converter/1.0'}
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                if result['status'] == 'valid':
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, 
+                                   winreg.KEY_READ)
+                stored_data = winreg.QueryValueEx(key, "license_data")[0]
+                license_data = json.loads(base64.b64decode(stored_data))
+                winreg.CloseKey(key)
+                
+                if license_data.get('type') == 'trial':
+                    first_launch = datetime.fromisoformat(license_data['first_launch'])
+                    trial_end = first_launch + timedelta(days=7)
+                    if datetime.now() > trial_end:
+                        return False, "Trial period expired"
                     return True, None
-                return False, result['message']
-            
-            return False, "Failed to verify license"
-            
-        except FileNotFoundError:
+                    
+                return True, None
+                
+            except WindowsError:
+                self.start_trial()
+                return True, None
+                
+        except Exception as e:
+            print(f"License check error: {e}")
             self.start_trial()
             return True, None
-        except Exception as e:
-            return False, str(e)
-    
+
     def start_trial(self):
         """Initialize trial period"""
         try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, 
-                                winreg.KEY_READ)
-            try:
-                stored_data = winreg.QueryValueEx(key, "license_data")[0]
-                license_data = json.loads(base64.b64decode(stored_data))
-                if license_data.get('first_launch'):
-                    winreg.CloseKey(key)
-                    return
-            except WindowsError:
-                pass
-            winreg.CloseKey(key)
-            
-
             key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
             license_data = {
                 'type': 'trial',
@@ -242,14 +226,19 @@ class LicenseManager:
             winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
             winreg.CloseKey(key)
             
-            requests.post(
-                f"{self.api_url}register_trial.php",
-                json={
-                    'machine_id': self.machine_id,
-                    'install_date': license_data['first_launch']
-                },
-                headers={'User-Agent': 'DDS-Converter/1.0'}
-            )
+            try:
+                requests.post(
+                    f"{self.api_url}register_trial.php",
+                    json={
+                        'machine_id': self.machine_id,
+                        'install_date': license_data['first_launch']
+                    },
+                    headers={'User-Agent': 'DDS-Converter/1.0'},
+                    timeout=5
+                )
+            except:
+                pass
+                
         except Exception as e:
             print(f"Error starting trial: {e}")
 
@@ -391,6 +380,22 @@ class ImageConverter:
         self.dds_viewer = None
         self._start_background_services()
         self.setup_gui()
+        
+        remaining = self.license_manager.get_trial_time_remaining()
+        if remaining:
+            self.countdown_label = tk.Label(
+                self.window, 
+                text="", 
+                font=("Helvetica", 10, "bold"),
+                fg="#666666"
+            )
+            self.countdown_label.pack(pady=5, before=self.status_label)
+            
+            self.countdown_thread = threading.Thread(
+                target=self.update_countdown,
+                daemon=True
+            )
+            self.countdown_thread.start()
 
     def _start_background_services(self):
         try:
@@ -1181,7 +1186,7 @@ class ImageConverter:
         while True:
             remaining = self.license_manager.get_trial_time_remaining()
             if remaining:
-                countdown_text = f"Trial expires in: {remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
+                countdown_text = f"Trial expires in: {remaining['days']}d {remaining['hours']}d {remaining['minutes']}m"
                 self.countdown_label.config(text=countdown_text)
             else:
                 self.countdown_label.config(text="Trial expired! Please activate full version.")
