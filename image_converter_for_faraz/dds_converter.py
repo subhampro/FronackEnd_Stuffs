@@ -35,7 +35,6 @@ class PreviewWindow:
         )
         self.zoom_slider.pack(fill="x")
         
-        # Add window close handler
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
         self.is_active = True
         
@@ -428,13 +427,11 @@ class ImageConverter:
             
         preview = self.generate_normal_map(self.preview_source)
         
-        # Update small preview if canvas exists
         if hasattr(self, 'normal_preview_canvas'):
             small_preview = preview.resize((200, 200), Image.Resampling.LANCZOS)
             self.preview_image = ImageTk.PhotoImage(small_preview)
             self.normal_preview_canvas.create_image(100, 100, image=self.preview_image, anchor="center")
         
-        # Update large preview if window exists and is active
         if self.normal_preview_window and self.normal_preview_window.is_active:
             self.normal_preview_window.update_preview(preview)
 
@@ -449,13 +446,11 @@ class ImageConverter:
             
         preview = self.generate_roughness_map(self.preview_source)
         
-        # Update small preview if canvas exists
         if hasattr(self, 'roughness_preview_canvas'):
             small_preview = preview.resize((200, 200), Image.Resampling.LANCZOS)
             self.preview_roughness_image = ImageTk.PhotoImage(small_preview)
             self.roughness_preview_canvas.create_image(100, 100, image=self.preview_roughness_image, anchor="center")
         
-        # Update large preview if window exists and is active
         if self.roughness_preview_window and self.roughness_preview_window.is_active:
             self.roughness_preview_window.update_preview(preview)
 
