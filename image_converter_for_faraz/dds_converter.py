@@ -125,9 +125,17 @@ class UsageTracker:
     def __init__(self):
         self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/track.php'
         self.user_id = self.get_machine_id()
-
         self.track_usage('startup')
         
+    def get_machine_id(self):
+        """Generate a unique machine ID that persists across runs"""
+        try:
+            system_info = f"{platform.node()}-{platform.machine()}-{platform.processor()}"
+            machine_id = hashlib.md5(system_info.encode()).hexdigest()
+            return machine_id
+        except:
+            return hashlib.md5(os.urandom(32)).hexdigest()
+            
     def track_usage(self, event_type='start'):
         try:
             data = {
@@ -158,10 +166,9 @@ class UsageTracker:
                         return True
                 except Exception as e:
                     print(f"Tracking attempt {attempt + 1} failed: {str(e)}")
-                    if attempt == 2: 
+                    if attempt == 2:
                         raise
                     time.sleep(1)
-                    
         except Exception as e:
             print(f"Failed to track usage: {str(e)}")
         return False
