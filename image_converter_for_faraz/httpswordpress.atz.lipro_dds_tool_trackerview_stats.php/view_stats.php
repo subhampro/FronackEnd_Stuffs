@@ -148,11 +148,19 @@ try {
 
     foreach ($user_license_info as &$user) {
         $seconds_remaining = max(0, intval($user['seconds_remaining']));
-        $user['remaining'] = [
-            'days' => floor($seconds_remaining / 86400),
-            'hours' => floor(($seconds_remaining % 86400) / 3600),
-            'minutes' => floor(($seconds_remaining % 3600) / 60)
-        ];
+        if ($seconds_remaining > 0) {
+            $user['remaining'] = [
+                'days' => floor($seconds_remaining / 86400),
+                'hours' => floor(($seconds_remaining % 86400) / 3600),
+                'minutes' => floor(($seconds_remaining % 3600) / 60)
+            ];
+        } else {
+            $user['remaining'] = [
+                'days' => 0,
+                'hours' => 0,
+                'minutes' => 0
+            ];
+        }
     }
 
     ?>

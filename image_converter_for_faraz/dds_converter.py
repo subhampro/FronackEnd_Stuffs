@@ -177,33 +177,22 @@ class LicenseManager:
     def __init__(self):
         self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/'
         self.registry_key = r'Software\DDSConverter'
-        self.machine_id = self.get_secure_machine_id()
+        self.machine_id = self.get_machine_id()  # Use same method as UsageTracker
         print(f"Debug - Machine ID: {self.machine_id}")
 
-    def get_secure_machine_id(self):
-        """Generate a tamper-resistant machine ID"""
+    def get_machine_id(self):
+        """Generate a unique machine ID that persists across runs"""
         try:
-            # Simplified machine ID generation that doesn't rely on GetSystemFirmwareTable
-            system_info = [
-                win32api.GetComputerName(),
-                platform.processor(),
-                str(win32api.GetVolumeInformation("C:\\")[1])
-            ]
-            
-            unique_id = "-".join(filter(None, system_info))
-            return hashlib.sha256(unique_id.encode()).hexdigest()
-        except Exception as e:
-            print(f"Debug - Error getting machine ID: {str(e)}")
-            # Fallback to a basic machine ID
-            backup_info = f"{platform.node()}-{platform.machine()}-{platform.processor()}"
-            return hashlib.md5(backup_info.encode()).hexdigest()
+            system_info = f"{platform.node()}-{platform.machine()}-{platform.processor()}"
+            machine_id = hashlib.md5(system_info.encode()).hexdigest()
+            return machine_id
+        except:
+            return hashlib.md5(os.urandom(32)).hexdigest()
 
     def check_license(self):
         """Check license status with server"""
         try:
-            print(f"Debug - Checking license at: {self.api_url}verify_license.php")  # Add debug
-            print(f"Debug - Request data: {{'machine_id': '{self.machine_id}'}}")  # Add debug
-            
+            # First try server
             response = requests.post(
                 f"{self.api_url}verify_license.php",
                 json={'machine_id': self.machine_id},
@@ -211,25 +200,34 @@ class LicenseManager:
                 timeout=5
             )
             
-            print(f"Debug - Response: {response.text}")  # Add debug
-            
-            if response.status_code != 200:
-                messagebox.showerror("Error", "Cannot connect to license server. Internet connection required.")
-                return False, "Internet connection required"
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('status') == 'valid':
+                    return True, None
+
+            # If server fails, check local registry
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
+                stored_data = winreg.QueryValueEx(key, "license_data")[0]
+                license_data = json.loads(base64.b64decode(stored_data))
+                winreg.CloseKey(key)
                 
-            result = response.json()
-            print(f"Debug - Parsed result: {result}")  # Add debug
-            
-            if result.get('status') == 'valid':
-                return True, None
-            return False, result.get('message', 'License validation failed')
+                if license_data.get('type') == 'trial':
+                    return True, "Trial Version"
+                elif license_data.get('type') == 'full':
+                    return True, None
+            except:
+                # If no local data, initialize trial
+                self.initialize_trial_license()
+                return True, "Trial Version"
+                
+            return False, "Invalid license status"
             
         except requests.exceptions.ConnectionError:
-            print("Debug - Connection error")  # Add debug
-            messagebox.showerror("Error", "Cannot connect to license server. Internet connection required.")
-            return False, "Internet connection required"
+            print("Debug - Connection error")
+            return True, "Offline mode - limited features"
         except Exception as e:
-            print(f"Debug - Other error: {str(e)}")  # Add debug
+            print(f"Debug - Other error: {str(e)}")
             return False, str(e)
 
     def get_trial_time_remaining(self):
@@ -259,51 +257,56 @@ class LicenseManager:
     def get_license_expiry(self):
         """Get license expiration details with better error handling"""
         try:
-            # First try to create the registry key if it doesn't exist
-            try:
-                key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-                winreg.CloseKey(key)
-            except WindowsError:
-                pass
+            # First check server status
+            response = requests.post(
+                f"{self.api_url}verify_license.php",
+                json={'machine_id': self.machine_id},
+                headers={'User-Agent': 'DDS-Converter/1.0'},
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 'valid':
+                    seconds = int(data.get('seconds_remaining', 0))
+                    return {
+                        'days': seconds // 86400,
+                        'hours': (seconds % 86400) // 3600,
+                        'minutes': (seconds % 3600) // 60,
+                        'total_seconds': seconds,
+                        'type': data.get('type', 'trial')
+                    }
 
-            # Now try to read the license data
-            try:
-                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
-                stored_data = winreg.QueryValueEx(key, "license_data")[0]
-                winreg.CloseKey(key)
-            except WindowsError:
-                # If reading fails, initialize with trial data
-                return self.initialize_trial_license()
-
-            try:
-                license_data = json.loads(base64.b64decode(stored_data))
-            except:
-                # If data is corrupt, reinitialize
-                return self.initialize_trial_license()
-
+            # If server check fails, try local registry
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
+            stored_data = winreg.QueryValueEx(key, "license_data")[0]
+            license_data = json.loads(base64.b64decode(stored_data))
+            winreg.CloseKey(key)
+            
             now = datetime.now()
             
             if license_data.get('type') == 'full':
-                # ...existing full license code...
-                pass
+                activation_date = datetime.fromisoformat(license_data['activated'])
+                expires_at = activation_date + timedelta(days=30)
             else:  # trial
                 first_launch = datetime.fromisoformat(license_data['first_launch'])
                 expires_at = first_launch + timedelta(days=7)
-                remaining = expires_at - now
-                
-                if remaining.total_seconds() > 0:
-                    return {
-                        'days': min(remaining.days, 7),
-                        'hours': (remaining.seconds // 3600),
-                        'minutes': (remaining.seconds % 3600) // 60,
-                        'total_seconds': min(remaining.total_seconds(), 7 * 24 * 3600),
-                        'type': 'trial'
-                    }
+            
+            remaining = expires_at - now
+            
+            if remaining.total_seconds() > 0:
+                return {
+                    'days': remaining.days,
+                    'hours': (remaining.seconds // 3600),
+                    'minutes': (remaining.seconds % 3600) // 60,
+                    'total_seconds': remaining.total_seconds(),
+                    'type': license_data.get('type', 'trial')
+                }
             return None
 
         except Exception as e:
             print(f"Error getting license expiry: {e}")
-            # Return a new trial license on error
+            # Initialize new trial if everything fails
             return self.initialize_trial_license()
 
     def initialize_trial_license(self):
