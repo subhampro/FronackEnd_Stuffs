@@ -11,17 +11,29 @@ error_log("Raw data received: " . $raw_data);
 
 $data = json_decode($raw_data, true);
 
-if (!$data || !isset($data['machine_id'])) {
-    error_log("Invalid request data: " . print_r($data, true));
-    exit(json_encode([
-        'status' => 'error', 
-        'message' => 'Invalid request data',
-        'debug' => ['raw_data' => $raw_data]
-    ]));
-}
-
 try {
     require_once __DIR__ . '/db_connect.php';
+    
+    // Add rate limiting
+    $ip = $_SERVER['REMOTE_ADDR'];
+    $rate_limit_key = "rate_limit:$ip";
+    
+    // Simple rate limiting using file system
+    $rate_limit_file = sys_get_temp_dir() . "/$rate_limit_key";
+    if (file_exists($rate_limit_file) && (time() - filemtime($rate_limit_file)) < 1) {
+        throw new Exception("Rate limit exceeded");
+    }
+    touch($rate_limit_file);
+    
+    // Add request logging
+    error_log("License verification request from: " . $_SERVER['REMOTE_ADDR']);
+    
+    if (!$data || !isset($data['machine_id'])) {
+        throw new Exception("Invalid request data");
+    }
+
+    // Add response delay to prevent hammering
+    usleep(100000); // 100ms delay
     
     // First check if user exists, if not create trial
     $stmt = $db->prepare("
@@ -82,8 +94,10 @@ try {
 
 } catch (Exception $e) {
     error_log("License verification error: " . $e->getMessage());
+    http_response_code($e->getMessage() === "Rate limit exceeded" ? 429 : 500);
     echo json_encode([
         'status' => 'error',
-        'message' => 'Server error during verification'
+        'message' => $e->getMessage(),
+        'retry_after' => 1
     ]);
 }

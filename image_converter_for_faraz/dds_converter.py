@@ -137,41 +137,44 @@ class UsageTracker:
             return hashlib.md5(os.urandom(32)).hexdigest()
             
     def track_usage(self, event_type='start'):
-        try:
-            data = {
-                'user_id': self.user_id,
-                'event': event_type,
-                'system': platform.system() + ' ' + platform.release(),
-                'version': '1.0.0'
-            }
-            
-            headers = {
-                'Content-Type': 'application/json',
-                'User-Agent': 'DDS-Converter/1.0'
-            }
-            
-            for attempt in range(3):
-                try:
-                    response = requests.post(
-                        self.api_url, 
-                        json=data,
-                        headers=headers,
-                        timeout=5
-                    )
+        """Track usage with improved error handling and retry logic"""
+        max_retries = 3
+        retry_delay = 1
+        
+        for attempt in range(max_retries):
+            try:
+                data = {
+                    'user_id': self.user_id,
+                    'event': event_type,
+                    'system': platform.system() + ' ' + platform.release(),
+                    'version': '1.0.0'
+                }
+                
+                headers = {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'DDS-Converter/1.0'
+                }
+                
+                response = requests.post(
+                    self.api_url,
+                    json=data,
+                    headers=headers,
+                    timeout=5
+                )
+                
+                if response.status_code == 200:
+                    return True
                     
-                    print(f"Tracking response: {response.status_code}")
-                    print(f"Response content: {response.text}")
-                    
-                    if response.status_code == 200:
-                        return True
-                except Exception as e:
-                    print(f"Tracking attempt {attempt + 1} failed: {str(e)}")
-                    if attempt == 2:
-                        raise
-                    time.sleep(1)
-        except Exception as e:
-            print(f"Failed to track usage: {str(e)}")
-        return False
+            except requests.ConnectionError:
+                print(f"Connection attempt {attempt + 1} failed, retrying in {retry_delay}s...")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
+            except Exception as e:
+                print(f"Error tracking usage: {str(e)}")
+                
+            return False
 
 class LicenseManager:
     def __init__(self):
@@ -180,6 +183,9 @@ class LicenseManager:
         self.machine_id = self.get_machine_id()  # Use same method as UsageTracker
         print(f"Debug - Machine ID: {self.machine_id}")
         self.first_run = True  # Add this flag
+        self.retry_delay = 1
+        self.max_retries = 3
+        self.offline_mode = False
 
     def get_machine_id(self):
         """Generate a unique machine ID that persists across runs"""
@@ -191,32 +197,41 @@ class LicenseManager:
             return hashlib.md5(os.urandom(32)).hexdigest()
 
     def check_license(self):
-        """Check license status with server"""
-        try:
-            # First try server
-            response = requests.post(
-                f"{self.api_url}verify_license.php",
-                json={'machine_id': self.machine_id},
-                headers={'User-Agent': 'DDS-Converter/1.0'},
-                timeout=5
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('status') == 'valid':
-                    # Update registry with server status
-                    self.save_license_data(result)
-                    return True, None
-            
-            # If server fails or invalid response, check/initialize local
+        """Check license with improved error handling"""
+        if self.offline_mode:
             return self.check_local_license()
             
-        except requests.exceptions.ConnectionError:
-            print("Debug - Connection error")
-            return self.check_local_license()
-        except Exception as e:
-            print(f"Debug - Other error: {str(e)}")
-            return self.check_local_license()
+        for attempt in range(self.max_retries):
+            try:
+                response = requests.post(
+                    f"{self.api_url}verify_license.php",
+                    json={'machine_id': self.machine_id},
+                    headers={'User-Agent': 'DDS-Converter/1.0'},
+                    timeout=3
+                )
+                
+                if response.status_code == 429:  # Rate limit
+                    retry_after = int(response.headers.get('Retry-After', 1))
+                    time.sleep(retry_after)
+                    continue
+                    
+                if response.status_code == 200:
+                    result = response.json()
+                    if result.get('status') == 'valid':
+                        self.offline_mode = False
+                        self.save_license_data(result)
+                        return True, None
+                        
+            except (requests.ConnectionError, requests.Timeout) as e:
+                print(f"Connection attempt {attempt + 1} failed: {str(e)}")
+                if attempt == self.max_retries - 1:
+                    print("Switching to offline mode")
+                    self.offline_mode = True
+                else:
+                    time.sleep(self.retry_delay)
+                    self.retry_delay *= 2
+                    
+        return self.check_local_license()
 
     def check_local_license(self):
         """Check local license status"""
@@ -470,6 +485,73 @@ class LicenseManager:
         except:
             pass
         return None
+
+    def update_countdown(self):
+        """Update countdown with improved error handling"""
+        update_interval = 60
+        error_count = 0
+        
+        while getattr(self, 'is_running', True):
+            try:
+                if not self.offline_mode:
+                    try:
+                        remaining = self.get_license_expiry()
+                        if remaining:
+                            error_count = 0
+                        else:
+                            error_count += 1
+                            
+                        if error_count >= 3:
+                            print("Switching to offline mode after multiple failures")
+                            self.offline_mode = True
+                            
+                    except Exception as e:
+                        print(f"Server check failed: {e}")
+                        error_count += 1
+                        if error_count >= 3:
+                            self.offline_mode = True
+                
+                if self.offline_mode:
+                    remaining = self.get_trial_time_remaining()
+                    
+                if remaining:
+                    self.update_countdown_display(remaining)
+                    if remaining['total_seconds'] <= 0:
+                        self.handle_expiration(remaining.get('type', 'trial'))
+                        break
+                
+                time.sleep(update_interval)
+                
+            except Exception as e:
+                print(f"Countdown error: {e}")
+                if not self.is_running:
+                    break
+                time.sleep(update_interval)
+
+    def handle_expiration(self, license_type):
+        """Handle license expiration"""
+        self.is_running = False
+        expire_msg = "Your license has expired. Please renew to continue." if license_type == 'full' else "Your trial period has expired. Please activate a license to continue."
+        
+        if hasattr(self, 'window'):
+            self.window.after(0, lambda: messagebox.showerror("Expired", expire_msg))
+            self.window.after(100, self._force_close)
+
+    def update_countdown_display(self, remaining):
+        """Update countdown display with error handling"""
+        if not hasattr(self, 'countdown_label'):
+            return
+            
+        try:
+            license_type = "LICENSE" if remaining.get('type') == 'full' else "TRIAL"
+            status = "OFFLINE MODE - " if self.offline_mode else ""
+            countdown_text = (
+                f"{status}{license_type} EXPIRES IN: "
+                f"{remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
+            )
+            self.countdown_label.config(text=countdown_text)
+        except Exception as e:
+            print(f"Display update error: {e}")
 
 class ImageConverter:
     def __init__(self):
