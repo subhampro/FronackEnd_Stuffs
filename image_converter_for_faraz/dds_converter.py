@@ -5,6 +5,8 @@ from tkinter import filedialog, messagebox, ttk
 import numpy as np
 import struct
 import io
+import signal
+import sys
 
 class PreviewWindow:
     def __init__(self, parent, title):
@@ -106,6 +108,10 @@ class DDSViewer(PreviewWindow):
 
 class ImageConverter:
     def __init__(self):
+        # Add signal handlers
+        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        
         self.NORMAL_DEFAULTS = {
             'blur': 0,
             'scale': 300,
@@ -144,6 +150,14 @@ class ImageConverter:
         self.roughness_preview_window = None
         self.dds_viewer = None
         self.setup_gui()
+
+    def signal_handler(self, sig, frame):
+        """Handle Ctrl+C and other termination signals"""
+        print("\nClosing application gracefully...")
+        if hasattr(self, 'window'):
+            self.window.quit()
+            self.window.destroy()
+        sys.exit(0)
 
     def setup_gui(self):
         self.window = tk.Tk()
@@ -904,7 +918,13 @@ class ImageConverter:
                     self.dds_viewer.hide()
 
     def run(self):
-        self.window.mainloop()
+        try:
+            self.window.mainloop()
+        except KeyboardInterrupt:
+            self.signal_handler(signal.SIGINT, None)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            self.signal_handler(signal.SIGTERM, None)
 
 if __name__ == "__main__":
     converter = ImageConverter()
