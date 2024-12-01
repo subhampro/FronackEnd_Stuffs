@@ -490,30 +490,39 @@ try {
                         $is_expiring_soon = (($user['days_remaining'] ?? 0) <= 2 && ($user['days_remaining'] ?? 0) > 0);
                     ?>
                     <tr>
-                        <td><?= htmlspecialchars(substr($user['user_id'], 0, 8)) ?>...</td>
+                        <td><?= htmlspecialchars(substr($user['user_id'] ?? '', 0, 8)) ?>...</td>
                         <td>
+                            <?php 
+                            $status = $user['status'] ?? 'unknown';
+                            $status_class = match($status) {
+                                'licensed' => 'status-active',
+                                'trial' => 'status-trial',
+                                'expired', 'trial_expired' => 'status-inactive',
+                                default => 'status-inactive'
+                            };
+                            ?>
                             <span class="<?= $status_class ?>">
-                                <?= ucfirst($user['status']) ?>
-                                <?php if ($user['status'] === 'trial'): ?>
+                                <?= ucfirst($status) ?>
+                                <?php if ($status === 'trial'): ?>
                                     <span class="trial-badge">Trial</span>
                                 <?php endif; ?>
                             </span>
                         </td>
-                        <td><?= $user['first_seen'] ?></td>
-                        <td><?= $user['last_seen'] ?></td>
-                        <td class="<?= $is_expiring_soon ? 'expiring-soon' : '' ?>">
+                        <td><?= $user['first_seen'] ?? 'N/A' ?></td>
+                        <td><?= $user['last_seen'] ?? 'N/A' ?></td>
+                        <td class="<?= (($user['days_remaining'] ?? 0) <= 2 && ($user['days_remaining'] ?? 0) > 0) ? 'expiring-soon' : '' ?>">
                             <?php 
-                                if (isset($user['remaining'])) {
-                                    echo "{$user['remaining']['days']}d {$user['remaining']['hours']}h {$user['remaining']['minutes']}m";
-                                } else {
-                                    echo "Expired";
-                                }
+                            if (isset($user['remaining'])) {
+                                echo "{$user['remaining']['days']}d {$user['remaining']['hours']}h {$user['remaining']['minutes']}m";
+                            } else {
+                                echo "Expired";
+                            }
                             ?>
                         </td>
                         <td>
-                            <?php if ($user['license_key']): ?>
+                            <?php if (!empty($user['license_key'])): ?>
                                 Key: •••<?= substr($user['license_key'], -4) ?><br>
-                                Expires: <?= $user['expires_at'] ?>
+                                Expires: <?= $user['expires_at'] ?? 'N/A' ?>
                             <?php else: ?>
                                 No license
                             <?php endif; ?>
