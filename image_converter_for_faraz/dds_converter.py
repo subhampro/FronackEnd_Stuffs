@@ -171,17 +171,14 @@ class LicenseManager:
     def get_secure_machine_id(self):
         """Generate a tamper-proof machine ID"""
         try:
-            # Get hardware info
             cpu_id = win32api.GetSystemFirmwareTable('RSMB', 0)
             hdd_serial = win32api.GetVolumeInformation("C:\\")[1]
             
-            # Get system security identifiers
             sid = win32security.GetTokenInformation(
                 win32security.OpenProcessToken(win32api.GetCurrentProcess(), win32security.TOKEN_QUERY),
                 win32security.TokenUser
             )[0]
             
-            # Combine and hash
             system_info = f"{cpu_id}-{hdd_serial}-{sid}"
             return hashlib.sha256(system_info.encode()).hexdigest()
         except:
@@ -190,12 +187,10 @@ class LicenseManager:
     def check_license(self):
         """Check license status"""
         try:
-            # Try to read existing license info
             key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
             stored_data = winreg.QueryValueEx(key, "license_data")[0]
             license_data = json.loads(base64.b64decode(stored_data))
             
-            # Verify license with server
             response = requests.post(
                 f"{self.api_url}verify_license.php",
                 json={
@@ -215,7 +210,6 @@ class LicenseManager:
             return False, "Failed to verify license"
             
         except FileNotFoundError:
-            # First time run - start trial
             self.start_trial()
             return True, None
         except Exception as e:
@@ -224,21 +218,19 @@ class LicenseManager:
     def start_trial(self):
         """Initialize trial period"""
         try:
-            # Check if trial already started
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, 
                                 winreg.KEY_READ)
             try:
                 stored_data = winreg.QueryValueEx(key, "license_data")[0]
                 license_data = json.loads(base64.b64decode(stored_data))
                 if license_data.get('first_launch'):
-                    # Trial already started
                     winreg.CloseKey(key)
                     return
             except WindowsError:
                 pass
             winreg.CloseKey(key)
             
-            # First time launch - start trial
+
             key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
             license_data = {
                 'type': 'trial',
@@ -250,7 +242,6 @@ class LicenseManager:
             winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
             winreg.CloseKey(key)
             
-            # Register trial with server
             requests.post(
                 f"{self.api_url}register_trial.php",
                 json={
@@ -277,7 +268,6 @@ class LicenseManager:
             if response.status_code == 200:
                 result = response.json()
                 if result['status'] == 'success':
-                    # Save activated license
                     key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
                     license_data = {
                         'type': 'full',
@@ -401,7 +391,6 @@ class ImageConverter:
         self.dds_viewer = None
         self.setup_gui()
 
-        # Add trial countdown label
         self.countdown_label = ttk.Label(
             self.window, 
             text="", 
@@ -410,7 +399,6 @@ class ImageConverter:
         )
         self.countdown_label.pack(pady=5)
         
-        # Start countdown update thread
         self.countdown_thread = threading.Thread(target=self.update_countdown, daemon=True)
         self.countdown_thread.start()
 
@@ -429,6 +417,20 @@ class ImageConverter:
 
         self.generate_heightmap = tk.BooleanVar()
         self.generate_roughness = tk.BooleanVar()
+
+        source_frame = ttk.LabelFrame(self.window, text="Source Selection", padding=5)
+        source_frame.pack(fill="x", padx=5, pady=5)
+
+        self.source_button = tk.Button(source_frame, text="Select Directory", command=self.select_source_dir)
+        self.source_button.pack(side="left", padx=5)
+        
+        self.single_file_button = tk.Button(source_frame, text="Select Single File", command=self.select_single_file)
+        self.single_file_button.pack(side="left", padx=5)
+
+        self.view_dds_button = tk.Button(source_frame, text="View DDS File", command=self.open_dds_viewer)
+        self.view_dds_button.pack(side="left", padx=5)
+
+        tk.Label(self.window, text="Select Output Directory:").pack(pady=5)
         self.output_button = tk.Button(self.window, text="Browse", command=self.select_output_dir)
         self.output_button.pack(pady=5)
 

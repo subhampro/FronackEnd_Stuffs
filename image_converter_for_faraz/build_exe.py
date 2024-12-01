@@ -64,7 +64,7 @@ options.extend([
     '--hidden-import=PIL.ImageTk',
     '--hidden-import=PIL.Image',
     '--hidden-import=numpy',
-    '--hidden-import=requests',  # Add this line
+    '--hidden-import=requests', 
     '--hidden-import=win32api',
     '--hidden-import=win32security',
     '--hidden-import=win32con',
