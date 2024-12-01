@@ -200,7 +200,6 @@ class LicenseManager:
                     if datetime.now() > trial_end:
                         return False, "Trial period expired"
                         
-                    # Write current time to registry to track offline time
                     try:
                         key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
                         winreg.SetValueEx(key, "last_check", 0, winreg.REG_SZ, 
@@ -303,16 +302,14 @@ class LicenseManager:
             if license_data.get('type') == 'trial':
                 first_launch = datetime.fromisoformat(license_data['first_launch'])
                 
-                # If last_check exists, verify no time manipulation
                 if last_check:
                     last_check_time = datetime.fromisoformat(last_check)
                     current_time = datetime.now()
                     if (current_time - last_check_time) > timedelta(minutes=2):
-                        # Time was manipulated, adjust first_launch
                         time_diff = current_time - last_check_time
                         first_launch = first_launch + time_diff
                         
-                        # Update first_launch in registry
+
                         key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
                         license_data['first_launch'] = first_launch.isoformat()
                         encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
@@ -337,6 +334,10 @@ class LicenseManager:
 
 class ImageConverter:
     def __init__(self):
+
+        self.is_running = True
+        
+
         self.license_manager = LicenseManager()
         is_licensed, message = self.license_manager.check_license()
         
@@ -423,10 +424,10 @@ class ImageConverter:
             )
             self.countdown_label.pack(pady=5, before=self.status_label)
             
-            # Start countdown in separate thread
+
             self.countdown_thread = threading.Thread(
                 target=self.update_countdown,
-                daemon=False  # Change to non-daemon so it continues running
+                daemon=False  
             )
             self.countdown_thread.start()
         self.is_running = True
@@ -440,15 +441,18 @@ class ImageConverter:
     def signal_handler(self, sig, frame):
         """Handle Ctrl+C and other termination signals"""
         print("\nClosing application gracefully...")
-        self.is_running = False
+        self.is_running = False 
         if hasattr(self, 'window'):
-            self.window.after(100, self._force_close)
+            try:
+                self.window.after(100, self._force_close)
+            except:
+                os._exit(0) 
 
     def _force_close(self):
         """Force close the application"""
         self.window.quit()
         self.window.destroy()
-        os._exit(0)  # Force exit the process
+        os._exit(0)
 
     def setup_gui(self):
         self.window = tk.Tk()
@@ -1221,27 +1225,32 @@ class ImageConverter:
 
     def update_countdown(self):
         """Update trial countdown timer"""
-        while self.is_running:
-            try:
-                remaining = self.license_manager.get_trial_time_remaining()
-                if remaining:
-                    countdown_text = f"TRIAL EXPIRES IN: {remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
-                    if hasattr(self, 'countdown_label'):
-                        self.countdown_label.config(text=countdown_text)
-                    if remaining['total_seconds'] <= 0:
-                        self.is_running = False
-                        if hasattr(self, 'window'):
-                            self.window.after(0, lambda: messagebox.showerror("Trial Expired", 
-                                "Your trial period has expired. Please activate a license to continue."))
-                            self.window.after(100, self._force_close)
+        try:
+            while getattr(self, 'is_running', True):
+                try:
+                    remaining = self.license_manager.get_trial_time_remaining()
+                    if remaining:
+                        countdown_text = f"TRIAL EXPIRES IN: {remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
+                        if hasattr(self, 'countdown_label'):
+                            self.countdown_label.config(text=countdown_text)
+                            self.countdown_label.update() 
+                        if remaining['total_seconds'] <= 0:
+                            self.is_running = False
+                            if hasattr(self, 'window'):
+                                self.window.after(0, lambda: messagebox.showerror("Trial Expired", 
+                                    "Your trial period has expired. Please activate a license to continue."))
+                                self.window.after(100, self._force_close)
+                            break
+                    time.sleep(1) 
+                except Exception as e:
+                    print(f"Countdown error: {e}")
+                    if not self.is_running:
                         break
-                time.sleep(1)  # Check every second instead of every minute
-            except:
-                if not self.is_running:
-                    break
-                time.sleep(1)
-                continue
-
+                    time.sleep(1)
+                    continue
+        except Exception as e:
+            print(f"Countdown thread error: {e}")
+            
 if __name__ == "__main__":
     converter = ImageConverter()
     converter.run()
