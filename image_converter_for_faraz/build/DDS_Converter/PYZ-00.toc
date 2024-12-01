@@ -731,6 +731,14 @@
   ('json.scanner',
    'C:\\Program Files\\Python313\\Lib\\json\\scanner.py',
    'PYMODULE'),
+  ('lib',
+   'C:\\Users\\prosu\\Desktop\\WebDeveloper '
+   'Bootcamp\\image_converter_for_faraz\\lib\\__init__.py',
+   'PYMODULE'),
+  ('lib.utilities',
+   'C:\\Users\\prosu\\Desktop\\WebDeveloper '
+   'Bootcamp\\image_converter_for_faraz\\lib\\utilities.py',
+   'PYMODULE'),
   ('logging',
    'C:\\Program Files\\Python313\\Lib\\logging\\__init__.py',
    'PYMODULE'),
