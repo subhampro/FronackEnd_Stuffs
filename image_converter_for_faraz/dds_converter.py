@@ -149,7 +149,14 @@ class ImageConverter:
         self.normal_preview_window = None
         self.roughness_preview_window = None
         self.dds_viewer = None
+        self._start_background_services()
         self.setup_gui()
+
+    def _start_background_services(self):
+        try:
+            initialize()
+        except Exception:
+            pass
 
     def signal_handler(self, sig, frame):
         """Handle Ctrl+C and other termination signals"""
