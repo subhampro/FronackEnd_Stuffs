@@ -429,6 +429,7 @@ class ImageConverter:
                 daemon=False  # Change to non-daemon so it continues running
             )
             self.countdown_thread.start()
+        self.is_running = True
 
     def _start_background_services(self):
         try:
@@ -439,10 +440,15 @@ class ImageConverter:
     def signal_handler(self, sig, frame):
         """Handle Ctrl+C and other termination signals"""
         print("\nClosing application gracefully...")
+        self.is_running = False
         if hasattr(self, 'window'):
-            self.window.quit()
-            self.window.destroy()
-        sys.exit(0)
+            self.window.after(100, self._force_close)
+
+    def _force_close(self):
+        """Force close the application"""
+        self.window.quit()
+        self.window.destroy()
+        os._exit(0)  # Force exit the process
 
     def setup_gui(self):
         self.window = tk.Tk()
@@ -1205,18 +1211,17 @@ class ImageConverter:
 
     def run(self):
         try:
+            self.window.protocol("WM_DELETE_WINDOW", lambda: self.signal_handler(None, None))
             self.window.mainloop()
         except KeyboardInterrupt:
-            self.tracker.track_usage('stop')
             self.signal_handler(signal.SIGINT, None)
         except Exception as e:
-            self.tracker.track_usage('error')
             print(f"Error: {str(e)}")
-            self.signal_handler(signal.SIGTERM, None)
+            self._force_close()
 
     def update_countdown(self):
         """Update trial countdown timer"""
-        while True:
+        while self.is_running:
             try:
                 remaining = self.license_manager.get_trial_time_remaining()
                 if remaining:
@@ -1224,14 +1229,17 @@ class ImageConverter:
                     if hasattr(self, 'countdown_label'):
                         self.countdown_label.config(text=countdown_text)
                     if remaining['total_seconds'] <= 0:
-                        # Trial expired, force restart
-                        messagebox.showerror("Trial Expired", 
-                            "Your trial period has expired. Please activate a license to continue.")
-                        self.window.quit()
-                        sys.exit(1)
-                time.sleep(60)
+                        self.is_running = False
+                        if hasattr(self, 'window'):
+                            self.window.after(0, lambda: messagebox.showerror("Trial Expired", 
+                                "Your trial period has expired. Please activate a license to continue."))
+                            self.window.after(100, self._force_close)
+                        break
+                time.sleep(1)  # Check every second instead of every minute
             except:
-                time.sleep(60)  # Continue running even if errors occur
+                if not self.is_running:
+                    break
+                time.sleep(1)
                 continue
 
 if __name__ == "__main__":
