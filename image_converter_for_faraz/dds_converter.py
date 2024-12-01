@@ -247,21 +247,39 @@ class LicenseManager:
             license_data = json.loads(base64.b64decode(stored_data))
             winreg.CloseKey(key)
             
+            now = datetime.now()
+            
             if license_data.get('type') == 'full':
                 activation_date = datetime.fromisoformat(license_data['activated'])
                 expires_at = activation_date + timedelta(days=30)
-                remaining = expires_at - datetime.now()
+                remaining = expires_at - now
+            else:  # trial
+                first_launch = datetime.fromisoformat(license_data['first_launch'])
+                expires_at = first_launch + timedelta(days=7)
+                remaining = expires_at - now
+            
+            if remaining.total_seconds() > 0:
+                days = remaining.days
+                hours = (remaining.seconds // 3600)
+                minutes = (remaining.seconds % 3600) // 60
                 
-                if remaining.total_seconds() > 0:
-                    return {
-                        'days': remaining.days,
-                        'hours': remaining.seconds // 3600,
-                        'minutes': (remaining.seconds % 3600) // 60,
-                        'total_seconds': remaining.total_seconds(),
-                        'type': 'full'
-                    }
+                # Ensure we don't show more than the maximum trial period
+                if license_data.get('type') == 'trial':
+                    if days >= 7:
+                        days = 7
+                        hours = 0
+                        minutes = 0
+                
+                return {
+                    'days': days,
+                    'hours': hours,
+                    'minutes': minutes,
+                    'total_seconds': remaining.total_seconds(),
+                    'type': license_data.get('type', 'trial')
+                }
             return None
-        except:
+        except Exception as e:
+            print(f"Error getting license expiry: {e}")
             return None
 
     def start_trial(self):

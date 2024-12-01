@@ -111,7 +111,7 @@ try {
         LIMIT 20
     ")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Replace the user_license_info query with this corrected version
+    // Replace the user_license_info query with this updated version
     $user_license_info = $db->query("
         SELECT 
             u.user_id,
@@ -129,12 +129,20 @@ try {
             CASE 
                 WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'active' THEN 
                     DATEDIFF(MAX(l.expires_at), NOW())
-                WHEN MAX(l.license_key) IS NULL THEN 
-                    7 - DATEDIFF(NOW(), MIN(us.created_at))
-                ELSE 0
+                WHEN MIN(us.created_at) IS NOT NULL THEN 
+                    GREATEST(0, 7 - DATEDIFF(NOW(), MIN(us.created_at)))
+                ELSE 7
             END as days_remaining,
-            TIMESTAMPDIFF(HOUR, NOW(), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY)) % 24 as hours_remaining,
-            TIMESTAMPDIFF(MINUTE, NOW(), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY)) % 60 as minutes_remaining
+            CASE 
+                WHEN MIN(us.created_at) IS NOT NULL THEN 
+                    MOD(TIMESTAMPDIFF(HOUR, NOW(), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY)), 24)
+                ELSE 0
+            END as hours_remaining,
+            CASE 
+                WHEN MIN(us.created_at) IS NOT NULL THEN 
+                    MOD(TIMESTAMPDIFF(MINUTE, NOW(), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY)), 60)
+                ELSE 0
+            END as minutes_remaining
         FROM users u
         LEFT JOIN usage_stats us ON u.user_id = us.user_id
         LEFT JOIN licenses l ON u.user_id = l.machine_id
