@@ -42,7 +42,7 @@ try {
     $db = new PDO('mysql:host=localhost;dbname=wordpres_test', 'wordpres_test', '$$$Pro381998');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // First update or create user record
+
     $stmt = $db->prepare("INSERT INTO users (user_id, last_seen) 
                          VALUES (:user_id, NOW()) 
                          ON DUPLICATE KEY UPDATE 
@@ -51,7 +51,7 @@ try {
     
     $stmt->execute(['user_id' => $data['user_id']]);
 
-    // Then log the event
+
     $stmt = $db->prepare("INSERT INTO usage_stats 
                          (user_id, event_type, system_info, version, created_at) 
                          VALUES (:user_id, :event, :system, :version, NOW())");

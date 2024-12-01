@@ -125,7 +125,7 @@ class UsageTracker:
     def __init__(self):
         self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/track.php'
         self.user_id = self.get_machine_id()
-        # Track initial startup
+
         self.track_usage('startup')
         
     def track_usage(self, event_type='start'):
@@ -158,7 +158,7 @@ class UsageTracker:
                         return True
                 except Exception as e:
                     print(f"Tracking attempt {attempt + 1} failed: {str(e)}")
-                    if attempt == 2:  # Last attempt
+                    if attempt == 2: 
                         raise
                     time.sleep(1)
                     
