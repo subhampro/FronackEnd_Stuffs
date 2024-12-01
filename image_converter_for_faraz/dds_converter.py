@@ -4,6 +4,82 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import numpy as np
 
+class PreviewWindow:
+    def __init__(self, parent, title):
+        self.window = tk.Toplevel(parent)
+        self.window.title(title)
+        self.window.geometry("800x600")
+        
+        self.preview_frame = ttk.Frame(self.window)
+        self.preview_frame.pack(expand=True, fill="both", side=tk.LEFT)
+        
+        self.preview_canvas = tk.Canvas(self.preview_frame, width=600, height=600)
+        self.preview_canvas.pack(expand=True, fill="both", padx=10, pady=10)
+        
+        self.controls_frame = ttk.Frame(self.window)
+        self.controls_frame.pack(fill="y", side=tk.RIGHT, padx=10, pady=10)
+        
+        self.zoom_frame = ttk.LabelFrame(self.controls_frame, text="Zoom")
+        self.zoom_frame.pack(fill="x", pady=5)
+        
+        self.zoom_var = tk.DoubleVar(value=1.0)
+        self.zoom_label = ttk.Label(self.zoom_frame, text="100%")
+        self.zoom_label.pack()
+        
+        self.zoom_slider = ttk.Scale(
+            self.zoom_frame, 
+            from_=0.1, 
+            to=2.0, 
+            variable=self.zoom_var,
+            command=self.on_zoom_change
+        )
+        self.zoom_slider.pack(fill="x")
+        
+        # Add window close handler
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.is_active = True
+        
+    def on_close(self):
+        self.is_active = False
+        self.window.withdraw()
+    
+    def on_zoom_change(self, value):
+        zoom = float(value)
+        self.zoom_label.config(text=f"{int(zoom * 100)}%")
+        if hasattr(self, 'update_callback'):
+            self.update_callback()
+    
+    def set_update_callback(self, callback):
+        self.update_callback = callback
+        
+    def update_preview(self, image):
+        if not self.is_active:
+            return
+            
+        if image:
+            zoom = self.zoom_var.get()
+            orig_size = image.size
+            new_size = (int(orig_size[0] * zoom), int(orig_size[1] * zoom))
+            zoomed = image.resize(new_size, Image.Resampling.LANCZOS)
+            
+            self.preview_image = ImageTk.PhotoImage(zoomed)
+            
+            self.preview_canvas.config(width=new_size[0], height=new_size[1])
+            self.preview_canvas.create_image(
+                new_size[0]//2, 
+                new_size[1]//2, 
+                image=self.preview_image, 
+                anchor="center"
+            )
+
+    def show(self):
+        self.is_active = True
+        self.window.deiconify()
+        
+    def hide(self):
+        self.is_active = False
+        self.window.withdraw()
+
 class ImageConverter:
     def __init__(self):
         self.NORMAL_DEFAULTS = {
@@ -34,6 +110,8 @@ class ImageConverter:
         }
         self.preview_image = None
         self.preview_roughness_image = None
+        self.normal_preview_window = None
+        self.roughness_preview_window = None
         self.setup_gui()
 
     def setup_gui(self):
@@ -91,7 +169,7 @@ class ImageConverter:
         ).pack(side=tk.LEFT, padx=5)
 
         self.normal_controls_frame = self.create_map_controls("Normal Map Controls", self.update_preview)
-        self.roughness_controls_frame = self.create_map_controls("Speculer Map", self.update_roughness_preview)
+        self.roughness_controls_frame = self.create_roughness_controls("Speculer Map", self.update_roughness_preview)
         
         self.normal_controls_frame.pack_forget()
         self.roughness_controls_frame.pack_forget()
@@ -317,23 +395,48 @@ class ImageConverter:
     def toggle_normal_controls(self, *args):
         if self.generate_heightmap.get():
             self.normal_controls_frame.pack(fill="x", padx=5, pady=5)
+            
+            if not self.normal_preview_window or not self.normal_preview_window.is_active:
+                self.normal_preview_window = PreviewWindow(self.window, "Normal Map Preview")
+                self.normal_preview_window.set_update_callback(self.update_preview)
+            
+            self.normal_preview_window.show()
+            self.update_preview()
         else:
             self.normal_controls_frame.pack_forget()
+            if self.normal_preview_window:
+                self.normal_preview_window.hide()
 
     def toggle_roughness_controls(self, *args):
         if self.generate_roughness.get():
             self.roughness_controls_frame.pack(fill="x", padx=5, pady=5)
+            
+            if not self.roughness_preview_window or not self.roughness_preview_window.is_active:
+                self.roughness_preview_window = PreviewWindow(self.window, "Roughness Map Preview")
+                self.roughness_preview_window.set_update_callback(self.update_roughness_preview)
+            
+            self.roughness_preview_window.show()
+            self.update_roughness_preview()
         else:
             self.roughness_controls_frame.pack_forget()
+            if self.roughness_preview_window:
+                self.roughness_preview_window.hide()
 
     def update_preview(self, *args):
         if not hasattr(self, 'preview_source'):
             return
-        
+            
         preview = self.generate_normal_map(self.preview_source)
-        preview = preview.resize((200, 200), Image.Resampling.LANCZOS)
-        self.preview_image = ImageTk.PhotoImage(preview)
-        self.normal_preview_canvas.create_image(100, 100, image=self.preview_image, anchor="center")
+        
+        # Update small preview if canvas exists
+        if hasattr(self, 'normal_preview_canvas'):
+            small_preview = preview.resize((200, 200), Image.Resampling.LANCZOS)
+            self.preview_image = ImageTk.PhotoImage(small_preview)
+            self.normal_preview_canvas.create_image(100, 100, image=self.preview_image, anchor="center")
+        
+        # Update large preview if window exists and is active
+        if self.normal_preview_window and self.normal_preview_window.is_active:
+            self.normal_preview_window.update_preview(preview)
 
     def update_slider_label(self, value, label, unit, callback):
         """Update the label with the current slider value"""
@@ -343,17 +446,24 @@ class ImageConverter:
     def update_roughness_preview(self, *args):
         if not hasattr(self, 'preview_source'):
             return
-        
+            
         preview = self.generate_roughness_map(self.preview_source)
-        preview = preview.resize((200, 200), Image.Resampling.LANCZOS)
-        self.preview_roughness_image = ImageTk.PhotoImage(preview)
-        self.roughness_preview_canvas.create_image(100, 100, image=self.preview_roughness_image, anchor="center")
+        
+        # Update small preview if canvas exists
+        if hasattr(self, 'roughness_preview_canvas'):
+            small_preview = preview.resize((200, 200), Image.Resampling.LANCZOS)
+            self.preview_roughness_image = ImageTk.PhotoImage(small_preview)
+            self.roughness_preview_canvas.create_image(100, 100, image=self.preview_roughness_image, anchor="center")
+        
+        # Update large preview if window exists and is active
+        if self.roughness_preview_window and self.roughness_preview_window.is_active:
+            self.roughness_preview_window.update_preview(preview)
 
     def generate_normal_map(self, image):
         gray = image.convert('L')
         
         blur_radius = self.normal_blur_var.get() / 10
-        if blur_radius > 0:
+        if (blur_radius > 0):
             gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
 
         height_map = np.array(gray).astype(np.float32) / 255.0
