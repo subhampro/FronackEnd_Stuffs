@@ -44,12 +44,20 @@ CREATE TABLE `licenses` (
 --
 
 CREATE TABLE `usage_stats` (
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `user_id` varchar(32) NOT NULL,
   `event_type` varchar(50) NOT NULL,
   `system_info` varchar(255) DEFAULT NULL,
   `version` varchar(20) DEFAULT NULL,
-  `created_at` datetime NOT NULL
+  `ip_address` varchar(45) DEFAULT NULL,
+  `country` varchar(100) DEFAULT NULL,
+  `region` varchar(100) DEFAULT NULL,
+  `city` varchar(100) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `created_at` (`created_at`),
+  KEY `event_type` (`event_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------

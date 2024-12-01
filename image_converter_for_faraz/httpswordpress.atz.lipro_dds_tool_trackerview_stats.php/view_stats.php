@@ -15,6 +15,7 @@ try {
     $db = new PDO('mysql:host=localhost;dbname=wordpres_test', 'wordpres_test', '$$$Pro381998');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
+    // Simplified stats query
     $stats = [
         'total_users' => $db->query("SELECT COUNT(DISTINCT user_id) FROM users")->fetchColumn(),
         'active_today' => $db->query("SELECT COUNT(DISTINCT user_id) FROM users WHERE last_seen >= DATE_SUB(NOW(), INTERVAL 24 HOUR)")->fetchColumn(),
@@ -22,6 +23,7 @@ try {
         'total_events' => $db->query("SELECT COUNT(*) FROM usage_stats")->fetchColumn()
     ];
     
+    // Simplified users query
     $users = $db->query("
         SELECT 
             u.user_id,
@@ -29,14 +31,11 @@ try {
             MAX(u.last_seen) as last_seen,
             u.total_uses,
             COUNT(us.id) as total_events,
-            MAX(CASE WHEN us.event_type = 'startup' THEN us.created_at END) as last_startup,
-            GROUP_CONCAT(DISTINCT us.system_info) as systems_used,
-            GROUP_CONCAT(DISTINCT us.version) as versions_used,
-            GROUP_CONCAT(DISTINCT us.ip_address) as ip_addresses,
-            GROUP_CONCAT(DISTINCT us.country) as countries,
-            GROUP_CONCAT(DISTINCT us.city) as cities,
-            GROUP_CONCAT(DISTINCT CONCAT(us.ip_address, '|', COALESCE(us.country, 'Unknown'), '|', 
-                COALESCE(us.city, 'Unknown'), '|', us.created_at) ORDER BY us.created_at DESC) as connection_history
+            GROUP_CONCAT(DISTINCT IFNULL(us.system_info, 'Unknown')) as systems_used,
+            GROUP_CONCAT(DISTINCT IFNULL(us.version, 'Unknown')) as versions_used,
+            GROUP_CONCAT(DISTINCT IFNULL(us.ip_address, 'Unknown')) as ip_addresses,
+            GROUP_CONCAT(DISTINCT IFNULL(us.country, 'Unknown')) as countries,
+            GROUP_CONCAT(DISTINCT IFNULL(us.city, 'Unknown')) as cities
         FROM users u
         LEFT JOIN usage_stats us ON u.user_id = us.user_id
         GROUP BY u.user_id
@@ -44,6 +43,7 @@ try {
         LIMIT 100
     ")->fetchAll(PDO::FETCH_ASSOC);
     
+    // Simplified recent activity query
     $recent = $db->query("
         SELECT 
             DATE(created_at) as date, 
@@ -51,9 +51,9 @@ try {
             COUNT(DISTINCT user_id) as unique_users,
             GROUP_CONCAT(DISTINCT event_type) as event_types
         FROM usage_stats
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
         GROUP BY DATE(created_at)
         ORDER BY date DESC
-        LIMIT 7
     ")->fetchAll(PDO::FETCH_ASSOC);
     
     $events = $db->query("
@@ -521,36 +521,55 @@ try {
         </div>
         
         <script>
-            // Initialize charts
+            // Initialize charts with error handling
             const activityCtx = document.getElementById('activityChart').getContext('2d');
-            new Chart(activityCtx, {
-                type: 'line',
-                data: {
-                    labels: <?= json_encode(array_column($recent, 'date')) ?>,
-                    datasets: [{
-                        label: 'Events',
-                        data: <?= json_encode(array_column($recent, 'events')) ?>,
-                        borderColor: '#4CAF50'
-                    }]
-                }
-            });
+            const activityData = <?= json_encode(array_column($recent, 'events')) ?>;
+            const activityLabels = <?= json_encode(array_column($recent, 'date')) ?>;
+            
+            if (activityData.length > 0) {
+                new Chart(activityCtx, {
+                    type: 'line',
+                    data: {
+                        labels: activityLabels,
+                        datasets: [{
+                            label: 'Events',
+                            data: activityData,
+                            borderColor: '#4CAF50'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
             
             const geoCtx = document.getElementById('geoChart').getContext('2d');
-            new Chart(geoCtx, {
-                type: 'pie',
-                data: {
-                    labels: <?= json_encode(array_column($geo_stats, 'country')) ?>,
-                    datasets: [{
-                        data: <?= json_encode(array_column($geo_stats, 'unique_users')) ?>,
-                        backgroundColor: ['#4CAF50', '#2196F3', '#FFC107', '#9C27B0', '#F44336']
-                    }]
-                }
-            });
+            const geoData = <?= json_encode(array_column($geo_stats, 'unique_users')) ?>;
+            const geoLabels = <?= json_encode(array_column($geo_stats, 'country')) ?>;
+            
+            if (geoData.length > 0) {
+                new Chart(geoCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: geoLabels,
+                        datasets: [{
+                            data: geoData,
+                            backgroundColor: ['#4CAF50', '#2196F3', '#FFC107', '#9C27B0', '#F44336']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
         </script>
     </body>
     </html>
     <?php
     
 } catch (PDOException $e) {
-    die("Database error: " . $e->getMessage());
+    error_log("Database error: " . $e->getMessage());
+    die("Database error occurred. Please check the error logs.");
 }
