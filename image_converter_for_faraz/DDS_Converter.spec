@@ -3,7 +3,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('C:\\Program Files\\Python313\\tcl\\tcl8.6', 'tcl8.6'), ('C:\\Program Files\\Python313\\tcl\\tk8.6', 'tk8.6')]
 binaries = []
-hiddenimports = ['tkinter', 'tkinter.ttk', 'tkinter.filedialog', 'tkinter.messagebox', 'tkinter.font', '_tkinter', 'PIL', 'PIL._imagingtk', 'PIL._tkinter_finder', 'PIL.ImageTk', 'PIL.Image', 'numpy']
+hiddenimports = ['tkinter', 'tkinter.ttk', 'tkinter.filedialog', 'tkinter.messagebox', 'tkinter.font', '_tkinter', 'PIL', 'PIL._imagingtk', 'PIL._tkinter_finder', 'PIL.ImageTk', 'PIL.Image', 'numpy', 'requests']
 tmp_ret = collect_all('tkinter')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('PIL')
