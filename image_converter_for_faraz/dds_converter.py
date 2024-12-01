@@ -24,9 +24,10 @@ class ImageConverter:
         }
         self.dimensions = {
             "Original Size": "original",
-            "Custom Size": "custom",  # Add custom option
+            "Custom Size": "custom",
             "4x4": (4, 4),
             "128x128": (128, 128),
+            "289x289": (289, 289),
             "512x512": (512, 512),
             "1024x1024": (1024, 1024),
             "2048x2048": (2048, 2048),
@@ -62,6 +63,17 @@ class ImageConverter:
         self.dim_combo['values'] = list(self.dimensions.keys())
         self.dim_combo.set("Original Size")
         self.dim_combo.pack(pady=5)
+        
+        self.custom_dim_frame = ttk.Frame(self.window)
+        tk.Label(self.custom_dim_frame, text="Width:").pack(side=tk.LEFT, padx=5)
+        self.custom_width = ttk.Entry(self.custom_dim_frame, width=6)
+        self.custom_width.pack(side=tk.LEFT, padx=5)
+        
+        tk.Label(self.custom_dim_frame, text="Height:").pack(side=tk.LEFT, padx=5)
+        self.custom_height = ttk.Entry(self.custom_dim_frame, width=6)
+        self.custom_height.pack(side=tk.LEFT, padx=5)
+        
+        self.dim_combo.bind('<<ComboboxSelected>>', self.on_dimension_change)
 
         checkbox_frame = ttk.LabelFrame(self.window, text="Additional Maps", padding=5)
         checkbox_frame.pack(fill="x", padx=5, pady=5)
@@ -462,6 +474,17 @@ class ImageConverter:
 
         selected_dim = self.dimensions[self.dim_var.get()]
         
+        if selected_dim == "custom":
+            try:
+                width = int(self.custom_width.get())
+                height = int(self.custom_height.get())
+                if width <= 0 or height <= 0:
+                    raise ValueError("Dimensions must be positive numbers")
+                selected_dim = (width, height)
+            except ValueError as e:
+                messagebox.showerror("Error", "Please enter valid dimensions!")
+                return
+        
         if hasattr(self, 'single_file_mode') and self.single_file_mode:
             image_files = [os.path.basename(self.source_file)]
         else:
@@ -530,6 +553,12 @@ class ImageConverter:
         self.roughness_high_contrast_var.set(self.ROUGHNESS_DEFAULTS['high'])
         self.roughness_bump_var.set(self.ROUGHNESS_DEFAULTS['bump'])
         self.update_roughness_preview()
+
+    def on_dimension_change(self, event=None):
+        if self.dim_var.get() == "Custom Size":
+            self.custom_dim_frame.pack(pady=5)
+        else:
+            self.custom_dim_frame.pack_forget()
 
     def run(self):
         self.window.mainloop()
