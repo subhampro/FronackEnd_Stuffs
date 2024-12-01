@@ -119,29 +119,42 @@ try {
         LIMIT 20
     ")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Replace the user_license_info query with this updated version
+    // Replace the user_license_info query with this safer version
     $user_license_info = $db->query("
         SELECT 
             u.user_id,
-            MIN(us.created_at) as first_seen,
+            COALESCE(MIN(us.created_at), u.first_seen) as first_seen,
             MAX(u.last_seen) as last_seen,
             MAX(l.license_key) as license_key,
             MAX(l.expires_at) as expires_at,
             MAX(l.status) as license_status,
-            CASE 
-                WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'active' THEN 'licensed'
-                WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'expired' THEN 'expired'
-                WHEN l.license_key IS NULL AND TIMESTAMPDIFF(DAY, MIN(us.created_at), NOW()) <= 7 THEN 'trial'
-                ELSE 'trial_expired'
-            END as status,
-            CASE
-                WHEN MAX(l.license_key) IS NOT NULL THEN TIMESTAMPDIFF(DAY, NOW(), MAX(l.expires_at))
-                ELSE 7 - TIMESTAMPDIFF(DAY, MIN(us.created_at), NOW())
-            END as days_remaining,
-            CASE
-                WHEN MAX(l.license_key) IS NOT NULL THEN TIMESTAMPDIFF(SECOND, NOW(), MAX(l.expires_at))
-                ELSE (7 * 86400) - TIMESTAMPDIFF(SECOND, MIN(us.created_at), NOW())
-            END as total_seconds_remaining
+            COALESCE(
+                CASE 
+                    WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'active' THEN 'licensed'
+                    WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'expired' THEN 'expired'
+                    WHEN TIMESTAMPDIFF(DAY, MIN(us.created_at), NOW()) <= 7 THEN 'trial'
+                    ELSE 'trial_expired'
+                END,
+                'trial'
+            ) as status,
+            COALESCE(
+                CASE
+                    WHEN MAX(l.license_key) IS NOT NULL THEN 
+                        TIMESTAMPDIFF(DAY, NOW(), MAX(l.expires_at))
+                    ELSE 
+                        7 - TIMESTAMPDIFF(DAY, COALESCE(MIN(us.created_at), u.first_seen), NOW())
+                END,
+                7
+            ) as days_remaining,
+            COALESCE(
+                CASE
+                    WHEN MAX(l.license_key) IS NOT NULL THEN 
+                        TIMESTAMPDIFF(SECOND, NOW(), MAX(l.expires_at))
+                    ELSE 
+                        (7 * 86400) - TIMESTAMPDIFF(SECOND, COALESCE(MIN(us.created_at), u.first_seen), NOW())
+                END,
+                7 * 86400
+            ) as total_seconds_remaining
         FROM users u
         LEFT JOIN usage_stats us ON u.user_id = us.user_id
         LEFT JOIN licenses l ON u.user_id = l.machine_id
@@ -151,22 +164,15 @@ try {
 
     // Process the remaining time more accurately
     foreach ($user_license_info as &$user) {
-        $seconds = max(0, $user['total_seconds_remaining']);
-        $days = floor($seconds / 86400);
-        $hours = floor(($seconds % 86400) / 3600);
-        $minutes = floor(($seconds % 3600) / 60);
+        $status = $user['status'] ?? 'trial';
+        $days_remaining = max(0, intval($user['days_remaining'] ?? 0));
+        $total_seconds = max(0, intval($user['total_seconds_remaining'] ?? 0));
         
-        // Ensure trial period doesn't exceed 7 days
-        if ($user['status'] === 'trial' && $days >= 7) {
-            $days = 7;
-            $hours = 0;
-            $minutes = 0;
-        }
-        
+        $user['status'] = $status;
         $user['remaining'] = [
-            'days' => $days,
-            'hours' => $hours,
-            'minutes' => $minutes
+            'days' => min($days_remaining, ($status === 'trial' ? 7 : 30)),
+            'hours' => floor(($total_seconds % 86400) / 3600),
+            'minutes' => floor(($total_seconds % 3600) / 60)
         ];
     }
 

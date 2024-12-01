@@ -8,7 +8,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once('db_connect.php');
+// Add at the top, before other code
+if (!file_exists(__DIR__ . '/db_connect.php')) {
+    die(json_encode(['status' => 'error', 'message' => 'Database configuration missing']));
+}
+require_once __DIR__ . '/db_connect.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 
