@@ -4,69 +4,64 @@ header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json');
 
-require_once __DIR__ . '/db_connect.php';
+error_log("Verify license accessed");
 
-$data = json_decode(file_get_contents('php://input'), true);
+$raw_data = file_get_contents('php://input');
+error_log("Raw data received: " . $raw_data);
+
+$data = json_decode($raw_data, true);
 
 if (!$data || !isset($data['machine_id'])) {
-    exit(json_encode(['status' => 'error', 'message' => 'Invalid request data']));
+    error_log("Invalid request data: " . print_r($data, true));
+    exit(json_encode([
+        'status' => 'error', 
+        'message' => 'Invalid request data',
+        'debug' => ['raw_data' => $raw_data]
+    ]));
 }
 
 try {
-    // First check for full license
+    require_once __DIR__ . '/db_connect.php';
+    
+    // First check if user exists, if not create trial
     $stmt = $db->prepare("
-        SELECT 
-            l.*,
-            TIMESTAMPDIFF(SECOND, NOW(), l.expires_at) as seconds_remaining
-        FROM licenses l
-        WHERE l.machine_id = ? AND l.status = 'active'
+        INSERT IGNORE INTO users (user_id, first_seen, last_seen)
+        VALUES (?, NOW(), NOW())
+    ");
+    $stmt->execute([$data['machine_id']]);
+    
+    // Then get or create trial license
+    $stmt = $db->prepare("
+        SELECT * FROM licenses 
+        WHERE machine_id = ? 
+        AND status = 'active'
     ");
     $stmt->execute([$data['machine_id']]);
     $license = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // If no active license, check trial status
+    
     if (!$license) {
+        // Create new trial license
         $stmt = $db->prepare("
-            SELECT 
-                u.first_seen,
-                TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(u.first_seen, INTERVAL 7 DAY)) as trial_remaining
-            FROM users u
-            WHERE u.user_id = ?
+            INSERT INTO licenses (machine_id, created_at, activated_at, expires_at, status)
+            VALUES (?, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 7 DAY), 'active')
         ");
         $stmt->execute([$data['machine_id']]);
-        $trial = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($trial && $trial['trial_remaining'] > 0) {
-            echo json_encode([
-                'status' => 'valid',
-                'type' => 'trial',
-                'seconds_remaining' => $trial['trial_remaining'],
-                'first_seen' => $trial['first_seen']
-            ]);
-            exit;
-        }
         
-        if ($trial) {
-            echo json_encode([
-                'status' => 'expired',
-                'message' => 'Trial period has expired'
-            ]);
-        } else {
-            // New user - start trial
-            echo json_encode([
-                'status' => 'valid',
-                'type' => 'trial',
-                'seconds_remaining' => 7 * 24 * 3600,
-                'first_seen' => date('Y-m-d H:i:s')
-            ]);
-        }
+        echo json_encode([
+            'status' => 'valid',
+            'type' => 'trial',
+            'seconds_remaining' => 7 * 24 * 3600,
+            'first_seen' => date('Y-m-d H:i:s')
+        ]);
         exit;
     }
-
+    
+    // Return existing license info
+    $seconds_remaining = strtotime($license['expires_at']) - time();
     echo json_encode([
         'status' => 'valid',
-        'type' => 'full',
-        'seconds_remaining' => $license['seconds_remaining'],
+        'type' => 'trial',
+        'seconds_remaining' => max(0, $seconds_remaining),
         'expires_at' => $license['expires_at']
     ]);
 

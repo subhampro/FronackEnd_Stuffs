@@ -98,7 +98,7 @@ class PreviewWindow:
         self.is_active = False
         self.window.withdraw()
 
-class DDSViewer(PreviewWindow):
+class DDSViewer(PreviewWindow:
     def __init__(self, parent):
         super().__init__(parent, "DDS Viewer")
         self.window.geometry("1024x768")
@@ -176,7 +176,9 @@ class UsageTracker:
 class LicenseManager:
     def __init__(self):
         self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/'
+        self.registry_key = r'Software\DDSConverter'  # Add this line
         self.machine_id = self.get_secure_machine_id()
+        print(f"Debug - Machine ID: {self.machine_id}")  # Add debug output
         
     def get_secure_machine_id(self):
         """Generate a tamper-proof machine ID"""
@@ -197,6 +199,9 @@ class LicenseManager:
     def check_license(self):
         """Check license status with server"""
         try:
+            print(f"Debug - Checking license at: {self.api_url}verify_license.php")  # Add debug
+            print(f"Debug - Request data: {{'machine_id': '{self.machine_id}'}}")  # Add debug
+            
             response = requests.post(
                 f"{self.api_url}verify_license.php",
                 json={'machine_id': self.machine_id},
@@ -204,19 +209,25 @@ class LicenseManager:
                 timeout=5
             )
             
+            print(f"Debug - Response: {response.text}")  # Add debug
+            
             if response.status_code != 200:
                 messagebox.showerror("Error", "Cannot connect to license server. Internet connection required.")
                 return False, "Internet connection required"
                 
             result = response.json()
+            print(f"Debug - Parsed result: {result}")  # Add debug
+            
             if result.get('status') == 'valid':
                 return True, None
             return False, result.get('message', 'License validation failed')
             
         except requests.exceptions.ConnectionError:
+            print("Debug - Connection error")  # Add debug
             messagebox.showerror("Error", "Cannot connect to license server. Internet connection required.")
             return False, "Internet connection required"
         except Exception as e:
+            print(f"Debug - Other error: {str(e)}")  # Add debug
             return False, str(e)
 
     def get_trial_time_remaining(self):
