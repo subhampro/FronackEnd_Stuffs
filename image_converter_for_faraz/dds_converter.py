@@ -185,22 +185,17 @@ class ImageConverter:
     def generate_normal_map(self, image):
         gray = image.convert('L')
         
-
-        blur_radius = self.blur_var.get() / 10  
+        blur_radius = self.normal_blur_var.get() / 10
         if blur_radius > 0:
             gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
 
-
         height_map = np.array(gray).astype(np.float32) / 255.0
 
+        high = (self.normal_high_var.get() / 100.0) * 1.5
+        med = (self.normal_medium_var.get() / 100.0) * 1.5
+        low = (self.normal_low_var.get() / 100.0) * 1.5
 
-        high = (self.high_detail_var.get() / 100.0) * 1.5
-        med = (self.medium_detail_var.get() / 100.0) * 1.5
-        low = (self.low_detail_var.get() / 100.0) * 1.5
-
-
-        scale = (self.scale_var.get() / 100.0) * 3.0
-
+        scale = (self.normal_scale_var.get() / 100.0) * 3.0
 
         dy, dx = np.gradient(height_map)
         
@@ -256,6 +251,7 @@ class ImageConverter:
 
             self.preview_source = Image.open(self.source_file)
             self.update_preview()
+            self.update_roughness_preview()
 
     def select_source_dir(self):
         self.source_dir = filedialog.askdirectory(title="Select Source Directory")
