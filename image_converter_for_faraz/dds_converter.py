@@ -179,6 +179,7 @@ class LicenseManager:
         self.registry_key = r'Software\DDSConverter'
         self.machine_id = self.get_machine_id()  # Use same method as UsageTracker
         print(f"Debug - Machine ID: {self.machine_id}")
+        self.first_run = True  # Add this flag
 
     def get_machine_id(self):
         """Generate a unique machine ID that persists across runs"""
@@ -204,46 +205,75 @@ class LicenseManager:
                 result = response.json()
                 if result.get('status') == 'valid':
                     # Update registry with server status
-                    try:
-                        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-                        license_data = {
-                            'type': result.get('type', 'trial'),
-                            'machine_id': self.machine_id,
-                            'status': result.get('user_status', 'trial'),
-                            'last_check': datetime.now().isoformat(),
-                            'expires_at': result.get('expires_at')
-                        }
-                        encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
-                        winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
-                        winreg.CloseKey(key)
-                    except Exception as e:
-                        print(f"Failed to update registry: {e}")
-                        
+                    self.save_license_data(result)
                     return True, None
-
-            # If server fails, check local registry
-            try:
-                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
-                stored_data = winreg.QueryValueEx(key, "license_data")[0]
-                license_data = json.loads(base64.b64decode(stored_data))
-                winreg.CloseKey(key)
-                
-                if license_data.get('type') == 'trial':
-                    return True, "Trial Version"
-                elif license_data.get('type') == 'full':
-                    return True, None
-            except:
-                # If no local data, initialize trial
-                self.initialize_trial_license()
-                return True, "Trial Version"
-                
-            return False, "Invalid license status"
+            
+            # If server fails or invalid response, check/initialize local
+            return self.check_local_license()
             
         except requests.exceptions.ConnectionError:
             print("Debug - Connection error")
-            return True, "Offline mode - limited features"
+            return self.check_local_license()
         except Exception as e:
             print(f"Debug - Other error: {str(e)}")
+            return self.check_local_license()
+
+    def check_local_license(self):
+        """Check local license status"""
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
+            stored_data = winreg.QueryValueEx(key, "license_data")[0]
+            license_data = json.loads(base64.b64decode(stored_data))
+            winreg.CloseKey(key)
+            
+            if license_data.get('type') == 'trial':
+                return True, "Trial Version"
+            elif license_data.get('type') == 'full':
+                return True, None
+        except:
+            if self.first_run:
+                self.first_run = False
+                return self.initialize_trial_license()
+            
+        return True, "Trial Version"
+
+    def save_license_data(self, server_data):
+        """Save license data to registry"""
+        try:
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+            license_data = {
+                'type': server_data.get('type', 'trial'),
+                'machine_id': self.machine_id,
+                'status': server_data.get('user_status', 'trial'),
+                'last_check': datetime.now().isoformat(),
+                'first_launch': datetime.now().isoformat(),
+                'expires_at': server_data.get('expires_at')
+            }
+            encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
+            winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
+            winreg.CloseKey(key)
+        except Exception as e:
+            print(f"Failed to save license data: {e}")
+
+    def initialize_trial_license(self):
+        """Initialize a new trial license"""
+        try:
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+            license_data = {
+                'type': 'trial',
+                'machine_id': self.machine_id,
+                'status': 'trial',
+                'first_launch': datetime.now().isoformat(),
+                'installed': datetime.now().isoformat(),
+                'expires_at': (datetime.now() + timedelta(days=7)).isoformat()
+            }
+            encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
+            winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
+            winreg.CloseKey(key)
+            
+            return True, "Trial Version"
+        except Exception as e:
+            print(f"Error initializing trial: {e}")
             return False, str(e)
 
     def get_trial_time_remaining(self):
@@ -329,31 +359,6 @@ class LicenseManager:
             print(f"Error getting license expiry: {e}")
             # Initialize new trial if everything fails
             return self.initialize_trial_license()
-
-    def initialize_trial_license(self):
-        """Initialize a new trial license"""
-        try:
-            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-            license_data = {
-                'type': 'trial',
-                'machine_id': self.machine_id,
-                'first_launch': datetime.now().isoformat(),
-                'installed': datetime.now().isoformat()
-            }
-            encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
-            winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
-            winreg.CloseKey(key)
-            
-            return {
-                'days': 7,
-                'hours': 0,
-                'minutes': 0,
-                'total_seconds': 7 * 24 * 3600,
-                'type': 'trial'
-            }
-        except Exception as e:
-            print(f"Error initializing trial: {e}")
-            return None
 
     def start_trial(self):
         """Initialize trial period"""
