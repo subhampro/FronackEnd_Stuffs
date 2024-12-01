@@ -3,6 +3,7 @@ from PIL import Image, ImageTk, ImageEnhance, ImageFilter
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import numpy as np
+import struct
 
 class PreviewWindow:
     def __init__(self, parent, title):
@@ -107,6 +108,12 @@ class ImageConverter:
             "1024x1024": (1024, 1024),
             "2048x2048": (2048, 2048),
         }
+        self.compression_options = {
+            "No Compression": {"format": "RGBA", "block_size": 32},
+            "8x | BC1": {"format": "BC1", "block_size": 4},
+            "4x | BC3": {"format": "BC3", "block_size": 8},
+            "4x | BC7": {"format": "BC7", "block_size": 8}
+        }
         self.preview_image = None
         self.preview_roughness_image = None
         self.normal_preview_window = None
@@ -151,6 +158,13 @@ class ImageConverter:
         self.custom_height.pack(side=tk.LEFT, padx=5)
         
         self.dim_combo.bind('<<ComboboxSelected>>', self.on_dimension_change)
+
+        tk.Label(self.window, text="Select Compression:").pack(pady=5)
+        self.compression_var = tk.StringVar()
+        self.compression_combo = ttk.Combobox(self.window, textvariable=self.compression_var)
+        self.compression_combo['values'] = list(self.compression_options.keys())
+        self.compression_combo.set("No Compression")
+        self.compression_combo.pack(pady=5)
 
         checkbox_frame = ttk.LabelFrame(self.window, text="Additional Maps", padding=5)
         checkbox_frame.pack(fill="x", padx=5, pady=5)
@@ -569,6 +583,151 @@ class ImageConverter:
         height_map = image.convert('L')
         return height_map
 
+    def create_dds_header(self, width, height, format_type):
+        """Create a DDS header with specific format"""
+        header = bytearray(128)
+        
+        header[0:4] = b'DDS '
+        
+        header[4:8] = struct.pack('<I', 124)
+        
+        flags = 0x1 | 0x2 | 0x4 | 0x1000 
+        header[8:12] = struct.pack('<I', flags)
+
+        header[12:16] = struct.pack('<I', height)
+        header[16:20] = struct.pack('<I', width)
+        
+
+        if format_type == "BC1":
+            pixel_flags = 0x4  
+            four_cc = b'DXT1'
+            rgb_bit_count = 0
+            r_mask = 0
+            g_mask = 0
+            b_mask = 0
+            a_mask = 0
+        elif format_type == "BC3":
+            pixel_flags = 0x4  
+            four_cc = b'DXT5'
+            rgb_bit_count = 0
+            r_mask = 0
+            g_mask = 0
+            b_mask = 0
+            a_mask = 0
+        elif format_type == "BC7":
+            pixel_flags = 0x4  
+            four_cc = b'DX10'
+            rgb_bit_count = 0
+            r_mask = 0
+            g_mask = 0
+            b_mask = 0
+            a_mask = 0
+        else: 
+            pixel_flags = 0x41  
+            four_cc = b'\0\0\0\0'
+            rgb_bit_count = 32
+            r_mask = 0x000000ff
+            g_mask = 0x0000ff00
+            b_mask = 0x00ff0000
+            a_mask = 0xff000000
+
+        header[76:80] = struct.pack('<I', pixel_flags)
+        header[80:84] = four_cc
+        header[88:92] = struct.pack('<I', rgb_bit_count)
+        header[92:96] = struct.pack('<I', r_mask)
+        header[96:100] = struct.pack('<I', g_mask)
+        header[100:104] = struct.pack('<I', b_mask)
+        header[104:108] = struct.pack('<I', a_mask)
+        
+        return header
+
+    def apply_compression(self, img, compression_settings):
+        """Apply compression and create DDS file with proper format"""
+        img_array = np.array(img)
+        height, width = img_array.shape[:2]
+        format_type = compression_settings["format"]
+        block_size = compression_settings["block_size"]
+        
+        new_height = ((height + 3) // 4) * 4
+        new_width = ((width + 3) // 4) * 4
+        
+        if new_height != height or new_width != width:
+            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            img_array = np.array(img)
+        
+        header = self.create_dds_header(new_width, new_height, format_type)
+        
+        if format_type == "BC1":
+            compressed = self.compress_bc1(img_array)
+        elif format_type == "BC3":
+            compressed = self.compress_bc3(img_array)
+        elif format_type == "BC7":
+            compressed = self.compress_bc7(img_array)
+        else:
+            compressed = img_array.tobytes()
+        
+        dds_data = header + compressed
+        
+        return dds_data
+
+    def compress_bc1(self, img_array):
+        """BC1 compression (RGB only, 1-bit alpha)"""
+        height, width = img_array.shape[:2]
+        block_size = 8  
+        compressed = bytearray((width * height * block_size) // 16)
+        
+        for y in range(0, height, 4):
+            for x in range(0, width, 4):
+                block = img_array[y:y+4, x:x+4]
+                avg_color = np.mean(block, axis=(0,1))
+                idx = ((y * width) + x) // 2
+                compressed[idx:idx+8] = struct.pack('<2I', 
+                    int(avg_color[0]) | (int(avg_color[1]) << 8) | (int(avg_color[2]) << 16),
+                    0xFFFF0000
+                )
+        
+        return compressed
+
+    def compress_bc3(self, img_array):
+        """BC3 compression (RGB + alpha)"""
+        height, width = img_array.shape[:2]
+        block_size = 16 
+        compressed = bytearray((width * height * block_size) // 16)
+        
+        for y in range(0, height, 4):
+            for x in range(0, width, 4):
+                block = img_array[y:y+4, x:x+4]
+                avg_color = np.mean(block, axis=(0,1))
+                idx = ((y * width) + x)
+                compressed[idx:idx+16] = struct.pack('<4I',
+                    255,
+                    0,    
+                    int(avg_color[0]) | (int(avg_color[1]) << 8) | (int(avg_color[2]) << 16),
+                    0xFFFF0000  
+                )
+        
+        return compressed
+
+    def compress_bc7(self, img_array):
+        """BC7 compression (High quality RGB + alpha)"""
+        height, width = img_array.shape[:2]
+        block_size = 16  
+        compressed = bytearray((width * height * block_size) // 16)
+        
+        for y in range(0, height, 4):
+            for x in range(0, width, 4):
+                block = img_array[y:y+4, x:x+4]
+                avg_color = np.mean(block, axis=(0,1))
+                idx = ((y * width) + x)
+                compressed[idx:idx+16] = struct.pack('<4I',
+                    int(avg_color[0]) | (int(avg_color[1]) << 8) | (int(avg_color[2]) << 16) | (255 << 24),
+                    0xFFFFFFFF,
+                    0xFFFFFFFF,
+                    0xFFFFFFFF
+                )
+        
+        return compressed
+
     def convert_images(self):
         if not hasattr(self, 'source_dir') or not hasattr(self, 'output_dir'):
             messagebox.showerror("Error", "Please select both source and output locations!")
@@ -600,6 +759,8 @@ class ImageConverter:
             messagebox.showinfo("Info", "No image files found!")
             return
 
+        compression_settings = self.compression_options[self.compression_var.get()]
+        
         processed = 0
         for image_file in image_files:
             try:
@@ -614,8 +775,13 @@ class ImageConverter:
                     else:
                         resized_img = img.resize(selected_dim, Image.Resampling.LANCZOS)
                     
+                   
+                    dds_data = self.apply_compression(resized_img, compression_settings)
+                    
+                    
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
-                    resized_img.save(output_path, "DDS")
+                    with open(output_path, 'wb') as f:
+                        f.write(dds_data)
 
                     if self.generate_heightmap.get():
                         height_path = os.path.join(self.output_dir, base_name + '_normal.dds')
