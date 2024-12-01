@@ -29,7 +29,7 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `licenses` (
   `id` int NOT NULL,
-  `license_key` varchar(64) NOT NULL,
+  `license_key` varchar(64) DEFAULT NULL,
   `machine_id` varchar(64) DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `activated_at` datetime DEFAULT NULL,

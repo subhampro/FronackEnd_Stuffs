@@ -62,7 +62,7 @@ try {
     $db = new PDO('mysql:host=localhost;dbname=wordpres_test', 'wordpres_test', '$$$Pro381998');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Check if we need to create/update license record
+    // Modified license insertion to only include necessary fields
     $stmt = $db->prepare("
         INSERT INTO licenses (machine_id, created_at, expires_at, status)
         SELECT :user_id, NOW(), DATE_ADD(NOW(), INTERVAL 7 DAY), 'active'
