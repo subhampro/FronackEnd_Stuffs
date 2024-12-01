@@ -27,42 +27,52 @@ try {
     $stmt = $db->prepare("
         INSERT IGNORE INTO users (user_id, first_seen, last_seen)
         VALUES (?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE last_seen = NOW()
     ");
     $stmt->execute([$data['machine_id']]);
     
-    // Then get or create trial license
+    // Get user info including trial status
     $stmt = $db->prepare("
-        SELECT * FROM licenses 
-        WHERE machine_id = ? 
-        AND status = 'active'
+        SELECT 
+            u.*,
+            l.status as license_status,
+            l.expires_at as license_expires,
+            CASE 
+                WHEN l.status = 'active' THEN 'licensed'
+                WHEN l.id IS NULL AND TIMESTAMPDIFF(DAY, u.first_seen, NOW()) <= 7 THEN 'trial'
+                WHEN l.status = 'expired' THEN 'expired'
+                ELSE 'trial_expired'
+            END as user_status,
+            GREATEST(
+                COALESCE(l.expires_at, DATE_ADD(u.first_seen, INTERVAL 7 DAY)),
+                DATE_ADD(u.first_seen, INTERVAL 7 DAY)
+            ) as effective_expiry
+        FROM users u
+        LEFT JOIN licenses l ON u.user_id = l.machine_id
+        WHERE u.user_id = ?
     ");
     $stmt->execute([$data['machine_id']]);
-    $license = $stmt->fetch(PDO::FETCH_ASSOC);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$license) {
-        // Create new trial license
-        $stmt = $db->prepare("
-            INSERT INTO licenses (machine_id, created_at, activated_at, expires_at, status)
-            VALUES (?, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 7 DAY), 'active')
-        ");
-        $stmt->execute([$data['machine_id']]);
-        
-        echo json_encode([
-            'status' => 'valid',
-            'type' => 'trial',
-            'seconds_remaining' => 7 * 24 * 3600,
-            'first_seen' => date('Y-m-d H:i:s')
-        ]);
-        exit;
+    if (!$user) {
+        throw new Exception("User not found");
     }
     
-    // Return existing license info
-    $seconds_remaining = strtotime($license['expires_at']) - time();
+    $now = new DateTime();
+    $expiry = new DateTime($user['effective_expiry']);
+    $interval = $now->diff($expiry);
+    $seconds_remaining = $expiry->getTimestamp() - $now->getTimestamp();
+    
+    // Update last check time
+    $stmt = $db->prepare("UPDATE users SET last_check = NOW() WHERE user_id = ?");
+    $stmt->execute([$data['machine_id']]);
+    
     echo json_encode([
         'status' => 'valid',
-        'type' => 'trial',
+        'type' => $user['license_status'] == 'active' ? 'licensed' : 'trial',
         'seconds_remaining' => max(0, $seconds_remaining),
-        'expires_at' => $license['expires_at']
+        'user_status' => $user['user_status'],
+        'expires_at' => $user['effective_expiry']
     ]);
 
 } catch (Exception $e) {

@@ -203,6 +203,22 @@ class LicenseManager:
             if response.status_code == 200:
                 result = response.json()
                 if result.get('status') == 'valid':
+                    # Update registry with server status
+                    try:
+                        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+                        license_data = {
+                            'type': result.get('type', 'trial'),
+                            'machine_id': self.machine_id,
+                            'status': result.get('user_status', 'trial'),
+                            'last_check': datetime.now().isoformat(),
+                            'expires_at': result.get('expires_at')
+                        }
+                        encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
+                        winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
+                        winreg.CloseKey(key)
+                    except Exception as e:
+                        print(f"Failed to update registry: {e}")
+                        
                     return True, None
 
             # If server fails, check local registry

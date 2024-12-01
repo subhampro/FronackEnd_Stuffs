@@ -147,20 +147,25 @@ try {
     ")->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($user_license_info as &$user) {
-        $seconds_remaining = max(0, intval($user['seconds_remaining']));
-        if ($seconds_remaining > 0) {
-            $user['remaining'] = [
-                'days' => floor($seconds_remaining / 86400),
-                'hours' => floor(($seconds_remaining % 86400) / 3600),
-                'minutes' => floor(($seconds_remaining % 3600) / 60)
-            ];
+        if (!empty($user['expires_at'])) {
+            $expires_at = strtotime($user['expires_at']);
+            $now = time();
+            $seconds_remaining = max(0, $expires_at - $now);
         } else {
-            $user['remaining'] = [
-                'days' => 0,
-                'hours' => 0,
-                'minutes' => 0
-            ];
+            // Handle users without expiry date
+            $first_seen = !empty($user['first_seen']) ? strtotime($user['first_seen']) : time();
+            $trial_end = strtotime('+7 days', $first_seen);
+            $seconds_remaining = max(0, $trial_end - time());
         }
+
+        $user['remaining'] = [
+            'days' => floor($seconds_remaining / 86400),
+            'hours' => floor(($seconds_remaining % 86400) / 3600),
+            'minutes' => floor(($seconds_remaining % 3600) / 60),
+            'total_seconds' => $seconds_remaining
+        ];
+        
+        $user['status'] = empty($user['display_status']) ? 'trial' : $user['display_status'];
     }
 
     ?>
