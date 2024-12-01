@@ -15,7 +15,6 @@ try {
     $db = new PDO('mysql:host=localhost;dbname=wordpres_test', 'wordpres_test', '$$$Pro381998');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Basic stats
     $stats = [
         'total_users' => $db->query("SELECT COUNT(DISTINCT user_id) FROM users")->fetchColumn(),
         'active_today' => $db->query("SELECT COUNT(DISTINCT user_id) FROM users WHERE last_seen >= DATE_SUB(NOW(), INTERVAL 24 HOUR)")->fetchColumn(),
@@ -23,7 +22,6 @@ try {
         'total_events' => $db->query("SELECT COUNT(*) FROM usage_stats")->fetchColumn()
     ];
     
-    // Get user details with enhanced tracking info
     $users = $db->query("
         SELECT 
             u.user_id,
@@ -46,7 +44,6 @@ try {
         LIMIT 100
     ")->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get recent activity
     $recent = $db->query("
         SELECT 
             DATE(created_at) as date, 
@@ -59,7 +56,6 @@ try {
         LIMIT 7
     ")->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get event breakdown
     $events = $db->query("
         SELECT 
             event_type, 
@@ -115,25 +111,25 @@ try {
         LIMIT 20
     ")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Replace the user_license_info query with this updated version
+    // Replace the user_license_info query with this corrected version
     $user_license_info = $db->query("
         SELECT 
             u.user_id,
             MIN(us.created_at) as first_seen,
             MAX(u.last_seen) as last_seen,
-            l.license_key,
-            l.expires_at,
-            l.status as license_status,
+            MAX(l.license_key) as license_key,
+            MAX(l.expires_at) as expires_at,
+            MAX(l.status) as license_status,
             CASE 
-                WHEN l.license_key IS NOT NULL AND l.status = 'active' THEN 'licensed'
-                WHEN l.license_key IS NOT NULL AND l.status = 'expired' THEN 'expired'
+                WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'active' THEN 'licensed'
+                WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'expired' THEN 'expired'
                 WHEN DATEDIFF(NOW(), MIN(us.created_at)) <= 7 THEN 'trial'
                 ELSE 'trial_expired'
             END as status,
             CASE 
-                WHEN l.license_key IS NOT NULL AND l.status = 'active' THEN 
-                    DATEDIFF(l.expires_at, NOW())
-                WHEN l.license_key IS NULL THEN 
+                WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'active' THEN 
+                    DATEDIFF(MAX(l.expires_at), NOW())
+                WHEN MAX(l.license_key) IS NULL THEN 
                     7 - DATEDIFF(NOW(), MIN(us.created_at))
                 ELSE 0
             END as days_remaining,
@@ -143,7 +139,7 @@ try {
         LEFT JOIN usage_stats us ON u.user_id = us.user_id
         LEFT JOIN licenses l ON u.user_id = l.machine_id
         GROUP BY u.user_id
-        ORDER BY u.last_seen DESC
+        ORDER BY MAX(u.last_seen) DESC
     ")->fetchAll(PDO::FETCH_ASSOC);
 
     ?>

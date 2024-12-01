@@ -198,39 +198,71 @@ class LicenseManager:
     def check_license(self):
         """Check license status"""
         try:
-            try:
-                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, 
-                                   winreg.KEY_READ)
-                stored_data = winreg.QueryValueEx(key, "license_data")[0]
-                license_data = json.loads(base64.b64decode(stored_data))
-                winreg.CloseKey(key)
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
+            stored_data = winreg.QueryValueEx(key, "license_data")[0]
+            license_data = json.loads(base64.b64decode(stored_data))
+            winreg.CloseKey(key)
+            
+            if license_data.get('type') == 'full':
+                activation_date = datetime.fromisoformat(license_data['activated'])
+                expires_at = activation_date + timedelta(days=30)
                 
-                if license_data.get('type') == 'trial':
-                    first_launch = datetime.fromisoformat(license_data['first_launch'])
-                    trial_end = first_launch + timedelta(days=7)
-                    if datetime.now() > trial_end:
-                        return False, "Trial period expired"
-                        
-                    try:
-                        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-                        winreg.SetValueEx(key, "last_check", 0, winreg.REG_SZ, 
-                                        datetime.now().isoformat())
-                        winreg.CloseKey(key)
-                    except:
-                        pass
-                        
-                    return True, None
+                if datetime.now() > expires_at:
+                    return False, "License has expired. Please renew your license."
                     
                 return True, None
                 
-            except WindowsError:
-                self.start_trial()
+            if license_data.get('type') == 'trial':
+                first_launch = datetime.fromisoformat(license_data['first_launch'])
+                trial_end = first_launch + timedelta(days=7)
+                if datetime.now() > trial_end:
+                    return False, "Trial period expired"
+                    
+                try:
+                    key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+                    winreg.SetValueEx(key, "last_check", 0, winreg.REG_SZ, 
+                                    datetime.now().isoformat())
+                    winreg.CloseKey(key)
+                except:
+                    pass
+                    
                 return True, None
+                
+            return True, None
+                
+        except WindowsError:
+            self.start_trial()
+            return True, None
                 
         except Exception as e:
             print(f"License check error: {e}")
             self.start_trial()
             return True, None
+
+    def get_license_expiry(self):
+        """Get license expiration details"""
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
+            stored_data = winreg.QueryValueEx(key, "license_data")[0]
+            license_data = json.loads(base64.b64decode(stored_data))
+            winreg.CloseKey(key)
+            
+            if license_data.get('type') == 'full':
+                activation_date = datetime.fromisoformat(license_data['activated'])
+                expires_at = activation_date + timedelta(days=30)
+                remaining = expires_at - datetime.now()
+                
+                if remaining.total_seconds() > 0:
+                    return {
+                        'days': remaining.days,
+                        'hours': remaining.seconds // 3600,
+                        'minutes': (remaining.seconds % 3600) // 60,
+                        'total_seconds': remaining.total_seconds(),
+                        'type': 'full'
+                    }
+            return None
+        except:
+            return None
 
     def start_trial(self):
         """Initialize trial period"""
@@ -425,7 +457,9 @@ class ImageConverter:
         self._start_background_services()
         self.setup_gui()
         
-        remaining = self.license_manager.get_trial_time_remaining()
+        remaining = (self.license_manager.get_license_expiry() or 
+                    self.license_manager.get_trial_time_remaining())
+                    
         if remaining:
             self.countdown_label = tk.Label(
                 self.window, 
@@ -438,7 +472,7 @@ class ImageConverter:
 
             self.countdown_thread = threading.Thread(
                 target=self.update_countdown,
-                daemon=False  
+                daemon=True  
             )
             self.countdown_thread.start()
         self.is_running = True
@@ -1235,32 +1269,35 @@ class ImageConverter:
             self._force_close()
 
     def update_countdown(self):
-        """Update trial countdown timer"""
-        try:
-            while getattr(self, 'is_running', True):
-                try:
-                    remaining = self.license_manager.get_trial_time_remaining()
-                    if remaining:
-                        countdown_text = f"TRIAL EXPIRES IN: {remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
-                        if hasattr(self, 'countdown_label'):
-                            self.countdown_label.config(text=countdown_text)
-                            self.countdown_label.update() 
-                        if remaining['total_seconds'] <= 0:
-                            self.is_running = False
-                            if hasattr(self, 'window'):
-                                self.window.after(0, lambda: messagebox.showerror("Trial Expired", 
-                                    "Your trial period has expired. Please activate a license to continue."))
-                                self.window.after(100, self._force_close)
-                            break
-                    time.sleep(1) 
-                except Exception as e:
-                    print(f"Countdown error: {e}")
-                    if not self.is_running:
+        """Update countdown timer for both trial and full license"""
+        while getattr(self, 'is_running', True):
+            try:
+                remaining = (self.license_manager.get_license_expiry() or 
+                           self.license_manager.get_trial_time_remaining())
+                           
+                if remaining:
+                    license_type = "LICENSE" if remaining.get('type') == 'full' else "TRIAL"
+                    countdown_text = f"{license_type} EXPIRES IN: {remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
+                    
+                    if hasattr(self, 'countdown_label'):
+                        self.countdown_label.config(text=countdown_text)
+                        
+                    if remaining['total_seconds'] <= 0:
+                        self.is_running = False
+                        expire_msg = "Your license has expired. Please renew to continue." if remaining.get('type') == 'full' else "Your trial period has expired. Please activate a license to continue."
+                        if hasattr(self, 'window'):
+                            self.window.after(0, lambda: messagebox.showerror("Expired", expire_msg))
+                            self.window.after(100, self._force_close)
                         break
-                    time.sleep(1)
-                    continue
-        except Exception as e:
-            print(f"Countdown thread error: {e}")
+                        
+                time.sleep(60)  # Update every minute
+                
+            except Exception as e:
+                print(f"Countdown error: {e}")
+                if not self.is_running:
+                    break
+                time.sleep(60)
+                continue
             
 if __name__ == "__main__":
     converter = ImageConverter()

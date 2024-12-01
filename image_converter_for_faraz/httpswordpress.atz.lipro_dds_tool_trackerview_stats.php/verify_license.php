@@ -19,12 +19,14 @@ if (!$data || !isset($data['machine_id'])) {
 $machine_id = $data['machine_id'];
 
 try {
-    $stmt = $db->prepare("SELECT * FROM licenses WHERE machine_id = ? AND status = 'active'");
+    $stmt = $db->prepare("SELECT * FROM licenses WHERE machine_id = ?");
     $stmt->execute([$machine_id]);
     $license = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($license) {
-        $expires_at = strtotime($license['expires_at']);
+        // Add expiration check - 30 days from activation
+        $activation_date = strtotime($license['activated_at']);
+        $expires_at = $activation_date + (30 * 24 * 3600); // 30 days in seconds
         $now = time();
         
         if ($expires_at > $now) {
@@ -32,6 +34,7 @@ try {
             echo json_encode([
                 'status' => 'valid',
                 'type' => 'full',
+                'expires_at' => date('Y-m-d H:i:s', $expires_at),
                 'remaining' => [
                     'days' => floor($remaining / 86400),
                     'hours' => floor(($remaining % 86400) / 3600),
@@ -41,9 +44,13 @@ try {
             exit;
         }
         
+        // Update license status to expired
+        $stmt = $db->prepare("UPDATE licenses SET status = 'expired' WHERE machine_id = ?");
+        $stmt->execute([$machine_id]);
+        
         echo json_encode([
             'status' => 'expired',
-            'message' => 'License has expired'
+            'message' => 'License has expired. Please renew your license.'
         ]);
         exit;
     }
