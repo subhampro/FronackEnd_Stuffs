@@ -86,12 +86,12 @@ class ImageConverter:
         
         ttk.Checkbutton(
             checkbox_frame, 
-            text="Generate Height/Roughness Map",
+            text="Generate Specular Map",
             variable=self.generate_roughness
         ).pack(side=tk.LEFT, padx=5)
 
         self.normal_controls_frame = self.create_map_controls("Normal Map Controls", self.update_preview)
-        self.roughness_controls_frame = self.create_map_controls("Height/Roughness Map Controls", self.update_roughness_preview)
+        self.roughness_controls_frame = self.create_map_controls("Speculer Map", self.update_roughness_preview)
         
         self.normal_controls_frame.pack_forget()
         self.roughness_controls_frame.pack_forget()
@@ -509,24 +509,23 @@ class ImageConverter:
                     else:
                         resized_img = img.resize(selected_dim, Image.Resampling.LANCZOS)
                     
- 
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
                     resized_img.save(output_path, "DDS")
 
-
                     if self.generate_heightmap.get():
-                        height_path = os.path.join(self.output_dir, base_name + '_normal.png')
-                        self.generate_normal_map(resized_img).save(height_path)
-                        
+                        height_path = os.path.join(self.output_dir, base_name + '_normal.dds')
+                        normal_map = self.generate_normal_map(resized_img)
+                        normal_map.save(height_path, "DDS")
+
                     if self.generate_roughness.get():
-                        roughness_path = os.path.join(self.output_dir, base_name + '_roughness.png')
-                        self.generate_roughness_map(resized_img).save(roughness_path)
-                    
+                        roughness_path = os.path.join(self.output_dir, base_name + '_roughness.dds')
+                        roughness_map = self.generate_roughness_map(resized_img)
+                        roughness_map.save(roughness_path, "DDS")
+
                     processed += 1
                     
             except Exception as e:
                 messagebox.showerror("Error", f"Error processing {image_file}: {str(e)}")
-
 
         status_msg = f"Successfully converted {processed} images to DDS"
         if self.generate_heightmap.get():
