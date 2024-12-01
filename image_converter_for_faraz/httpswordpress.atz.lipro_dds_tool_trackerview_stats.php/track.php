@@ -62,27 +62,22 @@ try {
     $db = new PDO('mysql:host=localhost;dbname=wordpres_test', 'wordpres_test', '$$$Pro381998');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Get existing license info
-    $stmt = $db->prepare("SELECT id, status, expires_at FROM licenses WHERE machine_id = :user_id");
+    // First create/update user entry
+    $stmt = $db->prepare("INSERT INTO users (user_id, first_seen, last_seen) 
+                         VALUES (:user_id, NOW(), NOW())
+                         ON DUPLICATE KEY UPDATE last_seen = NOW()");
     $stmt->execute(['user_id' => $data['user_id']]);
-    $license = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$license) {
-        // Create new trial license if none exists
+    // Then check/create trial license
+    $stmt = $db->prepare("SELECT COUNT(*) FROM licenses WHERE machine_id = :user_id");
+    $stmt->execute(['user_id' => $data['user_id']]);
+    $exists = $stmt->fetchColumn();
+    
+    if (!$exists) {
+        // Create new trial license
         $stmt = $db->prepare("
             INSERT INTO licenses (machine_id, created_at, activated_at, expires_at, status)
             VALUES (:user_id, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 7 DAY), 'active')
-        ");
-        $stmt->execute(['user_id' => $data['user_id']]);
-    } else {
-        // Update existing license status
-        $stmt = $db->prepare("
-            UPDATE licenses 
-            SET status = CASE
-                WHEN expires_at > NOW() THEN 'active'
-                ELSE 'expired'
-            END
-            WHERE machine_id = :user_id
         ");
         $stmt->execute(['user_id' => $data['user_id']]);
     }
