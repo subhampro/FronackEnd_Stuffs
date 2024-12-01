@@ -115,6 +115,30 @@ try {
         LIMIT 20
     ")->fetchAll(PDO::FETCH_ASSOC);
 
+    // Add this query after other queries to get trial/license info
+    $user_license_info = $db->query("
+        SELECT 
+            u.user_id,
+            MIN(us.created_at) as first_seen,
+            MAX(u.last_seen) as last_seen,
+            l.license_key,
+            l.expires_at as license_expires,
+            CASE 
+                WHEN l.license_key IS NOT NULL THEN 'licensed'
+                WHEN DATEDIFF(NOW(), MIN(us.created_at)) <= 7 THEN 'trial'
+                ELSE 'expired'
+            END as status,
+            CASE 
+                WHEN l.license_key IS NOT NULL THEN DATEDIFF(l.expires_at, NOW())
+                ELSE 7 - DATEDIFF(NOW(), MIN(us.created_at))
+            END as days_remaining
+        FROM users u
+        LEFT JOIN usage_stats us ON u.user_id = us.user_id
+        LEFT JOIN licenses l ON u.user_id = l.machine_id
+        GROUP BY u.user_id
+        ORDER BY u.last_seen DESC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+
     ?>
     <!DOCTYPE html>
     <html>
@@ -201,6 +225,18 @@ try {
                 position: relative;
                 height: 300px;
                 margin: 20px 0;
+            }
+            .status-trial {
+                color: #ff9800;
+                font-weight: bold;
+            }
+            .expiring-soon {
+                color: #f44336;
+                font-weight: bold;
+                animation: blink 1s infinite;
+            }
+            @keyframes blink {
+                50% { opacity: 0.5; }
             }
         </style>
     </head>
@@ -378,6 +414,51 @@ try {
                             <?php endif; ?>
                         </td>
                         <td><?= htmlspecialchars($conn['system_info']) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </table>
+            </div>
+
+            <div class="stat-box">
+                <h2>User License Status</h2>
+                <table>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Status</th>
+                        <th>First Seen</th>
+                        <th>Last Seen</th>
+                        <th>Time Remaining</th>
+                        <th>License Key</th>
+                    </tr>
+                    <?php foreach ($user_license_info as $user): 
+                        $status_class = match($user['status']) {
+                            'licensed' => 'status-active',
+                            'trial' => 'status-trial',
+                            'expired' => 'status-inactive'
+                        };
+                        
+                        $days_remaining = (int)$user['days_remaining'];
+                        $remaining_text = '';
+                        
+                        if ($user['status'] === 'licensed') {
+                            $remaining_text = $days_remaining > 0 ? 
+                                "$days_remaining days left" : "Expired";
+                        } else if ($user['status'] === 'trial') {
+                            $remaining_text = $days_remaining > 0 ? 
+                                "$days_remaining days left in trial" : "Trial expired";
+                        } else {
+                            $remaining_text = "Trial expired";
+                        }
+                    ?>
+                    <tr>
+                        <td><?= htmlspecialchars(substr($user['user_id'], 0, 8)) ?>...</td>
+                        <td><span class="<?= $status_class ?>"><?= ucfirst($user['status']) ?></span></td>
+                        <td><?= $user['first_seen'] ?></td>
+                        <td><?= $user['last_seen'] ?></td>
+                        <td class="<?= $days_remaining <= 2 ? 'expiring-soon' : '' ?>">
+                            <?= htmlspecialchars($remaining_text) ?>
+                        </td>
+                        <td><?= $user['license_key'] ? "•••" . substr($user['license_key'], -4) : "No license" ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </table>
