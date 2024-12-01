@@ -14,17 +14,35 @@ $data = json_decode($raw_data, true);
 try {
     require_once __DIR__ . '/db_connect.php';
     
-    // Add rate limiting
+    // Add rate limiting with Redis-like approach using files
     $ip = $_SERVER['REMOTE_ADDR'];
-    $rate_limit_key = "rate_limit:$ip";
+    $machine_id = $data['machine_id'] ?? '';
+    $rate_limit_key = "rate_limit:{$ip}:{$machine_id}";
+    $rate_limit_file = sys_get_temp_dir() . "/" . md5($rate_limit_key);
     
-    // Simple rate limiting using file system
-    $rate_limit_file = sys_get_temp_dir() . "/$rate_limit_key";
-    if (file_exists($rate_limit_file) && (time() - filemtime($rate_limit_file)) < 1) {
-        throw new Exception("Rate limit exceeded");
+    // Allow 5 requests per minute per IP/machine combination
+    if (file_exists($rate_limit_file)) {
+        $last_requests = json_decode(file_get_contents($rate_limit_file), true) ?? [];
+        $last_requests = array_filter($last_requests, function($time) {
+            return $time > time() - 60;
+        });
+        
+        if (count($last_requests) >= 5) {
+            http_response_code(429);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Rate limit exceeded',
+                'retry_after' => 60 - (time() - min($last_requests))
+            ]);
+            exit;
+        }
+    } else {
+        $last_requests = [];
     }
-    touch($rate_limit_file);
     
+    $last_requests[] = time();
+    file_put_contents($rate_limit_file, json_encode($last_requests));
+
     // Add request logging
     error_log("License verification request from: " . $_SERVER['REMOTE_ADDR']);
     
@@ -94,10 +112,11 @@ try {
 
 } catch (Exception $e) {
     error_log("License verification error: " . $e->getMessage());
-    http_response_code($e->getMessage() === "Rate limit exceeded" ? 429 : 500);
+    $status_code = $e->getMessage() === "Rate limit exceeded" ? 429 : 500;
+    http_response_code($status_code);
     echo json_encode([
         'status' => 'error',
         'message' => $e->getMessage(),
-        'retry_after' => 1
+        'retry_after' => $status_code === 429 ? 60 : null
     ]);
 }

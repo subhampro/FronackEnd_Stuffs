@@ -186,6 +186,9 @@ class LicenseManager:
         self.retry_delay = 1
         self.max_retries = 3
         self.offline_mode = False
+        self.base_delay = 1
+        self.last_check_time = 0
+        self.min_check_interval = 30  # Minimum seconds between checks
 
     def get_machine_id(self):
         """Generate a unique machine ID that persists across runs"""
@@ -197,10 +200,15 @@ class LicenseManager:
             return hashlib.md5(os.urandom(32)).hexdigest()
 
     def check_license(self):
-        """Check license with improved error handling"""
+        """Check license with improved error handling and backoff"""
+        current_time = time.time()
+        if current_time - self.last_check_time < self.min_check_interval:
+            return self.check_local_license()
+            
         if self.offline_mode:
             return self.check_local_license()
             
+        delay = self.base_delay
         for attempt in range(self.max_retries):
             try:
                 response = requests.post(
@@ -210,9 +218,12 @@ class LicenseManager:
                     timeout=3
                 )
                 
-                if response.status_code == 429:  # Rate limit
-                    retry_after = int(response.headers.get('Retry-After', 1))
-                    time.sleep(retry_after)
+                self.last_check_time = current_time
+                
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get('Retry-After', 60))
+                    print(f"Rate limited. Waiting {retry_after} seconds...")
+                    time.sleep(min(retry_after, 60))  # Cap at 60 seconds
                     continue
                     
                 if response.status_code == 200:
@@ -221,16 +232,20 @@ class LicenseManager:
                         self.offline_mode = False
                         self.save_license_data(result)
                         return True, None
-                        
-            except (requests.ConnectionError, requests.Timeout) as e:
+                
+            except requests.ConnectionError as e:
                 print(f"Connection attempt {attempt + 1} failed: {str(e)}")
+                if attempt < self.max_retries - 1:
+                    time.sleep(delay)
+                    delay *= 2  # Exponential backoff
+                    continue
+                self.offline_mode = True
+                print("Switching to offline mode")
+            except Exception as e:
+                print(f"License check error: {str(e)}")
                 if attempt == self.max_retries - 1:
-                    print("Switching to offline mode")
                     self.offline_mode = True
-                else:
-                    time.sleep(self.retry_delay)
-                    self.retry_delay *= 2
-                    
+                
         return self.check_local_license()
 
     def check_local_license(self):
@@ -487,8 +502,8 @@ class LicenseManager:
         return None
 
     def update_countdown(self):
-        """Update countdown with improved error handling"""
-        update_interval = 60
+        """Update countdown with better error handling"""
+        update_interval = 60  # Base interval
         error_count = 0
         
         while getattr(self, 'is_running', True):
@@ -498,8 +513,10 @@ class LicenseManager:
                         remaining = self.get_license_expiry()
                         if remaining:
                             error_count = 0
+                            update_interval = 60  # Reset to base interval
                         else:
                             error_count += 1
+                            update_interval = min(update_interval * 2, 300)  # Exponential backoff up to 5 minutes
                             
                         if error_count >= 3:
                             print("Switching to offline mode after multiple failures")
@@ -508,11 +525,13 @@ class LicenseManager:
                     except Exception as e:
                         print(f"Server check failed: {e}")
                         error_count += 1
+                        update_interval = min(update_interval * 2, 300)
                         if error_count >= 3:
                             self.offline_mode = True
                 
                 if self.offline_mode:
                     remaining = self.get_trial_time_remaining()
+                    update_interval = 300  # Check every 5 minutes in offline mode
                     
                 if remaining:
                     self.update_countdown_display(remaining)
@@ -527,6 +546,7 @@ class LicenseManager:
                 if not self.is_running:
                     break
                 time.sleep(update_interval)
+                continue
 
     def handle_expiration(self, license_type):
         """Handle license expiration"""
@@ -538,18 +558,21 @@ class LicenseManager:
             self.window.after(100, self._force_close)
 
     def update_countdown_display(self, remaining):
-        """Update countdown display with error handling"""
+        """Update countdown display with status indicators"""
         if not hasattr(self, 'countdown_label'):
             return
             
         try:
             license_type = "LICENSE" if remaining.get('type') == 'full' else "TRIAL"
-            status = "OFFLINE MODE - " if self.offline_mode else ""
+            mode = "[OFFLINE] " if self.offline_mode else ""
             countdown_text = (
-                f"{status}{license_type} EXPIRES IN: "
+                f"{mode}{license_type} EXPIRES IN: "
                 f"{remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
             )
-            self.countdown_label.config(text=countdown_text)
+            self.countdown_label.config(
+                text=countdown_text,
+                fg="#FF9800" if self.offline_mode else "#FF0000"
+            )
         except Exception as e:
             print(f"Display update error: {e}")
 
