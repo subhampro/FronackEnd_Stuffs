@@ -6,6 +6,23 @@ import numpy as np
 
 class ImageConverter:
     def __init__(self):
+        # Add default values as class constants
+        self.NORMAL_DEFAULTS = {
+            'blur': 0,
+            'scale': 100,
+            'high': 100,
+            'medium': 100,
+            'low': 100
+        }
+        
+        self.ROUGHNESS_DEFAULTS = {
+            'blur': 0,
+            'detail_scale': 100,
+            'low': 50,
+            'medium': 50,
+            'high': 51,
+            'bump': 10
+        }
         self.dimensions = {
             "Original Size": "original",
             "4x4": (4, 4),
@@ -85,6 +102,14 @@ class ImageConverter:
 
             control_frame = ttk.LabelFrame(self.window, text=title, padding=5)
             
+            # Add reset button at the top
+            reset_button = tk.Button(
+                control_frame, 
+                text="Reset to Default", 
+                command=self.reset_normal_values
+            )
+            reset_button.pack(fill="x", padx=5, pady=5)
+            
             preview_canvas = tk.Canvas(control_frame, width=200, height=200)
             preview_canvas.pack(side=tk.RIGHT, padx=5)
 
@@ -98,7 +123,8 @@ class ImageConverter:
             scale_label = tk.Label(scale_frame, text="100%")
             scale_label.pack(side=tk.RIGHT)
             
-            scale_var = tk.DoubleVar(value=100)
+            # Update initial values to defaults
+            scale_var = tk.DoubleVar(value=self.NORMAL_DEFAULTS['scale'])
             scale_slider = ttk.Scale(
                 sliders_frame, from_=0, to=300,
                 variable=scale_var,
@@ -113,7 +139,8 @@ class ImageConverter:
             blur_label = tk.Label(blur_frame, text="0px")
             blur_label.pack(side=tk.RIGHT)
             
-            blur_var = tk.DoubleVar(value=0)
+            # Update initial values to defaults
+            blur_var = tk.DoubleVar(value=self.NORMAL_DEFAULTS['blur'])
             blur_slider = ttk.Scale(
                 sliders_frame, from_=0, to=100,
                 variable=blur_var,
@@ -134,7 +161,8 @@ class ImageConverter:
                 label = tk.Label(frame, text="50%")
                 label.pack(side=tk.RIGHT)
                 
-                var = tk.DoubleVar(value=50)
+                # Update initial values to defaults
+                var = tk.DoubleVar(value=self.NORMAL_DEFAULTS[detail.lower()])
                 setattr(self, f"normal_{detail.lower()}_var", var)
                 slider = ttk.Scale(
                     sliders_frame, from_=0, to=detail_ranges[detail],
@@ -154,6 +182,13 @@ class ImageConverter:
         """Create roughness specific controls"""
         control_frame = ttk.LabelFrame(self.window, text=title, padding=5)
         
+        # Add reset button at the top
+        reset_button = tk.Button(
+            control_frame, 
+            text="Reset to Default", 
+            command=self.reset_roughness_values
+        )
+        reset_button.pack(fill="x", padx=5, pady=5)
 
         preview_canvas = tk.Canvas(control_frame, width=200, height=200)
         preview_canvas.pack(side=tk.RIGHT, padx=5)
@@ -169,7 +204,8 @@ class ImageConverter:
         blur_label = tk.Label(blur_frame, text="0px")
         blur_label.pack(side=tk.RIGHT)
         
-        blur_var = tk.DoubleVar(value=0)
+        # Update initial values
+        blur_var = tk.DoubleVar(value=self.ROUGHNESS_DEFAULTS['blur'])
         ttk.Scale(
             controls_frame, from_=0, to=100,
             variable=blur_var,
@@ -183,7 +219,8 @@ class ImageConverter:
         scale_label = tk.Label(scale_frame, text="50%")
         scale_label.pack(side=tk.RIGHT)
         
-        detail_scale_var = tk.DoubleVar(value=50)
+        # Update initial values
+        detail_scale_var = tk.DoubleVar(value=self.ROUGHNESS_DEFAULTS['detail_scale'])
         ttk.Scale(
             controls_frame, from_=0, to=150,
             variable=detail_scale_var,
@@ -202,7 +239,8 @@ class ImageConverter:
             label = tk.Label(frame, text="50%")
             label.pack(side=tk.RIGHT)
             
-            var = tk.DoubleVar(value=50)
+            # Update contrast details initial values
+            var = tk.DoubleVar(value=self.ROUGHNESS_DEFAULTS[level.lower()])
             contrast_vars[level.lower()] = var
             ttk.Scale(
                 contrast_frame, from_=0, to=100,
@@ -220,7 +258,8 @@ class ImageConverter:
         bump_label = tk.Label(bump_frame, text="50%")
         bump_label.pack(side=tk.RIGHT)
         
-        bump_var = tk.DoubleVar(value=50)
+        # Update material preview initial value
+        bump_var = tk.DoubleVar(value=self.ROUGHNESS_DEFAULTS['bump'])
         ttk.Scale(
             material_frame, from_=0, to=100,
             variable=bump_var,
@@ -487,6 +526,25 @@ class ImageConverter:
         if self.generate_roughness.get():
             status_msg += " and roughness maps"
         self.status_label.config(text=status_msg + "!")
+
+    def reset_normal_values(self):
+        """Reset all Normal Map controls to their default values"""
+        self.normal_scale_var.set(self.NORMAL_DEFAULTS['scale'])
+        self.normal_blur_var.set(self.NORMAL_DEFAULTS['blur'])
+        self.normal_high_var.set(self.NORMAL_DEFAULTS['high'])
+        self.normal_medium_var.set(self.NORMAL_DEFAULTS['medium'])
+        self.normal_low_var.set(self.NORMAL_DEFAULTS['low'])
+        self.update_preview()
+
+    def reset_roughness_values(self):
+        """Reset all Roughness Map controls to their default values"""
+        self.roughness_blur_var.set(self.ROUGHNESS_DEFAULTS['blur'])
+        self.roughness_detail_scale_var.set(self.ROUGHNESS_DEFAULTS['detail_scale'])
+        self.roughness_low_contrast_var.set(self.ROUGHNESS_DEFAULTS['low'])
+        self.roughness_medium_contrast_var.set(self.ROUGHNESS_DEFAULTS['medium'])
+        self.roughness_high_contrast_var.set(self.ROUGHNESS_DEFAULTS['high'])
+        self.roughness_bump_var.set(self.ROUGHNESS_DEFAULTS['bump'])
+        self.update_roughness_preview()
 
     def run(self):
         self.window.mainloop()
