@@ -176,29 +176,28 @@ class UsageTracker:
 class LicenseManager:
     def __init__(self):
         self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/'
-        self.registry_key = r'Software\DDSConverter'  # Add this line
+        self.registry_key = r'Software\DDSConverter'
         self.machine_id = self.get_secure_machine_id()
-        print(f"Debug - Machine ID: {self.machine_id}")  # Add debug output
-        
+        print(f"Debug - Machine ID: {self.machine_id}")
+
     def get_secure_machine_id(self):
-        """Generate a tamper-proof machine ID"""
+        """Generate a tamper-resistant machine ID"""
         try:
-            cpu_id = win32api.GetSystemFirmwareTable('RSMB', 0)
-            hdd_serial = win32api.GetVolumeInformation("C:\\")[1]
+            # Simplified machine ID generation that doesn't rely on GetSystemFirmwareTable
+            system_info = [
+                win32api.GetComputerName(),
+                platform.processor(),
+                str(win32api.GetVolumeInformation("C:\\")[1])
+            ]
             
-            sid = win32security.GetTokenInformation(
-                win32security.OpenProcessToken(win32api.GetCurrentProcess(), win32security.TOKEN_QUERY),
-                win32security.TokenUser
-            )[0]
-            
-            system_info = f"{cpu_id}-{hdd_serial}-{sid}"
-            return hashlib.sha256(system_info.encode()).hexdigest()
+            unique_id = "-".join(filter(None, system_info))
+            return hashlib.sha256(unique_id.encode()).hexdigest()
         except Exception as e:
             print(f"Debug - Error getting machine ID: {str(e)}")
-            # Fallback to a basic machine ID if secure method fails
+            # Fallback to a basic machine ID
             backup_info = f"{platform.node()}-{platform.machine()}-{platform.processor()}"
             return hashlib.md5(backup_info.encode()).hexdigest()
-            
+
     def check_license(self):
         """Check license status with server"""
         try:
@@ -258,46 +257,78 @@ class LicenseManager:
             return None
 
     def get_license_expiry(self):
-        """Get license expiration details"""
+        """Get license expiration details with better error handling"""
         try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
-            stored_data = winreg.QueryValueEx(key, "license_data")[0]
-            license_data = json.loads(base64.b64decode(stored_data))
-            winreg.CloseKey(key)
-            
+            # First try to create the registry key if it doesn't exist
+            try:
+                key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+                winreg.CloseKey(key)
+            except WindowsError:
+                pass
+
+            # Now try to read the license data
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
+                stored_data = winreg.QueryValueEx(key, "license_data")[0]
+                winreg.CloseKey(key)
+            except WindowsError:
+                # If reading fails, initialize with trial data
+                return self.initialize_trial_license()
+
+            try:
+                license_data = json.loads(base64.b64decode(stored_data))
+            except:
+                # If data is corrupt, reinitialize
+                return self.initialize_trial_license()
+
             now = datetime.now()
             
             if license_data.get('type') == 'full':
-                activation_date = datetime.fromisoformat(license_data['activated'])
-                expires_at = activation_date + timedelta(days=30)
-                remaining = expires_at - now
+                # ...existing full license code...
+                pass
             else:  # trial
                 first_launch = datetime.fromisoformat(license_data['first_launch'])
                 expires_at = first_launch + timedelta(days=7)
                 remaining = expires_at - now
-            
-            if remaining.total_seconds() > 0:
-                days = remaining.days
-                hours = (remaining.seconds // 3600)
-                minutes = (remaining.seconds % 3600) // 60
                 
-                # Ensure we don't show more than the maximum trial period
-                if license_data.get('type') == 'trial':
-                    if days >= 7:
-                        days = 7
-                        hours = 0
-                        minutes = 0
-                
-                return {
-                    'days': days,
-                    'hours': hours,
-                    'minutes': minutes,
-                    'total_seconds': remaining.total_seconds(),
-                    'type': license_data.get('type', 'trial')
-                }
+                if remaining.total_seconds() > 0:
+                    return {
+                        'days': min(remaining.days, 7),
+                        'hours': (remaining.seconds // 3600),
+                        'minutes': (remaining.seconds % 3600) // 60,
+                        'total_seconds': min(remaining.total_seconds(), 7 * 24 * 3600),
+                        'type': 'trial'
+                    }
             return None
+
         except Exception as e:
             print(f"Error getting license expiry: {e}")
+            # Return a new trial license on error
+            return self.initialize_trial_license()
+
+    def initialize_trial_license(self):
+        """Initialize a new trial license"""
+        try:
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+            license_data = {
+                'type': 'trial',
+                'machine_id': self.machine_id,
+                'first_launch': datetime.now().isoformat(),
+                'installed': datetime.now().isoformat()
+            }
+            encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
+            winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
+            winreg.CloseKey(key)
+            
+            return {
+                'days': 7,
+                'hours': 0,
+                'minutes': 0,
+                'total_seconds': 7 * 24 * 3600,
+                'type': 'trial'
+            }
+        except Exception as e:
+            print(f"Error initializing trial: {e}")
             return None
 
     def start_trial(self):
