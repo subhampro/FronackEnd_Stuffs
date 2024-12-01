@@ -23,7 +23,6 @@ class ImageConverter:
         self.window.title("Image to DDS Converter by SubhaM")
         self.window.geometry("500x400")
 
-        # Initialize BooleanVars after creating root window
         self.generate_heightmap = tk.BooleanVar()
         self.generate_roughness = tk.BooleanVar()
 
@@ -47,66 +46,81 @@ class ImageConverter:
         self.dim_combo.set("Original Size")
         self.dim_combo.pack(pady=5)
 
-        # Add checkbox frame
         checkbox_frame = ttk.LabelFrame(self.window, text="Additional Maps", padding=5)
         checkbox_frame.pack(fill="x", padx=5, pady=5)
 
         ttk.Checkbutton(
             checkbox_frame, 
-            text="Generate Height/Normal Map",
+            text="Generate Normal Map",
             variable=self.generate_heightmap
         ).pack(side=tk.LEFT, padx=5)
         
         ttk.Checkbutton(
             checkbox_frame, 
-            text="Generate Roughness Map",
+            text="Generate Height Map/Roughness Map",
             variable=self.generate_roughness
         ).pack(side=tk.LEFT, padx=5)
 
-        # Add Normal Map Controls frame
         self.normal_controls_frame = ttk.LabelFrame(self.window, text="Normal Map Controls", padding=5)
         
-        # Create preview canvas
         self.preview_canvas = tk.Canvas(self.normal_controls_frame, width=200, height=200)
         self.preview_canvas.pack(side=tk.RIGHT, padx=5)
 
-        # Sliders frame
         sliders_frame = ttk.Frame(self.normal_controls_frame)
         sliders_frame.pack(side=tk.LEFT, fill="x", expand=True)
 
-        # Scale slider
-        tk.Label(sliders_frame, text="Scale:").pack()
+        scale_frame = ttk.Frame(sliders_frame)
+        scale_frame.pack(fill="x")
+        tk.Label(scale_frame, text="Scale:").pack(side=tk.LEFT)
+        self.scale_label = tk.Label(scale_frame, text="100%")
+        self.scale_label.pack(side=tk.RIGHT)
+        
         self.scale_var = tk.DoubleVar(value=100)
         self.scale_slider = ttk.Scale(
-            sliders_frame, from_=0, to=200,
+            sliders_frame, from_=0, to=300,
             variable=self.scale_var,
-            command=self.update_preview
+            command=lambda v: self.update_slider_label(v, self.scale_label, "%")
         )
         self.scale_slider.pack(fill="x")
 
-        # Blur slider
-        tk.Label(sliders_frame, text="Blur:").pack()
-        self.blur_var = tk.DoubleVar(value=1)
+        blur_frame = ttk.Frame(sliders_frame)
+        blur_frame.pack(fill="x")
+        tk.Label(blur_frame, text="Blur:").pack(side=tk.LEFT)
+        self.blur_label = tk.Label(blur_frame, text="0px")
+        self.blur_label.pack(side=tk.RIGHT)
+        
+        self.blur_var = tk.DoubleVar(value=0)
         self.blur_slider = ttk.Scale(
-            sliders_frame, from_=0, to=10,
+            sliders_frame, from_=0, to=100,
             variable=self.blur_var,
-            command=self.update_preview
+            command=lambda v: self.update_slider_label(v, self.blur_label, "px")
         )
         self.blur_slider.pack(fill="x")
 
-        # Detail sliders
-        for detail in ["High", "Medium", "Low"]:
-            tk.Label(sliders_frame, text=f"{detail} Detail:").pack()
+
+        detail_ranges = {
+            "High": 150,
+            "Medium": 150,
+            "Low": 150
+        }
+        
+        for detail in detail_ranges:
+            frame = ttk.Frame(sliders_frame)
+            frame.pack(fill="x")
+            tk.Label(frame, text=f"{detail} Detail:").pack(side=tk.LEFT)
+            label = tk.Label(frame, text="50%")
+            label.pack(side=tk.RIGHT)
+            setattr(self, f"{detail.lower()}_label", label)
+            
             var = tk.DoubleVar(value=50)
             setattr(self, f"{detail.lower()}_detail_var", var)
             slider = ttk.Scale(
-                sliders_frame, from_=0, to=100,
+                sliders_frame, from_=0, to=detail_ranges[detail],
                 variable=var,
-                command=self.update_preview
+                command=lambda v, l=label: self.update_slider_label(v, l, "%")
             )
             slider.pack(fill="x")
 
-        # Show/hide normal controls based on checkbox
         self.normal_controls_frame.pack_forget()
         self.generate_heightmap.trace('w', self.toggle_normal_controls)
 
@@ -127,37 +141,42 @@ class ImageConverter:
             return
         
         preview = self.generate_normal_map(self.preview_source)
-        # Resize preview for display
         preview = preview.resize((200, 200), Image.Resampling.LANCZOS)
         self.preview_image = ImageTk.PhotoImage(preview)
         self.preview_canvas.create_image(100, 100, image=self.preview_image, anchor="center")
 
+    def update_slider_label(self, value, label, unit):
+        """Update the label with the current slider value"""
+        label.config(text=f"{float(value):.1f}{unit}")
+        self.update_preview()
+
     def generate_normal_map(self, image):
-        # Convert to grayscale
         gray = image.convert('L')
         
-        # Apply blur based on slider
-        blur_radius = self.blur_var.get()
+
+        blur_radius = self.blur_var.get() / 10  
         if blur_radius > 0:
             gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
 
-        # Convert to numpy array for processing
+
         height_map = np.array(gray).astype(np.float32) / 255.0
 
-        # Apply detail weights
-        high = self.high_detail_var.get() / 100.0
-        med = self.medium_detail_var.get() / 100.0
-        low = self.low_detail_var.get() / 100.0
 
-        # Calculate sobel gradients
+        high = (self.high_detail_var.get() / 100.0) * 1.5
+        med = (self.medium_detail_var.get() / 100.0) * 1.5
+        low = (self.low_detail_var.get() / 100.0) * 1.5
+
+
+        scale = (self.scale_var.get() / 100.0) * 3.0
+
+
         dy, dx = np.gradient(height_map)
         
-        # Apply scale factor
-        scale = self.scale_var.get() / 100.0
+
         dx = dx * scale
         dy = dy * scale
 
-        # Create normal map
+
         z = np.ones_like(dx)
         strength = np.sqrt(dx**2 + dy**2 + z**2)
         
@@ -167,7 +186,7 @@ class ImageConverter:
             (z / strength)
         ], axis=-1)
         
-        # Convert back to PIL Image
+
         normal_map = (normal_map * 255).astype(np.uint8)
         return Image.fromarray(normal_map, 'RGB')
 
@@ -181,7 +200,7 @@ class ImageConverter:
             self.single_file_mode = True
             self.source_button.config(text="Single File Selected")
             self.single_file_button.config(text=f"File: {os.path.basename(self.source_file)}")
-            # Add preview update
+
             self.preview_source = Image.open(self.source_file)
             self.update_preview()
 
@@ -197,14 +216,14 @@ class ImageConverter:
         self.output_button.config(text=f"Output: {os.path.basename(self.output_dir)}")
 
     def generate_height_map(self, image):
-        # Convert to grayscale for height map
+
         height_map = image.convert('L')
         return height_map
 
     def generate_roughness_map(self, image):
-        # Convert to grayscale and adjust levels for roughness
+
         roughness_map = image.convert('L')
-        # Enhance contrast for better roughness representation
+
         enhancer = ImageEnhance.Contrast(roughness_map)
         roughness_map = enhancer.enhance(1.5)
         return roughness_map
@@ -243,11 +262,11 @@ class ImageConverter:
                     else:
                         resized_img = img.resize(selected_dim, Image.Resampling.LANCZOS)
                     
-                    # Save DDS file
+ 
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
                     resized_img.save(output_path, "DDS")
 
-                    # Generate additional maps if checked
+
                     if self.generate_heightmap.get():
                         height_path = os.path.join(self.output_dir, base_name + '_normal.png')
                         self.generate_normal_map(resized_img).save(height_path)
@@ -261,7 +280,7 @@ class ImageConverter:
             except Exception as e:
                 messagebox.showerror("Error", f"Error processing {image_file}: {str(e)}")
 
-        # Update status message to include additional maps
+
         status_msg = f"Successfully converted {processed} images to DDS"
         if self.generate_heightmap.get():
             status_msg += " with height maps"
