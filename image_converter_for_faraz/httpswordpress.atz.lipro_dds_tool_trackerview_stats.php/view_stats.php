@@ -119,7 +119,7 @@ try {
         LIMIT 20
     ")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Update the user_license_info query to comply with ONLY_FULL_GROUP_BY
+    // Replace the user_license_info query with this updated version
     $user_license_info = $db->query("
         SELECT 
             u.user_id,
@@ -131,11 +131,17 @@ try {
             CASE 
                 WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'active' THEN 'licensed'
                 WHEN MAX(l.license_key) IS NOT NULL AND MAX(l.status) = 'expired' THEN 'expired'
-                WHEN DATEDIFF(NOW(), MIN(us.created_at)) <= 7 THEN 'trial'
+                WHEN l.license_key IS NULL AND TIMESTAMPDIFF(DAY, MIN(us.created_at), NOW()) <= 7 THEN 'trial'
                 ELSE 'trial_expired'
             END as status,
-            TIMESTAMPDIFF(DAY, NOW(), COALESCE(MAX(l.expires_at), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY))) as days_remaining,
-            TIMESTAMPDIFF(SECOND, NOW(), COALESCE(MAX(l.expires_at), DATE_ADD(MIN(us.created_at), INTERVAL 7 DAY))) as total_seconds_remaining
+            CASE
+                WHEN MAX(l.license_key) IS NOT NULL THEN TIMESTAMPDIFF(DAY, NOW(), MAX(l.expires_at))
+                ELSE 7 - TIMESTAMPDIFF(DAY, MIN(us.created_at), NOW())
+            END as days_remaining,
+            CASE
+                WHEN MAX(l.license_key) IS NOT NULL THEN TIMESTAMPDIFF(SECOND, NOW(), MAX(l.expires_at))
+                ELSE (7 * 86400) - TIMESTAMPDIFF(SECOND, MIN(us.created_at), NOW())
+            END as total_seconds_remaining
         FROM users u
         LEFT JOIN usage_stats us ON u.user_id = us.user_id
         LEFT JOIN licenses l ON u.user_id = l.machine_id

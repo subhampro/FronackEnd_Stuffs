@@ -62,6 +62,29 @@ try {
     $db = new PDO('mysql:host=localhost;dbname=wordpres_test', 'wordpres_test', '$$$Pro381998');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
+    // Check if we need to create/update license record
+    $stmt = $db->prepare("
+        INSERT INTO licenses (machine_id, created_at, expires_at, status)
+        SELECT :user_id, NOW(), DATE_ADD(NOW(), INTERVAL 7 DAY), 'active'
+        WHERE NOT EXISTS (
+            SELECT 1 FROM licenses WHERE machine_id = :user_id
+        )
+    ");
+    
+    $stmt->execute(['user_id' => $data['user_id']]);
+    
+    // Update license status if needed
+    $stmt = $db->prepare("
+        UPDATE licenses 
+        SET status = CASE
+            WHEN expires_at > NOW() THEN 'active'
+            ELSE 'expired'
+        END
+        WHERE machine_id = :user_id
+    ");
+    
+    $stmt->execute(['user_id' => $data['user_id']]);
+
     $stmt = $db->prepare("INSERT INTO users (user_id, last_seen) 
                          VALUES (:user_id, NOW()) 
                          ON DUPLICATE KEY UPDATE 
