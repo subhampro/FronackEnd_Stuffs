@@ -124,6 +124,20 @@ ALTER TABLE `usage_stats`
 --
 ALTER TABLE `users`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+-- Add new columns to usage_stats table if they don't exist
+ALTER TABLE `usage_stats` 
+  ADD COLUMN IF NOT EXISTS `ip_address` varchar(45) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `country` varchar(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `region` varchar(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `city` varchar(100) DEFAULT NULL;
+
+-- Add new indices if they don't exist
+CREATE INDEX IF NOT EXISTS `event_type` ON `usage_stats` (`event_type`);
+
+-- No need to recreate existing tables and indexes
+-- The above commands will only add what's missing
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
