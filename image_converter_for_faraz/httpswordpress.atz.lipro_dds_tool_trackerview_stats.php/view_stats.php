@@ -23,7 +23,7 @@ try {
         'total_events' => $db->query("SELECT COUNT(*) FROM usage_stats")->fetchColumn()
     ];
     
-    // Get user details with trial info
+    // Get user details with enhanced tracking info
     $users = $db->query("
         SELECT 
             u.user_id,
@@ -33,7 +33,12 @@ try {
             COUNT(us.id) as total_events,
             MAX(CASE WHEN us.event_type = 'startup' THEN us.created_at END) as last_startup,
             GROUP_CONCAT(DISTINCT us.system_info) as systems_used,
-            GROUP_CONCAT(DISTINCT us.version) as versions_used
+            GROUP_CONCAT(DISTINCT us.version) as versions_used,
+            GROUP_CONCAT(DISTINCT us.ip_address) as ip_addresses,
+            GROUP_CONCAT(DISTINCT us.country) as countries,
+            GROUP_CONCAT(DISTINCT us.city) as cities,
+            GROUP_CONCAT(DISTINCT CONCAT(us.ip_address, '|', COALESCE(us.country, 'Unknown'), '|', 
+                COALESCE(us.city, 'Unknown'), '|', us.created_at) ORDER BY us.created_at DESC) as connection_history
         FROM users u
         LEFT JOIN usage_stats us ON u.user_id = us.user_id
         GROUP BY u.user_id
@@ -79,14 +84,16 @@ try {
         ORDER BY users DESC
     ")->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get location statistics
-    $location_stats = $db->query("
+    // Get geographic distribution
+    $geo_stats = $db->query("
         SELECT 
             COALESCE(country, 'Unknown') as country,
             COUNT(DISTINCT user_id) as unique_users,
             COUNT(*) as total_events,
-            GROUP_CONCAT(DISTINCT city) as cities
+            GROUP_CONCAT(DISTINCT city) as cities,
+            GROUP_CONCAT(DISTINCT ip_address) as ip_addresses
         FROM usage_stats
+        WHERE ip_address IS NOT NULL
         GROUP BY country
         ORDER BY unique_users DESC
     ")->fetchAll(PDO::FETCH_ASSOC);
@@ -113,6 +120,7 @@ try {
     <html>
     <head>
         <title>DDS Converter Usage Statistics</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
             body { font-family: Arial, sans-serif; margin: 20px; background: #f8f9fa; }
             .stats-container { max-width: 1200px; margin: 0 auto; }
@@ -157,6 +165,43 @@ try {
                 border-radius: 8px;
                 overflow: hidden;
             }
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+                margin: 20px 0;
+            }
+            .connection-details {
+                font-size: 0.9em;
+                margin-top: 10px;
+                padding: 10px;
+                background: #f8f9fa;
+                border-radius: 4px;
+            }
+            .connection-item {
+                display: flex;
+                justify-content: space-between;
+                padding: 5px 0;
+                border-bottom: 1px solid #eee;
+            }
+            .status-badge {
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 0.8em;
+            }
+            .status-badge.active {
+                background: #d4edda;
+                color: #155724;
+            }
+            .status-badge.inactive {
+                background: #f8d7da;
+                color: #721c24;
+            }
+            .chart-container {
+                position: relative;
+                height: 300px;
+                margin: 20px 0;
+            }
         </style>
     </head>
     <body>
@@ -174,6 +219,9 @@ try {
                         <p>Total Conversions: <strong><?= $stats['total_conversions'] ?></strong></p>
                         <p>Total Events: <strong><?= $stats['total_events'] ?></strong></p>
                     </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="activityChart"></canvas>
                 </div>
             </div>
             
@@ -199,42 +247,48 @@ try {
             
             <div class="stat-box">
                 <h2>Active Users</h2>
-                <table>
-                    <tr>
-                        <th>User ID</th>
-                        <th>First Seen</th>
-                        <th>Last Seen</th>
-                        <th>Total Uses</th>
-                        <th>Events</th>
-                        <th>Systems</th>
-                        <th>Status</th>
-                    </tr>
-                    <?php foreach ($users as $user): 
-                        $last_seen = strtotime($user['last_seen']);
-                        $is_active = (time() - $last_seen) < (24 * 3600);
-                        $trial_start = strtotime($user['first_seen']);
-                        $trial_end = $trial_start + (7 * 24 * 3600);
-                        $trial_remaining = $trial_end - time();
-                    ?>
-                    <tr>
-                        <td><?= htmlspecialchars($user['user_id']) ?></td>
-                        <td><?= $user['first_seen'] ?></td>
-                        <td><?= $user['last_seen'] ?></td>
-                        <td><?= $user['total_uses'] ?></td>
-                        <td><?= $user['total_events'] ?></td>
-                        <td><?= htmlspecialchars($user['systems_used']) ?></td>
-                        <td>
-                            <span class="<?= $is_active ? 'status-active' : 'status-inactive' ?>">
-                                <?= $is_active ? '● Active' : '○ Inactive' ?>
-                            </span>
-                            <?php if ($trial_remaining > 0): ?>
-                                <br>
-                                <small>Trial: <?= round($trial_remaining/86400) ?> days left</small>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </table>
+                <?php foreach ($users as $user): 
+                    $last_seen = strtotime($user['last_seen']);
+                    $is_active = (time() - $last_seen) < (24 * 3600);
+                    $trial_start = strtotime($user['first_seen']);
+                    $trial_end = $trial_start + (7 * 24 * 3600);
+                    $trial_remaining = $trial_end - time();
+                    $connections = array_filter(array_map(function($conn) {
+                        return explode('|', $conn);
+                    }, explode(',', $user['connection_history'])));
+                ?>
+                <div class="user-panel">
+                    <div class="user-header">
+                        <h3>User ID: <?= htmlspecialchars(substr($user['user_id'], 0, 8)) ?>...</h3>
+                        <span class="status-badge <?= $is_active ? 'active' : 'inactive' ?>">
+                            <?= $is_active ? '● Active' : '○ Inactive' ?>
+                        </span>
+                    </div>
+                    
+                    <div class="user-info-grid">
+                        <div class="info-block">
+                            <h4>Activity Summary</h4>
+                            <p>First Seen: <?= $user['first_seen'] ?></p>
+                            <p>Last Seen: <?= $user['last_seen'] ?></p>
+                            <p>Total Uses: <?= $user['total_uses'] ?></p>
+                            <p>Events: <?= $user['total_events'] ?></p>
+                        </div>
+                        
+                        <div class="info-block">
+                            <h4>Connection History</h4>
+                            <div class="connection-details">
+                                <?php foreach (array_slice($connections, 0, 5) as $conn): ?>
+                                <div class="connection-item">
+                                    <span><?= htmlspecialchars($conn[0]) ?></span>
+                                    <span><?= htmlspecialchars($conn[1]) ?>, <?= htmlspecialchars($conn[2]) ?></span>
+                                    <span><?= date('Y-m-d H:i', strtotime($conn[3])) ?></span>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
             </div>
             
             <div class="stat-box">
@@ -279,6 +333,9 @@ try {
 
             <div class="stat-box">
                 <h2>Geographic Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="geoChart"></canvas>
+                </div>
                 <table>
                     <tr>
                         <th>Country</th>
@@ -286,12 +343,12 @@ try {
                         <th>Events</th>
                         <th>Cities</th>
                     </tr>
-                    <?php foreach ($location_stats as $loc): ?>
+                    <?php foreach ($geo_stats as $geo): ?>
                     <tr>
-                        <td><?= htmlspecialchars($loc['country']) ?></td>
-                        <td><?= $loc['unique_users'] ?></td>
-                        <td><?= $loc['total_events'] ?></td>
-                        <td><?= htmlspecialchars($loc['cities']) ?></td>
+                        <td><?= htmlspecialchars($geo['country']) ?></td>
+                        <td><?= $geo['unique_users'] ?></td>
+                        <td><?= $geo['total_events'] ?></td>
+                        <td><?= htmlspecialchars($geo['cities']) ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </table>
@@ -326,6 +383,34 @@ try {
                 </table>
             </div>
         </div>
+        
+        <script>
+            // Initialize charts
+            const activityCtx = document.getElementById('activityChart').getContext('2d');
+            new Chart(activityCtx, {
+                type: 'line',
+                data: {
+                    labels: <?= json_encode(array_column($recent, 'date')) ?>,
+                    datasets: [{
+                        label: 'Events',
+                        data: <?= json_encode(array_column($recent, 'events')) ?>,
+                        borderColor: '#4CAF50'
+                    }]
+                }
+            });
+            
+            const geoCtx = document.getElementById('geoChart').getContext('2d');
+            new Chart(geoCtx, {
+                type: 'pie',
+                data: {
+                    labels: <?= json_encode(array_column($geo_stats, 'country')) ?>,
+                    datasets: [{
+                        data: <?= json_encode(array_column($geo_stats, 'unique_users')) ?>,
+                        backgroundColor: ['#4CAF50', '#2196F3', '#FFC107', '#9C27B0', '#F44336']
+                    }]
+                }
+            });
+        </script>
     </body>
     </html>
     <?php
