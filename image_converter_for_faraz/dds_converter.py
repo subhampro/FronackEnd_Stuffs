@@ -19,6 +19,9 @@ import winreg
 import base64
 import win32api
 import win32security
+from datetime import datetime, timedelta
+import threading
+import time
 
 class PreviewWindow:
     def __init__(self, parent, title):
@@ -220,28 +223,45 @@ class LicenseManager:
     
     def start_trial(self):
         """Initialize trial period"""
-        install_date = datetime.datetime.now().isoformat()
-        
-        # Save trial info
-        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-        license_data = {
-            'type': 'trial',
-            'machine_id': self.machine_id,
-            'installed': install_date
-        }
-        encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
-        winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
-        
-        # Register trial with server
-        requests.post(
-            f"{self.api_url}register_trial.php",
-            json={
+        try:
+            # Check if trial already started
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, 
+                                winreg.KEY_READ)
+            try:
+                stored_data = winreg.QueryValueEx(key, "license_data")[0]
+                license_data = json.loads(base64.b64decode(stored_data))
+                if license_data.get('first_launch'):
+                    # Trial already started
+                    winreg.CloseKey(key)
+                    return
+            except WindowsError:
+                pass
+            winreg.CloseKey(key)
+            
+            # First time launch - start trial
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+            license_data = {
+                'type': 'trial',
                 'machine_id': self.machine_id,
-                'install_date': install_date
-            },
-            headers={'User-Agent': 'DDS-Converter/1.0'}
-        )
-    
+                'first_launch': datetime.now().isoformat(),
+                'installed': datetime.now().isoformat()
+            }
+            encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
+            winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
+            winreg.CloseKey(key)
+            
+            # Register trial with server
+            requests.post(
+                f"{self.api_url}register_trial.php",
+                json={
+                    'machine_id': self.machine_id,
+                    'install_date': license_data['first_launch']
+                },
+                headers={'User-Agent': 'DDS-Converter/1.0'}
+            )
+        except Exception as e:
+            print(f"Error starting trial: {e}")
+
     def activate_license(self, license_key):
         """Activate a license key"""
         try:
@@ -276,10 +296,44 @@ class LicenseManager:
         except Exception as e:
             return False, str(e)
 
+    def get_trial_time_remaining(self):
+        """Get remaining trial time based on first launch"""
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, 
+                                winreg.KEY_READ)
+            stored_data = winreg.QueryValueEx(key, "license_data")[0]
+            winreg.CloseKey(key)
+            
+            license_data = json.loads(base64.b64decode(stored_data))
+            
+            if license_data.get('type') == 'trial':
+                first_launch = datetime.fromisoformat(license_data['first_launch'])
+                trial_end = first_launch + timedelta(days=7)
+                remaining = trial_end - datetime.now()
+                
+                if remaining.total_seconds() <= 0:
+                    return None
+                    
+                return {
+                    'days': remaining.days,
+                    'hours': remaining.seconds // 3600,
+                    'minutes': (remaining.seconds % 3600) // 60,
+                    'total_seconds': remaining.total_seconds()
+                }
+        except:
+            pass
+        return None
+
 class ImageConverter:
     def __init__(self):
         self.license_manager = LicenseManager()
         is_licensed, message = self.license_manager.check_license()
+        
+        remaining = self.license_manager.get_trial_time_remaining()
+        if remaining and remaining['total_seconds'] <= 0:
+            messagebox.showerror("Trial Expired", 
+                "Your trial period has expired. Please activate a license to continue.")
+            sys.exit(1)
         
         if not is_licensed:
             root = tk.Tk()
@@ -347,6 +401,19 @@ class ImageConverter:
         self.dds_viewer = None
         self.setup_gui()
 
+        # Add trial countdown label
+        self.countdown_label = ttk.Label(
+            self.window, 
+            text="", 
+            font=('Arial', 10, 'bold'),
+            foreground='red'
+        )
+        self.countdown_label.pack(pady=5)
+        
+        # Start countdown update thread
+        self.countdown_thread = threading.Thread(target=self.update_countdown, daemon=True)
+        self.countdown_thread.start()
+
     def signal_handler(self, sig, frame):
         """Handle Ctrl+C and other termination signals"""
         print("\nClosing application gracefully...")
@@ -362,20 +429,6 @@ class ImageConverter:
 
         self.generate_heightmap = tk.BooleanVar()
         self.generate_roughness = tk.BooleanVar()
-
-        source_frame = ttk.LabelFrame(self.window, text="Source Selection", padding=5)
-        source_frame.pack(fill="x", padx=5, pady=5)
-
-        self.source_button = tk.Button(source_frame, text="Select Directory", command=self.select_source_dir)
-        self.source_button.pack(side="left", padx=5)
-        
-        self.single_file_button = tk.Button(source_frame, text="Select Single File", command=self.select_single_file)
-        self.single_file_button.pack(side="left", padx=5)
-
-        self.view_dds_button = tk.Button(source_frame, text="View DDS File", command=self.open_dds_viewer)
-        self.view_dds_button.pack(side="left", padx=5)
-
-        tk.Label(self.window, text="Select Output Directory:").pack(pady=5)
         self.output_button = tk.Button(self.window, text="Browse", command=self.select_output_dir)
         self.output_button.pack(pady=5)
 
@@ -1124,6 +1177,17 @@ class ImageConverter:
             self.tracker.track_usage('error')
             print(f"Error: {str(e)}")
             self.signal_handler(signal.SIGTERM, None)
+
+    def update_countdown(self):
+        """Update trial countdown timer"""
+        while True:
+            remaining = self.license_manager.get_trial_time_remaining()
+            if remaining:
+                countdown_text = f"Trial expires in: {remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
+                self.countdown_label.config(text=countdown_text)
+            else:
+                self.countdown_label.config(text="Trial expired! Please activate full version.")
+            time.sleep(60)  # Update every minute
 
 if __name__ == "__main__":
     converter = ImageConverter()
