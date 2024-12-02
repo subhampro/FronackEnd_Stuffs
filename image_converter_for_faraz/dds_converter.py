@@ -1003,6 +1003,7 @@ class ImageConverter:
         return compressed
 
     def convert_images(self):
+        """Convert images with proper Windows file handling"""
         self.tracker.track_usage('conversion')
         if not hasattr(self, 'source_dir') or not hasattr(self, 'output_dir'):
             messagebox.showerror("Error", "Please select both source and output locations!")
@@ -1037,6 +1038,7 @@ class ImageConverter:
         compression_settings = self.compression_options[self.compression_var.get()]
         
         processed = 0
+        errors = []
         for image_file in image_files:
             try:
                 input_path = self.source_file if hasattr(self, 'single_file_mode') and self.single_file_mode else os.path.join(self.source_dir, image_file)
@@ -1055,30 +1057,74 @@ class ImageConverter:
                     
                     
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
-                    with open(output_path, 'wb') as f:
-                        f.write(dds_data)
+                    
+                    # Safely write file with Windows compatibility
+                    try:
+                        # First try writing to a temporary file
+                        temp_path = output_path + '.tmp'
+                        with open(temp_path, 'wb') as f:
+                            dds_data = self.apply_compression(resized_img, compression_settings)
+                            f.write(dds_data)
+                            f.flush()
+                            os.fsync(f.fileno())  # Ensure data is written to disk
+                        
+                        # Then rename it to final name (atomic operation)
+                        if os.path.exists(output_path):
+                            os.unlink(output_path)  # Remove existing file if present
+                        os.rename(temp_path, output_path)
+                    except OSError as e:
+                        if os.path.exists(temp_path):
+                            os.unlink(temp_path)  # Clean up temp file
+                        raise e
 
+                    # Handle additional maps with same safe write pattern
                     if self.generate_heightmap.get():
                         height_path = os.path.join(self.output_dir, base_name + '_normal.dds')
-                        normal_map = self.generate_normal_map(resized_img)
-                        normal_map.save(height_path, "DDS")
+                        temp_path = height_path + '.tmp'
+                        try:
+                            normal_map = self.generate_normal_map(resized_img)
+                            normal_map.save(temp_path, "DDS")
+                            if os.path.exists(height_path):
+                                os.unlink(height_path)
+                            os.rename(temp_path, height_path)
+                        except OSError:
+                            if os.path.exists(temp_path):
+                                os.unlink(temp_path)
+                            raise
 
                     if self.generate_roughness.get():
                         roughness_path = os.path.join(self.output_dir, base_name + '_roughness.dds')
-                        roughness_map = self.generate_roughness_map(resized_img)
-                        roughness_map.save(roughness_path, "DDS")
+                        temp_path = roughness_path + '.tmp'
+                        try:
+                            roughness_map = self.generate_roughness_map(resized_img)
+                            roughness_map.save(temp_path, "DDS")
+                            if os.path.exists(roughness_path):
+                                os.unlink(roughness_path)
+                            os.rename(temp_path, roughness_path)
+                        except OSError:
+                            if os.path.exists(temp_path):
+                                os.unlink(temp_path)
+                            raise
 
                     processed += 1
                     
             except Exception as e:
-                messagebox.showerror("Error", f"Error processing {image_file}: {str(e)}")
+                errors.append(f"{image_file}: {str(e)}")
+                continue
 
-        status_msg = f"Successfully converted {processed} images to DDS"
-        if self.generate_heightmap.get():
-            status_msg += " with height maps"
-        if self.generate_roughness.get():
-            status_msg += " and roughness maps"
-        self.status_label.config(text=status_msg + "!")
+        # Show summary of results
+        if processed > 0:
+            status_msg = f"Successfully converted {processed} images to DDS"
+            if self.generate_heightmap.get():
+                status_msg += " with height maps"
+            if self.generate_roughness.get():
+                status_msg += " and roughness maps"
+            self.status_label.config(text=status_msg + "!")
+        
+        # Show errors if any occurred
+        if errors:
+            error_msg = "Some files failed to convert:\n\n" + "\n".join(errors)
+            messagebox.showerror("Conversion Errors", error_msg)
 
     def reset_normal_values(self):
         """Reset all Normal Map controls to their default values"""
@@ -1117,51 +1163,90 @@ class ImageConverter:
             
             flags = struct.unpack('<I', header[76:80])[0]
             fourcc = header[80:84]
+            mipmap_count = struct.unpack('<I', header[28:32])[0]
             
-            pixel_format_size = struct.unpack('<I', header[84:88])[0]
-            rgb_bit_count = struct.unpack('<I', header[88:92])[0]
-            
+            # Read all pixel data
             pixel_data = f.read()
             
-            # Calculate proper pixel data size
-            if fourcc == b'DXT1':
+            # Calculate actual data size based on format
+            if fourcc in (b'DXT1', b'BC1\x20'):
                 block_size = 8
                 blocks_wide = (width + 3) // 4
                 blocks_high = (height + 3) // 4
                 data_size = blocks_wide * blocks_high * block_size
                 
-                # Basic decompression by creating grayscale placeholder
-                img_array = np.zeros((height, width), dtype=np.uint8)
-                pixel_data_array = np.frombuffer(pixel_data[:data_size], dtype=np.uint8)
+                # Create RGB data
+                img_array = np.zeros((height, width, 4), dtype=np.uint8)
                 
-                # Convert to RGBA
-                img_array = np.stack([img_array] * 4, axis=-1)
-                img_array[:,:,3] = 255  # Set alpha to fully opaque
+                # Basic block-based color extraction
+                for y in range(0, blocks_high):
+                    for x in range(0, blocks_wide):
+                        block_idx = (y * blocks_wide + x) * block_size
+                        if block_idx + 8 <= len(pixel_data):
+                            # Read color endpoints
+                            color0, color1 = struct.unpack('<HH', pixel_data[block_idx:block_idx+4])
+                            
+                            # Extract RGB components
+                            r0 = ((color0 >> 11) & 0x1F) << 3
+                            g0 = ((color0 >> 5) & 0x3F) << 2
+                            b0 = (color0 & 0x1F) << 3
+                            
+                            r1 = ((color1 >> 11) & 0x1F) << 3
+                            g1 = ((color1 >> 5) & 0x3F) << 2
+                            b1 = (color1 & 0x1F) << 3
+                            
+                            # Fill block with interpolated color
+                            for by in range(4):
+                                for bx in range(4):
+                                    py = y * 4 + by
+                                    px = x * 4 + bx
+                                    if py < height and px < width:
+                                        img_array[py, px] = [r0, g0, b0, 255]
                 
-            elif fourcc == b'DXT5':
+            elif fourcc in (b'DXT5', b'BC3\x20'):
                 block_size = 16
                 blocks_wide = (width + 3) // 4
                 blocks_high = (height + 3) // 4
                 data_size = blocks_wide * blocks_high * block_size
                 
-                # Basic decompression by creating grayscale placeholder
-                img_array = np.zeros((height, width), dtype=np.uint8)
-                pixel_data_array = np.frombuffer(pixel_data[:data_size], dtype=np.uint8)
+                # Create RGBA data
+                img_array = np.zeros((height, width, 4), dtype=np.uint8)
                 
-                # Convert to RGBA
-                img_array = np.stack([img_array] * 4, axis=-1)
-                img_array[:,:,3] = 255  # Set alpha to fully opaque
-                
+                # Basic block-based color extraction with alpha
+                for y in range(0, blocks_high):
+                    for x in range(0, blocks_wide):
+                        block_idx = (y * blocks_wide + x) * block_size
+                        if block_idx + 16 <= len(pixel_data):
+                            # Read alpha endpoints
+                            alpha0, alpha1 = struct.unpack('BB', pixel_data[block_idx:block_idx+2])
+                            
+                            # Read color endpoints
+                            color_idx = block_idx + 8
+                            color0, color1 = struct.unpack('<HH', pixel_data[color_idx:color_idx+4])
+                            
+                            # Extract RGB components
+                            r0 = ((color0 >> 11) & 0x1F) << 3
+                            g0 = ((color0 >> 5) & 0x3F) << 2
+                            b0 = (color0 & 0x1F) << 3
+                            
+                            # Fill block
+                            for by in range(4):
+                                for bx in range(4):
+                                    py = y * 4 + by
+                                    px = x * 4 + bx
+                                    if py < height and px < width:
+                                        img_array[py, px] = [r0, g0, b0, alpha0]
+                                        
             else:
                 # Handle uncompressed format
-                if rgb_bit_count == 32:
-                    expected_size = width * height * 4
+                expected_size = width * height * 4
+                if len(pixel_data) >= expected_size:
                     img_array = np.frombuffer(pixel_data[:expected_size], dtype=np.uint8)
                     img_array = img_array.reshape((height, width, 4))
                 else:
-                    # Create grayscale placeholder
+                    # Create placeholder for invalid size
                     img_array = np.zeros((height, width, 4), dtype=np.uint8)
-                    img_array[:,:,3] = 255  # Set alpha to fully opaque
+                    img_array[:,:,3] = 255  # Set alpha to opaque
 
             return Image.fromarray(img_array, 'RGBA')
 
