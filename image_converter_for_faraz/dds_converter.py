@@ -1,3 +1,37 @@
+import sys
+import signal
+import tkinter as tk
+from tkinter import messagebox
+
+def check_dependencies():
+    missing = []
+    try:
+        import cv2
+    except ImportError:
+        missing.append("opencv-python")
+    
+    try:
+        from PIL import Image
+    except ImportError:
+        missing.append("Pillow")
+        
+    try:
+        import numpy
+    except ImportError:
+        missing.append("numpy")
+        
+    if missing:
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showerror(
+            "Missing Dependencies",
+            f"Please install required packages:\n\npip install {' '.join(missing)}\n\nor run:\npip install -r requirements.txt"
+        )
+        sys.exit(1)
+
+check_dependencies()
+
+import cv2
 import os
 from PIL import Image, ImageTk, ImageEnhance, ImageFilter
 import tkinter as tk
@@ -81,6 +115,9 @@ class PreviewWindow:
 
 class ImageConverter:
     def __init__(self):
+        # Add signal handler
+        signal.signal(signal.SIGINT, self.signal_handler)
+        
         self.NORMAL_DEFAULTS = {
             'blur': 0,
             'scale': 300,
@@ -112,6 +149,13 @@ class ImageConverter:
         self.normal_preview_window = None
         self.roughness_preview_window = None
         self.setup_gui()
+
+    def signal_handler(self, sig, frame):
+        """Handle Ctrl+C gracefully"""
+        print("\nShutting down gracefully...")
+        if hasattr(self, 'window'):
+            self.window.quit()
+        sys.exit(0)
 
     def setup_gui(self):
         self.window = tk.Tk()
@@ -456,26 +500,30 @@ class ImageConverter:
 
     def generate_normal_map(self, image):
         gray = image.convert('L')
+        enhancer = ImageEnhance.Contrast(gray)
+        gray = enhancer.enhance(1.2)
         
         blur_radius = self.normal_blur_var.get() / 10
-        if (blur_radius > 0):
+        if blur_radius > 0:
             gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-
+            
         height_map = np.array(gray).astype(np.float32) / 255.0
-
-        high = (self.normal_high_var.get() / 100.0) * 1.5
-        med = (self.normal_medium_var.get() / 100.0) * 1.5
-        low = (self.normal_low_var.get() / 100.0) * 1.5
-
-        scale = (self.normal_scale_var.get() / 100.0) * 3.0
-
-        dy, dx = np.gradient(height_map)
         
-
-        dx = dx * scale
-        dy = dy * scale
-
-
+        high = (self.normal_high_var.get() / 100.0) * 2.0
+        med = (self.normal_medium_var.get() / 100.0) * 1.5
+        low = (self.normal_low_var.get() / 100.0) * 1.0
+        
+        high_freq = height_map - cv2.GaussianBlur(height_map, (0,0), 2.0)
+        med_freq = cv2.GaussianBlur(height_map, (0,0), 2.0) - cv2.GaussianBlur(height_map, (0,0), 4.0)
+        low_freq = cv2.GaussianBlur(height_map, (0,0), 4.0)
+        
+        height_map = (high_freq * high + med_freq * med + low_freq * low)
+        
+        scale = (self.normal_scale_var.get() / 100.0) * 4.0
+        
+        dy = cv2.Sobel(height_map, cv2.CV_32F, 0, 1, ksize=3) * scale
+        dx = cv2.Sobel(height_map, cv2.CV_32F, 1, 0, ksize=3) * scale
+        
         z = np.ones_like(dx)
         strength = np.sqrt(dx**2 + dy**2 + z**2)
         
@@ -485,34 +533,33 @@ class ImageConverter:
             (z / strength)
         ], axis=-1)
         
-
-        normal_map = (normal_map * 255).astype(np.uint8)
+        normal_map = np.clip(normal_map * 255, 0, 255).astype(np.uint8)
         return Image.fromarray(normal_map, 'RGB')
 
     def generate_roughness_map(self, image):
         gray = image.convert('L')
         
-
+        enhancer = ImageEnhance.Contrast(gray)
+        gray = enhancer.enhance(1.1) 
+        
         blur_radius = self.roughness_blur_var.get() / 10
         if blur_radius > 0:
             gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-
-
-        height_map = np.array(gray).astype(np.float32) / 255.0
-
-
-        detail_scale = self.roughness_detail_scale_var.get() / 100.0 * 1.5
-        height_map *= detail_scale
-
-
-        low = self.roughness_low_contrast_var.get() / 100.0
-        med = self.roughness_medium_contrast_var.get() / 100.0
-        high = self.roughness_high_contrast_var.get() / 100.0
         
-
-        height_map = (height_map * high + height_map * med + height_map * low) / 3
-
- 
+        height_map = np.array(gray).astype(np.float32) / 255.0
+        
+        detail_scale = self.roughness_detail_scale_var.get() / 100.0 * 2.0
+        
+        high = self.roughness_high_contrast_var.get() / 100.0
+        med = self.roughness_medium_contrast_var.get() / 100.0
+        low = self.roughness_low_contrast_var.get() / 100.0
+        
+        high_freq = height_map - cv2.GaussianBlur(height_map, (0,0), 1.0)
+        med_freq = cv2.GaussianBlur(height_map, (0,0), 1.0) - cv2.GaussianBlur(height_map, (0,0), 3.0)
+        low_freq = cv2.GaussianBlur(height_map, (0,0), 3.0)
+        
+        height_map = (high_freq * high + med_freq * med + low_freq * low) * detail_scale
+        
         try:
             tile_u = float(self.roughness_tile_u.get())
             tile_v = float(self.roughness_tile_v.get())
@@ -520,7 +567,6 @@ class ImageConverter:
             offset_v = float(self.roughness_offset_v.get())
             
             height, width = height_map.shape
-            
             y, x = np.mgrid[0:height, 0:width]
             
             x = (x / width * tile_u + offset_u) % 1
@@ -530,17 +576,25 @@ class ImageConverter:
             y = (y * height).astype(np.int32)
             
             height_map = height_map[y, x]
-            
         except ValueError:
-            pass  
-
+            pass
+        
+        bump = self.roughness_bump_var.get() / 100.0
+        if bump > 0:
+            dx = cv2.Sobel(height_map, cv2.CV_32F, 1, 0, ksize=3)
+            dy = cv2.Sobel(height_map, cv2.CV_32F, 0, 1, ksize=3)
+            bump_contribution = np.sqrt(dx**2 + dy**2) * bump
+            height_map = height_map + bump_contribution
+        
         processed_map = np.clip(height_map, 0, 1)
         roughness_map = (processed_map * 255).astype(np.uint8)
+        
         rgb_roughness = Image.merge('RGB', (
             Image.fromarray(roughness_map),
             Image.fromarray(roughness_map),
             Image.fromarray(roughness_map)
         ))
+        
         return rgb_roughness
 
     def select_single_file(self):
@@ -670,7 +724,13 @@ class ImageConverter:
             self.custom_dim_frame.pack_forget()
 
     def run(self):
-        self.window.mainloop()
+        try:
+            self.window.mainloop()
+        except KeyboardInterrupt:
+            self.signal_handler(None, None)
+        finally:
+            if hasattr(self, 'window'):
+                self.window.destroy()
 
 if __name__ == "__main__":
     converter = ImageConverter()
