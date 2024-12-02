@@ -1,27 +1,12 @@
 import os
 from PIL import Image, ImageTk, ImageEnhance, ImageFilter
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk, simpledialog
+from tkinter import filedialog, messagebox, ttk
 import numpy as np
-from lib import initialize
 import struct
 import io
 import signal
 import sys
-import uuid
-import json
-import requests
-from pathlib import Path
-import platform
-import datetime
-import hashlib
-import winreg
-import base64
-import win32api
-import win32security
-from datetime import datetime, timedelta
-import threading
-import time
 
 class PreviewWindow:
     def __init__(self, parent, title):
@@ -98,7 +83,7 @@ class PreviewWindow:
         self.is_active = False
         self.window.withdraw()
 
-class DDSViewer(PreviewWindow): 
+class DDSViewer(PreviewWindow):
     def __init__(self, parent):
         super().__init__(parent, "DDS Viewer")
         self.window.geometry("1024x768")
@@ -121,195 +106,11 @@ class DDSViewer(PreviewWindow):
         self.fullscreen = False
         self.window.attributes('-fullscreen', False)
 
-class UsageTracker:
-    def __init__(self):
-        # Fix URL to match actual server path
-        self.api_url = 'https://elapsed.in/pro/track.php'
-        self.user_id = self.get_machine_id()
-        self.track_usage('startup')
-        
-    def get_machine_id(self):
-        """Generate a unique machine ID that persists across runs"""
-        try:
-            system_info = f"{platform.node()}-{platform.machine()}-{platform.processor()}"
-            machine_id = hashlib.md5(system_info.encode()).hexdigest()
-            return machine_id
-        except:
-            return hashlib.md5(os.urandom(32)).hexdigest()
-            
-    def track_usage(self, event_type='start'):
-        """Track usage with improved error handling and retry logic"""
-        max_retries = 3
-        retry_delay = 1
-        
-        for attempt in range(max_retries):
-            try:
-                data = {
-                    'user_id': self.user_id,
-                    'event': event_type,
-                    'system': platform.system() + ' ' + platform.release(),
-                    'version': '1.0.0'
-                }
-                
-                headers = {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'DDS-Converter/1.0'
-                }
-                
-                response = requests.post(
-                    self.api_url,
-                    json=data,
-                    headers=headers,
-                    timeout=5,
-                    verify=True  # Enable SSL verification
-                )
-                
-                if response.status_code == 200:
-                    return True
-                    
-            except (requests.ConnectionError, requests.Timeout) as e:
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                else:
-                    print(f"Failed to track usage after {max_retries} attempts")
-            except Exception as e:
-                print(f"Error tracking usage: {str(e)}")
-            return False
-
-class LicenseManager:
-    def __init__(self):
-        self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker'
-        self.machine_id = self.get_machine_id()
-        self.debug_mode = True
-        self.retry_delay = 1
-        self.max_retries = 3
-        self.connection_timeout = 10
-        self.min_check_interval = 30
-        self.last_check_time = 0
-
-    def log_debug(self, message):
-        """Debug logging function"""
-        if self.debug_mode:
-            print(f"Debug - {message}")
-
-    def get_machine_id(self):
-        """Generate a unique machine ID that persists across runs"""
-        try:
-            system_info = f"{platform.node()}-{platform.machine()}-{platform.processor()}"
-            machine_id = hashlib.md5(system_info.encode()).hexdigest()
-            return machine_id
-        except:
-            return hashlib.md5(os.urandom(32)).hexdigest()
-
-    def check_license(self):
-        """Check license status directly from server"""
-        try:
-            response = requests.post(
-                f"{self.api_url}/verify_license.php",
-                json={'machine_id': self.machine_id},
-                headers={'User-Agent': 'DDS-Converter/1.0'},
-                timeout=self.connection_timeout
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('status') == 'valid':
-                    license_type = "Full License" if data.get('type') == 'full' else "Trial Version"
-                    return True, f"{license_type} Active"
-                else:
-                    return False, data.get('message', 'License invalid')
-            
-            return False, "Server error"
-            
-        except requests.exceptions.RequestException as e:
-            self.log_debug(f"License check failed: {str(e)}")
-            return False, "Connection error"
-
-    def get_license_expiry(self):
-        """Get license expiration details from server"""
-        try:
-            response = requests.post(
-                f"{self.api_url}/verify_license.php",
-                json={'machine_id': self.machine_id},
-                headers={'User-Agent': 'DDS-Converter/1.0'},
-                timeout=self.connection_timeout
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('status') == 'valid':
-                    seconds = int(data.get('seconds_remaining', 0))
-                    return {
-                        'days': seconds // 86400,
-                        'hours': (seconds % 86400) // 3600,
-                        'minutes': (seconds % 3600) // 60,
-                        'total_seconds': seconds,
-                        'type': data.get('type', 'trial')
-                    }
-            return None
-            
-        except requests.exceptions.RequestException as e:
-            self.log_debug(f"Error getting expiry: {str(e)}")
-            return None
-
-    def activate_license(self, license_key):
-        """Activate license key with server"""
-        try:
-            response = requests.post(
-                f"{self.api_url}/verify_license.php",
-                json={
-                    'machine_id': self.machine_id,
-                    'license_key': license_key,
-                    'action': 'activate'
-                },
-                headers={'User-Agent': 'DDS-Converter/1.0'},
-                timeout=self.connection_timeout
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                return data.get('status') == 'success', data.get('message', 'Activation failed')
-            
-            return False, "Server error"
-            
-        except requests.exceptions.RequestException as e:
-            return False, f"Connection error: {str(e)}"
-
 class ImageConverter:
     def __init__(self):
-        self.is_running = True
-        self.license_manager = LicenseManager()
-        is_licensed, message = self.license_manager.check_license()
-        
-        # Remove redundant trial check since it's handled by check_license()
-        if not is_licensed:
-            root = tk.Tk()
-            root.withdraw()
-            
-            if messagebox.showerror("License Required", 
-                f"{message}\n\nPlease enter your license key or contact support.",
-                type=messagebox.OKCANCEL) == messagebox.OK:
-                
-                license_key = simpledialog.askstring("License Activation", 
-                    "Please enter your license key:")
-                
-                if license_key:
-                    success, msg = self.license_manager.activate_license(license_key)
-                    if not success:
-                        messagebox.showerror("Activation Failed", msg)
-                        sys.exit(1)
-                else:
-                    sys.exit(1)
-            else:
-                sys.exit(1)
-
-        self.tracker = UsageTracker()
-        self.tracker.track_usage('start')
+        # Add signal handlers
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
-        self.version = '1.0.0'
         
         self.NORMAL_DEFAULTS = {
             'blur': 0,
@@ -348,48 +149,15 @@ class ImageConverter:
         self.normal_preview_window = None
         self.roughness_preview_window = None
         self.dds_viewer = None
-        self._start_background_services()
         self.setup_gui()
-        
-        remaining = self.license_manager.get_license_expiry()
-        if remaining:
-            self.countdown_label = tk.Label(
-                self.window, 
-                text="", 
-                font=("Helvetica", 10, "bold"),
-                fg="#FF0000"  # Red color
-            )
-            self.countdown_label.pack(pady=5, before=self.status_label)
-            
-
-            self.countdown_thread = threading.Thread(
-                target=self.update_countdown,
-                daemon=True  
-            )
-            self.countdown_thread.start()
-        self.is_running = True
-
-    def _start_background_services(self):
-        try:
-            initialize()
-        except Exception:
-            pass
 
     def signal_handler(self, sig, frame):
         """Handle Ctrl+C and other termination signals"""
         print("\nClosing application gracefully...")
-        self.is_running = False 
         if hasattr(self, 'window'):
-            try:
-                self.window.after(100, self._force_close)
-            except:
-                os._exit(0) 
-
-    def _force_close(self):
-        """Force close the application"""
-        self.window.quit()
-        self.window.destroy()
-        os._exit(0)
+            self.window.quit()
+            self.window.destroy()
+        sys.exit(0)
 
     def setup_gui(self):
         self.window = tk.Tk()
@@ -700,7 +468,7 @@ class ImageConverter:
             
             if not self.roughness_preview_window or not self.roughness_preview_window.is_active:
                 self.roughness_preview_window = PreviewWindow(self.window, "Roughness Map Preview")
-                self.roughness_preview_window.set_update_callback(self.update_roughness_preview())
+                self.roughness_preview_window.set_update_callback(self.update_roughness_preview)
             
             self.roughness_preview_window.show()
             self.update_roughness_preview()
@@ -1003,8 +771,6 @@ class ImageConverter:
         return compressed
 
     def convert_images(self):
-        """Convert images with proper Windows file handling"""
-        self.tracker.track_usage('conversion')
         if not hasattr(self, 'source_dir') or not hasattr(self, 'output_dir'):
             messagebox.showerror("Error", "Please select both source and output locations!")
             return
@@ -1038,7 +804,6 @@ class ImageConverter:
         compression_settings = self.compression_options[self.compression_var.get()]
         
         processed = 0
-        errors = []
         for image_file in image_files:
             try:
                 input_path = self.source_file if hasattr(self, 'single_file_mode') and self.single_file_mode else os.path.join(self.source_dir, image_file)
@@ -1057,74 +822,30 @@ class ImageConverter:
                     
                     
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
-                    
-                    # Safely write file with Windows compatibility
-                    try:
-                        # First try writing to a temporary file
-                        temp_path = output_path + '.tmp'
-                        with open(temp_path, 'wb') as f:
-                            dds_data = self.apply_compression(resized_img, compression_settings)
-                            f.write(dds_data)
-                            f.flush()
-                            os.fsync(f.fileno())  # Ensure data is written to disk
-                        
-                        # Then rename it to final name (atomic operation)
-                        if os.path.exists(output_path):
-                            os.unlink(output_path)  # Remove existing file if present
-                        os.rename(temp_path, output_path)
-                    except OSError as e:
-                        if os.path.exists(temp_path):
-                            os.unlink(temp_path)  # Clean up temp file
-                        raise e
+                    with open(output_path, 'wb') as f:
+                        f.write(dds_data)
 
-                    # Handle additional maps with same safe write pattern
                     if self.generate_heightmap.get():
                         height_path = os.path.join(self.output_dir, base_name + '_normal.dds')
-                        temp_path = height_path + '.tmp'
-                        try:
-                            normal_map = self.generate_normal_map(resized_img)
-                            normal_map.save(temp_path, "DDS")
-                            if os.path.exists(height_path):
-                                os.unlink(height_path)
-                            os.rename(temp_path, height_path)
-                        except OSError:
-                            if os.path.exists(temp_path):
-                                os.unlink(temp_path)
-                            raise
+                        normal_map = self.generate_normal_map(resized_img)
+                        normal_map.save(height_path, "DDS")
 
                     if self.generate_roughness.get():
                         roughness_path = os.path.join(self.output_dir, base_name + '_roughness.dds')
-                        temp_path = roughness_path + '.tmp'
-                        try:
-                            roughness_map = self.generate_roughness_map(resized_img)
-                            roughness_map.save(temp_path, "DDS")
-                            if os.path.exists(roughness_path):
-                                os.unlink(roughness_path)
-                            os.rename(temp_path, roughness_path)
-                        except OSError:
-                            if os.path.exists(temp_path):
-                                os.unlink(temp_path)
-                            raise
+                        roughness_map = self.generate_roughness_map(resized_img)
+                        roughness_map.save(roughness_path, "DDS")
 
                     processed += 1
                     
             except Exception as e:
-                errors.append(f"{image_file}: {str(e)}")
-                continue
+                messagebox.showerror("Error", f"Error processing {image_file}: {str(e)}")
 
-        # Show summary of results
-        if processed > 0:
-            status_msg = f"Successfully converted {processed} images to DDS"
-            if self.generate_heightmap.get():
-                status_msg += " with height maps"
-            if self.generate_roughness.get():
-                status_msg += " and roughness maps"
-            self.status_label.config(text=status_msg + "!")
-        
-        # Show errors if any occurred
-        if errors:
-            error_msg = "Some files failed to convert:\n\n" + "\n".join(errors)
-            messagebox.showerror("Conversion Errors", error_msg)
+        status_msg = f"Successfully converted {processed} images to DDS"
+        if self.generate_heightmap.get():
+            status_msg += " with height maps"
+        if self.generate_roughness.get():
+            status_msg += " and roughness maps"
+        self.status_label.config(text=status_msg + "!")
 
     def reset_normal_values(self):
         """Reset all Normal Map controls to their default values"""
@@ -1152,7 +873,7 @@ class ImageConverter:
             self.custom_dim_frame.pack_forget()
 
     def read_dds_file(self, dds_file):
-        """Custom DDS file reader with proper format handling"""
+        """Custom DDS file reader"""
         with open(dds_file, 'rb') as f:
             header = f.read(128)
             if not header.startswith(b'DDS '):
@@ -1163,91 +884,19 @@ class ImageConverter:
             
             flags = struct.unpack('<I', header[76:80])[0]
             fourcc = header[80:84]
-            mipmap_count = struct.unpack('<I', header[28:32])[0]
             
-            # Read all pixel data
             pixel_data = f.read()
             
-            # Calculate actual data size based on format
-            if fourcc in (b'DXT1', b'BC1\x20'):
-                block_size = 8
-                blocks_wide = (width + 3) // 4
-                blocks_high = (height + 3) // 4
-                data_size = blocks_wide * blocks_high * block_size
-                
-                # Create RGB data
-                img_array = np.zeros((height, width, 4), dtype=np.uint8)
-                
-                # Basic block-based color extraction
-                for y in range(0, blocks_high):
-                    for x in range(0, blocks_wide):
-                        block_idx = (y * blocks_wide + x) * block_size
-                        if block_idx + 8 <= len(pixel_data):
-                            # Read color endpoints
-                            color0, color1 = struct.unpack('<HH', pixel_data[block_idx:block_idx+4])
-                            
-                            # Extract RGB components
-                            r0 = ((color0 >> 11) & 0x1F) << 3
-                            g0 = ((color0 >> 5) & 0x3F) << 2
-                            b0 = (color0 & 0x1F) << 3
-                            
-                            r1 = ((color1 >> 11) & 0x1F) << 3
-                            g1 = ((color1 >> 5) & 0x3F) << 2
-                            b1 = (color1 & 0x1F) << 3
-                            
-                            # Fill block with interpolated color
-                            for by in range(4):
-                                for bx in range(4):
-                                    py = y * 4 + by
-                                    px = x * 4 + bx
-                                    if py < height and px < width:
-                                        img_array[py, px] = [r0, g0, b0, 255]
-                
-            elif fourcc in (b'DXT5', b'BC3\x20'):
-                block_size = 16
-                blocks_wide = (width + 3) // 4
-                blocks_high = (height + 3) // 4
-                data_size = blocks_wide * blocks_high * block_size
-                
-                # Create RGBA data
-                img_array = np.zeros((height, width, 4), dtype=np.uint8)
-                
-                # Basic block-based color extraction with alpha
-                for y in range(0, blocks_high):
-                    for x in range(0, blocks_wide):
-                        block_idx = (y * blocks_wide + x) * block_size
-                        if block_idx + 16 <= len(pixel_data):
-                            # Read alpha endpoints
-                            alpha0, alpha1 = struct.unpack('BB', pixel_data[block_idx:block_idx+2])
-                            
-                            # Read color endpoints
-                            color_idx = block_idx + 8
-                            color0, color1 = struct.unpack('<HH', pixel_data[color_idx:color_idx+4])
-                            
-                            # Extract RGB components
-                            r0 = ((color0 >> 11) & 0x1F) << 3
-                            g0 = ((color0 >> 5) & 0x3F) << 2
-                            b0 = (color0 & 0x1F) << 3
-                            
-                            # Fill block
-                            for by in range(4):
-                                for bx in range(4):
-                                    py = y * 4 + by
-                                    px = x * 4 + bx
-                                    if py < height and px < width:
-                                        img_array[py, px] = [r0, g0, b0, alpha0]
-                                        
+            if fourcc == b'DXT1':
+                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
+                img_array = img_array.reshape((height, width, 4))
+            elif fourcc == b'DXT5':
+                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
+                img_array = img_array.reshape((height, width, 4))
             else:
-                # Handle uncompressed format
-                expected_size = width * height * 4
-                if len(pixel_data) >= expected_size:
-                    img_array = np.frombuffer(pixel_data[:expected_size], dtype=np.uint8)
-                    img_array = img_array.reshape((height, width, 4))
-                else:
-                    # Create placeholder for invalid size
-                    img_array = np.zeros((height, width, 4), dtype=np.uint8)
-                    img_array[:,:,3] = 255  # Set alpha to opaque
-
+                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
+                img_array = img_array.reshape((height, width, 4))
+            
             return Image.fromarray(img_array, 'RGBA')
 
     def open_dds_viewer(self):
@@ -1270,44 +919,13 @@ class ImageConverter:
 
     def run(self):
         try:
-            self.window.protocol("WM_DELETE_WINDOW", lambda: self.signal_handler(None, None))
             self.window.mainloop()
         except KeyboardInterrupt:
             self.signal_handler(signal.SIGINT, None)
         except Exception as e:
             print(f"Error: {str(e)}")
-            self._force_close()
+            self.signal_handler(signal.SIGTERM, None)
 
-    def update_countdown(self):
-        """Update countdown timer for both trial and full license"""
-        while getattr(self, 'is_running', True):
-            try:
-                remaining = self.license_manager.get_license_expiry()
-                           
-                if remaining:
-                    license_type = "LICENSE" if remaining.get('type') == 'full' else "TRIAL"
-                    countdown_text = f"{license_type} EXPIRES IN: {remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
-                    
-                    if hasattr(self, 'countdown_label'):
-                        self.countdown_label.config(text=countdown_text)
-                        
-                    if remaining['total_seconds'] <= 0:
-                        self.is_running = False
-                        expire_msg = "Your license has expired. Please renew to continue."
-                        if hasattr(self, 'window'):
-                            self.window.after(0, lambda: messagebox.showerror("Expired", expire_msg))
-                            self.window.after(100, self._force_close)
-                        break
-                        
-                time.sleep(60)  # Update every minute
-                
-            except Exception as e:
-                print(f"Countdown error: {e}")
-                if not self.is_running:
-                    break
-                time.sleep(60)
-                continue
-            
 if __name__ == "__main__":
     converter = ImageConverter()
     converter.run()
