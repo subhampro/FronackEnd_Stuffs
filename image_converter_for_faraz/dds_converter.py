@@ -180,28 +180,14 @@ class UsageTracker:
 
 class LicenseManager:
     def __init__(self):
-        # Fix base URL to match actual server path
-        self.api_url = 'https://elapsed.in/pro'
-        self.registry_key = r'Software\DDSConverter'
-        self.machine_id = self.get_machine_id()  # Use same method as UsageTracker
-        print(f"Debug - Machine ID: {self.machine_id}")
-        self.first_run = True  # Add this flag
+        self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker'
+        self.machine_id = self.get_machine_id()
+        self.debug_mode = True
         self.retry_delay = 1
         self.max_retries = 3
-        self.offline_mode = False
-        self.base_delay = 1
+        self.connection_timeout = 10
+        self.min_check_interval = 30
         self.last_check_time = 0
-        self.min_check_interval = 30  # Minimum seconds between checks
-        self.offline_grace_period = 7  # Change to 7 days
-        self.connection_timeout = 10  # Seconds to wait for connection
-        self.connection_retries = 3
-        self.offline_mode = False
-        self.last_error = None
-        self.debug_mode = True  # Enable debug logging
-        self.server_unreachable = False
-        self.offline_grace_period = 30  # Increase offline grace period to 30 days
-        self.online_mode = False  # Start in offline mode by default 
-        self.trial_period = 7  # Add trial period constant
 
     def log_debug(self, message):
         """Debug logging function"""
@@ -218,169 +204,37 @@ class LicenseManager:
             return hashlib.md5(os.urandom(32)).hexdigest()
 
     def check_license(self):
-        """Check license with offline-first approach"""
-        self.log_debug("Starting license check in offline mode")
-        
-        # Always try local license first
-        local_status, local_msg = self.check_local_license()
-        if local_status:
-            return True, local_msg
-            
-        # If no local license exists, create offline trial
-        if self.first_run:
-            self.first_run = False
-            return self.initialize_offline_trial()
-            
-        return False, "License check failed"
-
-    def initialize_offline_trial(self):
-        """Initialize offline trial license"""
-        try:
-            now = datetime.now()
-            expires_at = (now + timedelta(days=self.trial_period)).isoformat()  # 7-day trial
-            
-            license_data = {
-                'type': 'trial',
-                'machine_id': self.machine_id,
-                'status': 'trial',
-                'first_launch': now.isoformat(),
-                'installed': now.isoformat(),
-                'expires_at': expires_at,
-                'offline_mode': True
-            }
-            
-            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-            encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
-            winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
-            winreg.CloseKey(key)
-            
-            self.log_debug("Created new offline trial license")
-            return True, "Offline Trial Version (7 days)"
-            
-        except Exception as e:
-            self.log_debug(f"Error creating offline trial: {str(e)}")
-            return False, str(e)
-
-    def check_local_license(self):
-        """Check local license with offline mode handling"""
-        try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
-            stored_data = winreg.QueryValueEx(key, "license_data")[0]
-            license_data = json.loads(base64.b64decode(stored_data))
-            winreg.CloseKey(key)
-            
-            now = datetime.now()
-            expiry = datetime.fromisoformat(license_data.get('expires_at', '2000-01-01'))
-            
-            if expiry > now:
-                msg = "Offline Trial Version" if license_data.get('type') == 'trial' else None 
-                return True, msg
-                
-            # If expired but offline mode, extend by 7 days
-            if license_data.get('offline_mode'):
-                new_expiry = now + timedelta(days=self.trial_period)  # Use trial_period constant
-                license_data['expires_at'] = new_expiry.isoformat()
-                self.save_license_data(license_data)
-                return True, "Offline Trial Extended"
-                
-            return False, "License expired"
-            
-        except Exception as e:
-            self.log_debug(f"Local license check failed: {str(e)}")
-            return False, "No valid license found"
-
-    def save_license_data(self, server_data):
-        """Save license data to registry"""
-        try:
-            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-            license_data = {
-                'type': server_data.get('type', 'trial'),
-                'machine_id': self.machine_id,
-                'status': server_data.get('user_status', 'trial'),
-                'last_check': datetime.now().isoformat(),
-                'first_launch': datetime.now().isoformat(),
-                'expires_at': server_data.get('expires_at')
-            }
-            encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
-            winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
-            winreg.CloseKey(key)
-        except Exception as e:
-            print(f"Failed to save license data: {e}")
-
-    def initialize_trial_license(self):
-        """Initialize a new trial license"""
-        try:
-            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-            expires_at = (datetime.now() + timedelta(days=7)).isoformat()
-            license_data = {
-                'type': 'trial',
-                'machine_id': self.machine_id,
-                'status': 'trial',
-                'first_launch': datetime.now().isoformat(),
-                'installed': datetime.now().isoformat(),
-                'expires_at': expires_at
-            }
-            encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
-            winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
-            winreg.CloseKey(key)
-            
-            try:
-                requests.post(
-                    f"{self.api_url}/register_trial.php",  # Corrected endpoint path
-                    json={
-                        'machine_id': self.machine_id,
-                        'expires_at': expires_at
-                    },
-                    headers={'User-Agent': 'DDS-Converter/1.0'},
-                    timeout=5
-                )
-            except:
-                pass  # Ignore server registration errors for trial
-                
-            return True, "Trial Version"
-            
-        except Exception as e:
-            print(f"Error initializing trial: {e}")
-            return False, str(e)
-
-    def get_trial_time_remaining(self):
-        """Get remaining time from server"""
+        """Check license status directly from server"""
         try:
             response = requests.post(
-                f"{self.api_url}/verify_license.php",  # Corrected endpoint path
-                json={'machine_id': self.machine_id},
-                timeout=5
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('status') == 'valid':
-                    seconds = int(data.get('seconds_remaining', 0))
-                    
-                    # Ensure we don't exceed 7 days for trial
-                    if data.get('type') == 'trial':
-                        seconds = min(seconds, 7 * 24 * 3600)
-                        
-                    return {
-                        'days': seconds // 86400,
-                        'hours': (seconds % 86400) // 3600,
-                        'minutes': (seconds % 3600) // 60,
-                        'total_seconds': seconds,
-                        'type': data.get('type', 'trial')
-                    }
-            return None
-        except:
-            return None
-
-    def get_license_expiry(self):
-        """Get license expiration details with better error handling"""
-        try:
-            # First check server status
-            response = requests.post(
-                f"{self.api_url}/verify_license.php",  # Corrected endpoint path
+                f"{self.api_url}/verify_license.php",
                 json={'machine_id': self.machine_id},
                 headers={'User-Agent': 'DDS-Converter/1.0'},
-                timeout=5
+                timeout=self.connection_timeout
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 'valid':
+                    license_type = "Full License" if data.get('type') == 'full' else "Trial Version"
+                    return True, f"{license_type} Active"
+                else:
+                    return False, data.get('message', 'License invalid')
+            
+            return False, "Server error"
+            
+        except requests.exceptions.RequestException as e:
+            self.log_debug(f"License check failed: {str(e)}")
+            return False, "Connection error"
+
+    def get_license_expiry(self):
+        """Get license expiration details from server"""
+        try:
+            response = requests.post(
+                f"{self.api_url}/verify_license.php",
+                json={'machine_id': self.machine_id},
+                headers={'User-Agent': 'DDS-Converter/1.0'},
+                timeout=self.connection_timeout
             )
             
             if response.status_code == 200:
@@ -394,223 +248,34 @@ class LicenseManager:
                         'total_seconds': seconds,
                         'type': data.get('type', 'trial')
                     }
-
-            # If server check fails, try local registry
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
-            stored_data = winreg.QueryValueEx(key, "license_data")[0]
-            license_data = json.loads(base64.b64decode(stored_data))
-            winreg.CloseKey(key)
+            return None
             
-            now = datetime.now()
-            
-            if license_data.get('type') == 'full':
-                activation_date = datetime.fromisoformat(license_data['activated'])
-                expires_at = activation_date + timedelta(days=30)
-            else:  # trial
-                first_launch = datetime.fromisoformat(license_data['first_launch'])
-                expires_at = first_launch + timedelta(days=7)
-            
-            remaining = expires_at - now
-            
-            if remaining.total_seconds() > 0:
-                return {
-                    'days': remaining.days,
-                    'hours': (remaining.seconds // 3600),
-                    'minutes': (remaining.seconds % 3600) // 60,
-                    'total_seconds': remaining.total_seconds(),
-                    'type': license_data.get('type', 'trial')
-                }
+        except requests.exceptions.RequestException as e:
+            self.log_debug(f"Error getting expiry: {str(e)}")
             return None
 
-        except Exception as e:
-            print(f"Error getting license expiry: {e}")
-            # Initialize new trial if everything fails
-            return self.initialize_trial_license()
-
-    def start_trial(self):
-        """Initialize trial period"""
-        try:
-            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-            license_data = {
-                'type': 'trial',
-                'machine_id': self.machine_id,
-                'first_launch': datetime.now().isoformat(),
-                'installed': datetime.now().isoformat()
-            }
-            encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
-            winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
-            winreg.CloseKey(key)
-            
-            try:
-                requests.post(
-                    f"{self.api_url}register_trial.php",
-                    json={
-                        'machine_id': self.machine_id,
-                        'install_date': license_data['first_launch']
-                    },
-                    headers={'User-Agent': 'DDS-Converter/1.0'},
-                    timeout=5
-                )
-            except:
-                pass
-                
-        except Exception as e:
-            print(f"Error starting trial: {e}")
-
     def activate_license(self, license_key):
-        """Activate a license key"""
+        """Activate license key with server"""
         try:
             response = requests.post(
-                f"{self.api_url}/activate_license.php",  # Corrected endpoint path
+                f"{self.api_url}/verify_license.php",
                 json={
                     'machine_id': self.machine_id,
-                    'license_key': license_key
+                    'license_key': license_key,
+                    'action': 'activate'
                 },
-                headers={'User-Agent': 'DDS-Converter/1.0'}
+                headers={'User-Agent': 'DDS-Converter/1.0'},
+                timeout=self.connection_timeout
             )
             
             if response.status_code == 200:
-                result = response.json()
-                if result['status'] == 'success':
-                    key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-                    license_data = {
-                        'type': 'full',
-                        'key': license_key,
-                        'machine_id': self.machine_id,
-                        'activated': datetime.datetime.now().isoformat()
-                    }
-                    encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
-                    winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
-                    return True, "License activated successfully"
-                    
-                return False, result['message']
+                data = response.json()
+                return data.get('status') == 'success', data.get('message', 'Activation failed')
             
-            return False, "Failed to activate license"
+            return False, "Server error"
             
-        except Exception as e:
-            return False, str(e)
-
-    def get_trial_time_remaining(self):
-        """Get remaining trial time based on first launch"""
-        try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, 
-                                winreg.KEY_READ)
-            stored_data = winreg.QueryValueEx(key, "license_data")[0]
-            last_check = None
-            try:
-                last_check = winreg.QueryValueEx(key, "last_check")[0]
-            except:
-                pass
-            winreg.CloseKey(key)
-            
-            license_data = json.loads(base64.b64decode(stored_data))
-            
-            if license_data.get('type') == 'trial':
-                first_launch = datetime.fromisoformat(license_data['first_launch'])
-                
-                if last_check:
-                    last_check_time = datetime.fromisoformat(last_check)
-                    current_time = datetime.now()
-                    if (current_time - last_check_time) > timedelta(minutes=2):
-                        time_diff = current_time - last_check_time
-                        first_launch = first_launch + time_diff
-                        
-
-                        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
-                        license_data['first_launch'] = first_launch.isoformat()
-                        encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
-                        winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
-                        winreg.CloseKey(key)
-                
-                trial_end = first_launch + timedelta(days=7)
-                remaining = trial_end - datetime.now()
-                
-                if remaining.total_seconds() <= 0:
-                    return None
-                    
-                return {
-                    'days': remaining.days,
-                    'hours': remaining.seconds // 3600,
-                    'minutes': (remaining.seconds % 3600) // 60,
-                    'total_seconds': remaining.total_seconds()
-                }
-        except:
-            pass
-        return None
-
-    def update_countdown(self):
-        """Update countdown with better error handling"""
-        update_interval = 60  # Base interval
-        error_count = 0
-        
-        while getattr(self, 'is_running', True):
-            try:
-                if not self.offline_mode:
-                    try:
-                        remaining = self.get_license_expiry()
-                        if remaining:
-                            error_count = 0
-                            update_interval = 60  # Reset to base interval
-                        else:
-                            error_count += 1
-                            update_interval = min(update_interval * 2, 300)  # Exponential backoff up to 5 minutes
-                            
-                        if error_count >= 3:
-                            print("Switching to offline mode after multiple failures")
-                            self.offline_mode = True
-                            
-                    except Exception as e:
-                        print(f"Server check failed: {e}")
-                        error_count += 1
-                        update_interval = min(update_interval * 2, 300)
-                        if error_count >= 3:
-                            self.offline_mode = True
-                
-                if self.offline_mode:
-                    remaining = self.get_trial_time_remaining()
-                    update_interval = 300  # Check every 5 minutes in offline mode
-                    
-                if remaining:
-                    self.update_countdown_display(remaining)
-                    if remaining['total_seconds'] <= 0:
-                        self.handle_expiration(remaining.get('type', 'trial'))
-                        break
-                
-                time.sleep(update_interval)
-                
-            except Exception as e:
-                print(f"Countdown error: {e}")
-                if not self.is_running:
-                    break
-                time.sleep(update_interval)
-                continue
-
-    def handle_expiration(self, license_type):
-        """Handle license expiration"""
-        self.is_running = False
-        expire_msg = "Your license has expired. Please renew to continue." if license_type == 'full' else "Your trial period has expired. Please activate a license to continue."
-        
-        if hasattr(self, 'window'):
-            self.window.after(0, lambda: messagebox.showerror("Expired", expire_msg))
-            self.window.after(100, self._force_close)
-
-    def update_countdown_display(self, remaining):
-        """Update countdown display for offline mode"""
-        if not hasattr(self, 'countdown_label'):
-            return
-            
-        try:
-            license_type = "OFFLINE TRIAL"
-            countdown_text = (
-                f"{license_type} - Time Remaining: "
-                f"{remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
-            )
-            self.countdown_label.config(
-                text=countdown_text,
-                fg="#FF9800"  # Orange color for offline mode
-            )
-        except Exception as e:
-            print(f"Display update error: {e}")
+        except requests.exceptions.RequestException as e:
+            return False, f"Connection error: {str(e)}"
 
 class ImageConverter:
     def __init__(self):
