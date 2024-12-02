@@ -200,7 +200,8 @@ class LicenseManager:
         self.debug_mode = True  # Enable debug logging
         self.server_unreachable = False
         self.offline_grace_period = 30  # Increase offline grace period to 30 days
-        
+        self.online_mode = False  # Start in offline mode by default 
+
     def log_debug(self, message):
         """Debug logging function"""
         if self.debug_mode:
@@ -216,54 +217,51 @@ class LicenseManager:
             return hashlib.md5(os.urandom(32)).hexdigest()
 
     def check_license(self):
-        """Check license with improved error handling and fallback"""
-        if self.server_unreachable:
-            self.log_debug("Server previously unreachable, using offline mode")
-            return self.check_local_license()
-            
-        for attempt in range(self.connection_retries):
-            try:
-                self.log_debug(f"License check attempt {attempt + 1}")
-                response = requests.post(
-                    f"{self.api_url}/verify_license.php",
-                    json={'machine_id': self.machine_id},
-                    headers={
-                        'Content-Type': 'application/json',
-                        'User-Agent': 'DDS-Converter/1.0'
-                    },
-                    timeout=3  # Reduce timeout to 3 seconds
-                )
-                
-                if response.status_code == 200:
-                    self.server_unreachable = False
-                    data = response.json()
-                    if data.get('status') == 'valid':
-                        self.save_license_data(data)
-                        return True, None
-                    return False, data.get('message', 'Invalid license response')
-                
-                self.log_debug(f"Server returned status code: {response.status_code}")
-                
-            except requests.ConnectionError as e:
-                self.last_error = str(e)
-                self.log_debug(f"Connection attempt {attempt + 1} failed: {self.last_error}")
-                if attempt == self.connection_retries - 1:
-                    self.server_unreachable = True
-                    return self.check_local_license()
-            except Exception as e:
-                self.last_error = str(e)
-                self.log_debug(f"Unexpected error on attempt {attempt + 1}: {self.last_error}")
-                if attempt == self.connection_retries - 1:
-                    self.server_unreachable = True
-                    return self.check_local_license()
-            
-            time.sleep(1)  # Wait between retries
+        """Check license with offline-first approach"""
+        self.log_debug("Starting license check in offline mode")
         
-        self.server_unreachable = True
-        return self.check_local_license()
+        # Always try local license first
+        local_status, local_msg = self.check_local_license()
+        if local_status:
+            return True, local_msg
+            
+        # If no local license exists, create offline trial
+        if self.first_run:
+            self.first_run = False
+            return self.initialize_offline_trial()
+            
+        return False, "License check failed"
+
+    def initialize_offline_trial(self):
+        """Initialize offline trial license"""
+        try:
+            now = datetime.now()
+            expires_at = (now + timedelta(days=30)).isoformat()  # 30-day trial
+            
+            license_data = {
+                'type': 'trial',
+                'machine_id': self.machine_id,
+                'status': 'trial',
+                'first_launch': now.isoformat(),
+                'installed': now.isoformat(),
+                'expires_at': expires_at,
+                'offline_mode': True
+            }
+            
+            key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+            encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
+            winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
+            winreg.CloseKey(key)
+            
+            self.log_debug("Created new offline trial license")
+            return True, "Offline Trial Version (30 days)"
+            
+        except Exception as e:
+            self.log_debug(f"Error creating offline trial: {str(e)}")
+            return False, str(e)
 
     def check_local_license(self):
-        """Check local license with improved offline handling"""
+        """Check local license with offline mode handling"""
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
             stored_data = winreg.QueryValueEx(key, "license_data")[0]
@@ -273,31 +271,21 @@ class LicenseManager:
             now = datetime.now()
             expiry = datetime.fromisoformat(license_data.get('expires_at', '2000-01-01'))
             
-            # Handle offline grace period
-            if self.server_unreachable:
-                if license_data.get('offline_start') is None:
-                    license_data['offline_start'] = now.isoformat()
-                    self.save_license_data(license_data)
-                
-                offline_start = datetime.fromisoformat(license_data['offline_start'])
-                offline_days = (now - offline_start).days
-                
-                if offline_days <= self.offline_grace_period:
-                    return True, "Offline Mode (Grace Period Active)"
-                else:
-                    return False, f"Offline grace period ({self.offline_grace_period} days) expired"
-            
             if expiry > now:
-                msg = "Trial Version (Offline)" if license_data.get('type') != 'full' else None
+                msg = "Offline Trial Version" if license_data.get('type') == 'trial' else None 
                 return True, msg
+                
+            # If expired but offline mode, extend by 30 days
+            if license_data.get('offline_mode'):
+                new_expiry = now + timedelta(days=30)
+                license_data['expires_at'] = new_expiry.isoformat()
+                self.save_license_data(license_data)
+                return True, "Offline Trial Extended"
                 
             return False, "License expired"
             
         except Exception as e:
             self.log_debug(f"Local license check failed: {str(e)}")
-            if self.first_run:
-                self.first_run = False
-                return self.initialize_trial_license()
             return False, "No valid license found"
 
     def save_license_data(self, server_data):
@@ -606,20 +594,19 @@ class LicenseManager:
             self.window.after(100, self._force_close)
 
     def update_countdown_display(self, remaining):
-        """Update countdown display with improved offline status"""
+        """Update countdown display for offline mode"""
         if not hasattr(self, 'countdown_label'):
             return
             
         try:
-            license_type = "LICENSE" if remaining.get('type') == 'full' else "TRIAL"
-            mode = "[OFFLINE MODE] " if self.server_unreachable else ""
+            license_type = "OFFLINE TRIAL"
             countdown_text = (
-                f"{mode}{license_type} - Time Remaining: "
+                f"{license_type} - Time Remaining: "
                 f"{remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
             )
             self.countdown_label.config(
                 text=countdown_text,
-                fg="#FF9800" if self.server_unreachable else "#FF0000"
+                fg="#FF9800"  # Orange color for offline mode
             )
         except Exception as e:
             print(f"Display update error: {e}")
