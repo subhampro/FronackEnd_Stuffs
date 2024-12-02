@@ -198,6 +198,8 @@ class LicenseManager:
         self.offline_mode = False
         self.last_error = None
         self.debug_mode = True  # Enable debug logging
+        self.server_unreachable = False
+        self.offline_grace_period = 30  # Increase offline grace period to 30 days
         
     def log_debug(self, message):
         """Debug logging function"""
@@ -215,8 +217,8 @@ class LicenseManager:
 
     def check_license(self):
         """Check license with improved error handling and fallback"""
-        if self.offline_mode:
-            self.log_debug("Operating in offline mode")
+        if self.server_unreachable:
+            self.log_debug("Server previously unreachable, using offline mode")
             return self.check_local_license()
             
         for attempt in range(self.connection_retries):
@@ -229,10 +231,11 @@ class LicenseManager:
                         'Content-Type': 'application/json',
                         'User-Agent': 'DDS-Converter/1.0'
                     },
-                    timeout=5
+                    timeout=3  # Reduce timeout to 3 seconds
                 )
                 
                 if response.status_code == 200:
+                    self.server_unreachable = False
                     data = response.json()
                     if data.get('status') == 'valid':
                         self.save_license_data(data)
@@ -243,20 +246,20 @@ class LicenseManager:
                 
             except requests.ConnectionError as e:
                 self.last_error = str(e)
-                self.log_debug(f"Connection error: {self.last_error}")
+                self.log_debug(f"Connection attempt {attempt + 1} failed: {self.last_error}")
                 if attempt == self.connection_retries - 1:
-                    self.offline_mode = True
+                    self.server_unreachable = True
                     return self.check_local_license()
             except Exception as e:
                 self.last_error = str(e)
-                self.log_debug(f"Unexpected error: {self.last_error}")
+                self.log_debug(f"Unexpected error on attempt {attempt + 1}: {self.last_error}")
                 if attempt == self.connection_retries - 1:
-                    self.offline_mode = True
+                    self.server_unreachable = True
                     return self.check_local_license()
             
-            time.sleep(1)  # Wait before retry
+            time.sleep(1)  # Wait between retries
         
-        self.offline_mode = True
+        self.server_unreachable = True
         return self.check_local_license()
 
     def check_local_license(self):
@@ -270,14 +273,22 @@ class LicenseManager:
             now = datetime.now()
             expiry = datetime.fromisoformat(license_data.get('expires_at', '2000-01-01'))
             
-            # More lenient offline grace period
-            if self.offline_mode and (expiry - now).days <= 0:
-                expiry = now + timedelta(days=7)  # 7-day grace period in offline mode
-                license_data['expires_at'] = expiry.isoformat()
-                self.save_license_data(license_data)
+            # Handle offline grace period
+            if self.server_unreachable:
+                if license_data.get('offline_start') is None:
+                    license_data['offline_start'] = now.isoformat()
+                    self.save_license_data(license_data)
+                
+                offline_start = datetime.fromisoformat(license_data['offline_start'])
+                offline_days = (now - offline_start).days
+                
+                if offline_days <= self.offline_grace_period:
+                    return True, "Offline Mode (Grace Period Active)"
+                else:
+                    return False, f"Offline grace period ({self.offline_grace_period} days) expired"
             
             if expiry > now:
-                msg = "Trial Version (Offline Mode)" if license_data.get('type') != 'full' else None
+                msg = "Trial Version (Offline)" if license_data.get('type') != 'full' else None
                 return True, msg
                 
             return False, "License expired"
@@ -595,20 +606,20 @@ class LicenseManager:
             self.window.after(100, self._force_close)
 
     def update_countdown_display(self, remaining):
-        """Update countdown display with status indicators"""
+        """Update countdown display with improved offline status"""
         if not hasattr(self, 'countdown_label'):
             return
             
         try:
             license_type = "LICENSE" if remaining.get('type') == 'full' else "TRIAL"
-            mode = "[OFFLINE] " if self.offline_mode else ""
+            mode = "[OFFLINE MODE] " if self.server_unreachable else ""
             countdown_text = (
-                f"{mode}{license_type} EXPIRES IN: "
+                f"{mode}{license_type} - Time Remaining: "
                 f"{remaining['days']}d {remaining['hours']}h {remaining['minutes']}m"
             )
             self.countdown_label.config(
                 text=countdown_text,
-                fg="#FF9800" if self.offline_mode else "#FF0000"
+                fg="#FF9800" if self.server_unreachable else "#FF0000"
             )
         except Exception as e:
             print(f"Display update error: {e}")
@@ -1539,5 +1550,5 @@ class ImageConverter:
             
 if __name__ == "__main__":
     converter = ImageConverter()
-    converter.run() 
+    converter.run()
 
