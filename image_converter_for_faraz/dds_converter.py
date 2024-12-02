@@ -668,24 +668,24 @@ class ImageConverter:
                         resized_img = img
                     else:
                         resized_img = img.resize(selected_dim, Image.Resampling.LANCZOS)
-                    
-                    # Save base texture with BC7 compression for best quality
+
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
                     resized_img.save(output_path, "DDS", flags=['bc7_unorm'])
 
                     if self.generate_heightmap.get():
                         height_path = os.path.join(self.output_dir, base_name + '_normal.dds')
                         normal_map = self.generate_normal_map(resized_img)
-                        # Save normal map with BC5 compression (optimal for normal maps)
                         normal_map = normal_map.convert('RGBA')
                         normal_map.save(height_path, "DDS", flags=['bc5_unorm'])
 
                     if self.generate_roughness.get():
-                        roughness_path = os.path.join(self.output_dir, base_name + '_roughness.dds')
+                        roughness_path = os.path.join(self.output_dir, base_name + '_spec.dds')
                         roughness_map = self.generate_roughness_map(resized_img)
-                        # Save roughness map with BC4 compression (optimal for single channel maps)
-                        roughness_map = roughness_map.convert('L')
-                        roughness_map.save(roughness_path, "DDS", flags=['bc4_unorm'])
+                        grayscale = roughness_map.convert('L')
+                        r = g = b = grayscale
+                        a = Image.new('L', grayscale.size, 255)
+                        roughness_rgba = Image.merge('RGBA', (r, g, b, a))
+                        roughness_rgba.save(roughness_path, "DDS", flags=['bc7_unorm'])
 
                     processed += 1
                     
@@ -694,9 +694,9 @@ class ImageConverter:
 
         status_msg = f"Successfully converted {processed} images to DDS"
         if self.generate_heightmap.get():
-            status_msg += " with height maps"
+            status_msg += " with normal maps"
         if self.generate_roughness.get():
-            status_msg += " and roughness maps"
+            status_msg += " and specular maps"
         self.status_label.config(text=status_msg + "!")
 
     def reset_normal_values(self):
