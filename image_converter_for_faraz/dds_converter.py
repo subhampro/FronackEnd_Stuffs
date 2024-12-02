@@ -123,7 +123,7 @@ class DDSViewer(PreviewWindow):
 
 class UsageTracker:
     def __init__(self):
-        self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/track.php'
+        self.api_url = 'https://https://elapsed.in/pro/track.php'
         self.user_id = self.get_machine_id()
         self.track_usage('startup')
         
@@ -178,7 +178,8 @@ class UsageTracker:
 
 class LicenseManager:
     def __init__(self):
-        self.api_url = 'https://wordpress.atz.li/pro_dds_tool_tracker/'
+        # Change the API URL to your new hosting
+        self.api_url = 'https://your-new-domain.com/pro_dds_tool_tracker/'
         self.registry_key = r'Software\DDSConverter'
         self.machine_id = self.get_machine_id()  # Use same method as UsageTracker
         print(f"Debug - Machine ID: {self.machine_id}")
@@ -189,6 +190,8 @@ class LicenseManager:
         self.base_delay = 1
         self.last_check_time = 0
         self.min_check_interval = 30  # Minimum seconds between checks
+        self.offline_grace_period = 7  # Days to allow offline usage
+        self.connection_timeout = 10  # Seconds to wait for connection
 
     def get_machine_id(self):
         """Generate a unique machine ID that persists across runs"""
@@ -200,53 +203,29 @@ class LicenseManager:
             return hashlib.md5(os.urandom(32)).hexdigest()
 
     def check_license(self):
-        """Check license with improved error handling and backoff"""
-        current_time = time.time()
-        if current_time - self.last_check_time < self.min_check_interval:
-            return self.check_local_license()
-            
+        """Check license with improved error handling and fallback"""
         if self.offline_mode:
+            print("Operating in offline mode")
             return self.check_local_license()
             
-        delay = self.base_delay
-        for attempt in range(self.max_retries):
-            try:
-                response = requests.post(
-                    f"{self.api_url}verify_license.php",
-                    json={'machine_id': self.machine_id},
-                    headers={'User-Agent': 'DDS-Converter/1.0'},
-                    timeout=3
-                )
-                
-                self.last_check_time = current_time
-                
-                if response.status_code == 429:
-                    retry_after = int(response.headers.get('Retry-After', 60))
-                    print(f"Rate limited. Waiting {retry_after} seconds...")
-                    time.sleep(min(retry_after, 60))  # Cap at 60 seconds
-                    continue
-                    
-                if response.status_code == 200:
-                    result = response.json()
-                    if result.get('status') == 'valid':
-                        self.offline_mode = False
-                        self.save_license_data(result)
-                        return True, None
-                
-            except requests.ConnectionError as e:
-                print(f"Connection attempt {attempt + 1} failed: {str(e)}")
-                if attempt < self.max_retries - 1:
-                    time.sleep(delay)
-                    delay *= 2  # Exponential backoff
-                    continue
-                self.offline_mode = True
-                print("Switching to offline mode")
-            except Exception as e:
-                print(f"License check error: {str(e)}")
-                if attempt == self.max_retries - 1:
-                    self.offline_mode = True
-                
-        return self.check_local_license()
+        try:
+            response = requests.post(
+                f"{self.api_url}verify_license.php",
+                json={'machine_id': self.machine_id},
+                headers={'User-Agent': 'DDS-Converter/1.0'},
+                timeout=self.connection_timeout
+            )
+            # ...existing code...
+            
+        except requests.ConnectionError as e:
+            print(f"Server connection failed: {str(e)}")
+            self.offline_mode = True
+            return self.check_local_license()
+            
+        except Exception as e:
+            print(f"License check error: {str(e)}")
+            self.offline_mode = True
+            return self.check_local_license()
 
     def check_local_license(self):
         """Check local license status"""
