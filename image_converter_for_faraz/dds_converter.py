@@ -80,6 +80,29 @@ class PreviewWindow:
         self.is_active = False
         self.window.withdraw()
 
+class DDSViewer(PreviewWindow):
+    def __init__(self, parent):
+        super().__init__(parent, "DDS Viewer")
+        self.window.geometry("1024x768")
+        
+        self.fullscreen = False
+        self.fullscreen_btn = ttk.Button(
+            self.controls_frame,
+            text="Toggle Fullscreen",
+            command=self.toggle_fullscreen
+        )
+        self.fullscreen_btn.pack(fill="x", pady=5)
+        
+        self.window.bind('<Escape>', lambda e: self.exit_fullscreen())
+    
+    def toggle_fullscreen(self):
+        self.fullscreen = not self.fullscreen
+        self.window.attributes('-fullscreen', self.fullscreen)
+    
+    def exit_fullscreen(self):
+        self.fullscreen = False
+        self.window.attributes('-fullscreen', False)
+
 class ImageConverter:
     def __init__(self):
         self.NORMAL_DEFAULTS = {
@@ -118,6 +141,7 @@ class ImageConverter:
         self.preview_roughness_image = None
         self.normal_preview_window = None
         self.roughness_preview_window = None
+        self.dds_viewer = None
         self.setup_gui()
 
     def setup_gui(self):
@@ -192,6 +216,9 @@ class ImageConverter:
 
         self.convert_button = tk.Button(self.window, text="Convert Images", command=self.convert_images)
         self.convert_button.pack(pady=20)
+
+        self.view_dds_button = tk.Button(self.window, text="View DDS", command=self.view_dds)
+        self.view_dds_button.pack(pady=5)
 
         self.status_label = tk.Label(self.window, text="")
         self.status_label.pack(pady=10)
@@ -829,6 +856,21 @@ class ImageConverter:
             self.custom_dim_frame.pack(pady=5)
         else:
             self.custom_dim_frame.pack_forget()
+
+    def view_dds(self):
+        dds_file = filedialog.askopenfilename(
+            title="Select DDS File",
+            filetypes=(("DDS files", "*.dds"),)
+        )
+        if dds_file:
+            try:
+                if not self.dds_viewer or not self.dds_viewer.is_active:
+                    self.dds_viewer = DDSViewer(self.window)
+                self.dds_viewer.show()
+                dds_image = Image.open(dds_file)
+                self.dds_viewer.update_preview(dds_image)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to open DDS file: {str(e)}")
 
     def run(self):
         self.window.mainloop()
