@@ -536,7 +536,12 @@ class ImageConverter:
 
         processed_map = np.clip(height_map, 0, 1)
         roughness_map = (processed_map * 255).astype(np.uint8)
-        return Image.fromarray(roughness_map, 'L')
+        rgb_roughness = Image.merge('RGB', (
+            Image.fromarray(roughness_map),
+            Image.fromarray(roughness_map),
+            Image.fromarray(roughness_map)
+        ))
+        return rgb_roughness
 
     def select_single_file(self):
         self.source_file = filedialog.askopenfilename(
@@ -625,7 +630,7 @@ class ImageConverter:
                     if self.generate_roughness.get():
                         roughness_path = os.path.join(self.output_dir, base_name + '_roughness.dds')
                         roughness_map = self.generate_roughness_map(resized_img)
-                        roughness_map.save(roughness_path, "DDS")
+                        roughness_map.save(roughness_path, "DDS", flags=['bc1_unorm'])
 
                     processed += 1
                     
