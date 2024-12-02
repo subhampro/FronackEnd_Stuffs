@@ -115,33 +115,32 @@ class PreviewWindow:
 
 class ImageConverter:
     def __init__(self):
-        # Add signal handler
         signal.signal(signal.SIGINT, self.signal_handler)
 
         self.compression_options = {
             "No Compression": {
-                "flags": None,
-                "ratio": 1,
+                "flags": ["uncompressed", "rgba8"],
                 "format": "RGBA",
+                "mipmap": False,
                 "description": "Uncompressed (32bpp)"
             },
             "8X | BC1 (DXT1)": {
-                "flags": ["bc1_unorm"],
-                "ratio": 8,
+                "flags": ["bc1_unorm", "dxt1"], 
                 "format": "RGB",
-                "description": "Best for RGB without alpha (4bpp)"
+                "mipmap": True,
+                "description": "RGB compression (4bpp)"
             },
             "4X | BC3 (DXT5)": {
-                "flags": ["bc3_unorm"],
-                "ratio": 4,
+                "flags": ["bc3_unorm", "dxt5"],
                 "format": "RGBA",
-                "description": "Best for RGBA images (8bpp)"
+                "mipmap": True,
+                "description": "RGBA compression (8bpp)"
             },
             "4X | BC7": {
                 "flags": ["bc7_unorm"],
-                "ratio": 4,
                 "format": "RGBA",
-                "description": "Highest quality compression (8bpp)"
+                "mipmap": True,
+                "description": "High quality RGBA (8bpp)"
             }
         }
         
@@ -538,7 +537,7 @@ class ImageConverter:
         gray = enhancer.enhance(1.2)
         
         blur_radius = self.normal_blur_var.get() / 10
-        if blur_radius > 0:
+        if (blur_radius > 0):
             gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
             
         height_map = np.array(gray).astype(np.float32) / 255.0
@@ -697,6 +696,7 @@ class ImageConverter:
                 base_name = os.path.splitext(os.path.basename(image_file))[0]
                 
                 with Image.open(input_path) as img:
+                    # Convert image based on compression format
                     img = img.convert(compression_settings['format'])
                     
                     if selected_dim == "original":
@@ -705,34 +705,53 @@ class ImageConverter:
                         resized_img = img.resize(selected_dim, Image.Resampling.LANCZOS)
 
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
-                    
-                    if compression_settings['flags'] is None:
-                        resized_img.save(output_path, "DDS")
-                    else:
-                        resized_img.save(output_path, "DDS", flags=compression_settings['flags'])
 
-                    width, height = resized_img.size
-                    pixels = width * height
-                    expected_size = pixels * (32 if compression_settings['flags'] is None else (32 // compression_settings['ratio']))
-                    expected_size = expected_size // 8 
+                    # Prepare compression settings
+                    save_opts = {
+                        "format": "DDS",
+                        "flags": compression_settings['flags']
+                    }
 
-                    actual_size = os.path.getsize(output_path)
-                    if not (0.8 * expected_size <= actual_size <= 1.2 * expected_size):
-                        print(f"Warning: {image_file} compression ratio may be incorrect. "
-                              f"Expected ~{expected_size//1024}KB, got {actual_size//1024}KB")
+                    if compression_settings['mipmap']:
+                        # Generate mipmaps for compressed formats
+                        save_opts["mipmap"] = True
+                        save_opts["mipmap_filter"] = "box"  # Use box filter for better quality
 
+                    try:
+                        # Try primary compression method
+                        resized_img.save(output_path, **save_opts)
+                    except Exception as e:
+                        print(f"Primary compression failed, trying fallback: {str(e)}")
+                        # Fallback compression method
+                        if "bc1" in compression_settings['flags'][0]:
+                            # BC1/DXT1 fallback
+                            resized_img = resized_img.convert('RGB')
+                            resized_img.save(output_path, "DDS", flags=["dxt1"])
+                        elif "bc3" in compression_settings['flags'][0]:
+                            # BC3/DXT5 fallback
+                            resized_img.save(output_path, "DDS", flags=["dxt5"])
+                        elif "bc7" in compression_settings['flags'][0]:
+                            # BC7 fallback to BC3
+                            resized_img.save(output_path, "DDS", flags=["bc3_unorm"])
+                        else:
+                            # Uncompressed fallback
+                            resized_img.save(output_path, "DDS", flags=["uncompressed"])
+
+                    # Handle normal and specular maps with specific compression
                     if self.generate_heightmap.get():
                         height_path = os.path.join(self.output_dir, base_name + '_normal.dds')
                         normal_map = self.generate_normal_map(resized_img)
                         normal_map = normal_map.convert('RGBA')
-                        normal_map.save(height_path, "DDS", flags=['bc5_unorm'])
+                        # Use BC5 specific for normal maps (better quality for normals)
+                        normal_map.save(height_path, "DDS", flags=["bc5_unorm"], mipmap=True)
 
                     if self.generate_roughness.get():
                         roughness_path = os.path.join(self.output_dir, base_name + '_spec.dds')
                         roughness_map = self.generate_roughness_map(resized_img)
                         grayscale = roughness_map.convert('L')
                         roughness_rgba = Image.merge('RGBA', (grayscale, grayscale, grayscale, Image.new('L', grayscale.size, 255)))
-                        roughness_rgba.save(roughness_path, "DDS", flags=['bc7_unorm'])
+                        # Use BC7 for highest quality specular maps
+                        roughness_rgba.save(roughness_path, "DDS", flags=["bc7_unorm"], mipmap=True)
 
                     processed += 1
                     
