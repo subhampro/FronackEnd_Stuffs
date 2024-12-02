@@ -7,10 +7,10 @@ class DDSConverter {
         this.result = document.getElementById('result');
         
         this.licenseKey = localStorage.getItem('licenseKey');
-        this.validateLicense();
+        this.apiBase = 'https://wordpress.atz.li/pro-dds-tool/api';
 
         this.initializeEventListeners();
-        this.apiBase = 'https://wordpress.atz.li/pro-dds-tool/api';
+        this.validateLicense();
     }
 
     initializeEventListeners() {
@@ -39,7 +39,10 @@ class DDSConverter {
     }
 
     async validateLicense() {
-        if (!this.licenseKey) {
+        const licenseKey = localStorage.getItem('licenseKey');
+        const machineId = this.getMachineId();
+
+        if (!licenseKey) {
             this.showLicensePrompt();
             return;
         }
@@ -51,8 +54,8 @@ class DDSConverter {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    license_key: this.licenseKey,
-                    machine_id: this.getMachineId()
+                    license_key: licenseKey,
+                    machine_id: machineId
                 })
             });
 
@@ -67,7 +70,7 @@ class DDSConverter {
         } catch (error) {
             this.updateLicenseStatus(error.message, true);
             localStorage.removeItem('licenseKey');
-            setTimeout(() => this.showLicensePrompt(), 1500);
+            this.showLicensePrompt();
         }
     }
 
@@ -78,14 +81,58 @@ class DDSConverter {
     }
 
     showLicensePrompt() {
-        const license = prompt('Please enter your license key:');
-        if (license) {
-            this.licenseKey = license;
-            localStorage.setItem('licenseKey', license);
-            this.validateLicense();
-        } else {
-            this.updateLicenseStatus('License required', true);
-        }
+        const dialog = document.createElement('div');
+        dialog.className = 'license-dialog';
+        dialog.innerHTML = `
+            <div class="dialog-content">
+                <h3>Enter License Key</h3>
+                <input type="text" id="licenseInput" placeholder="XXXXX-XXXXX-XXXXX"/>
+                <div class="error-message" style="display:none; color:red;"></div>
+                <button id="submitLicense">Activate</button>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        const submitBtn = dialog.querySelector('#submitLicense');
+        const licenseInput = dialog.querySelector('#licenseInput');
+        const errorMsg = dialog.querySelector('.error-message');
+
+        submitBtn.addEventListener('click', async () => {
+            const license = licenseInput.value.trim();
+            if (!license) {
+                errorMsg.textContent = 'Please enter a license key';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${this.apiBase}/license.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        license_key: license,
+                        machine_id: this.getMachineId()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || 'Invalid license key');
+                }
+
+                localStorage.setItem('licenseKey', license);
+                dialog.remove();
+                this.enableConverter();
+                this.updateLicenseStatus('License valid', false);
+            } catch (error) {
+                errorMsg.textContent = error.message;
+                errorMsg.style.display = 'block';
+            }
+        });
     }
 
     getMachineId() {

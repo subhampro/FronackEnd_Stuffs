@@ -2,117 +2,66 @@
 header('Content-Type: application/json');
 require_once '../config/config.php';
 
-class LicenseValidator {
-    private $db;
-    private $config;
-
-    public function __construct() {
-        $this->config = require '../config/config.php';
-        $this->connectDB();
+try {
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($data['license_key']) || !isset($data['machine_id'])) {
+        throw new Exception('Missing required parameters');
     }
 
-    private function connectDB() {
-        try {
-            $this->db = new PDO(
-                "mysql:host={$this->config['db']['host']};dbname={$this->config['db']['name']}",
-                $this->config['db']['user'],
-                $this->config['db']['pass']
-            );
-            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $e) {
-            $this->sendError('Database connection failed');
-        }
-    }
+    $license_key = $data['license_key'];
+    $machine_id = $data['machine_id'];
 
-    public function validateLicense() {
-        try {
-            $data = json_decode(file_get_contents('php://input'), true);
-            
-            if (!isset($data['license_key'])) {
-                $this->sendError('Missing license key');
-            }
+    $db = new PDO(
+        "mysql:host={$config['db']['host']};dbname={$config['db']['name']}",
+        $config['db']['user'],
+        $config['db']['pass'],
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
 
-            $license_key = $data['license_key'];
-            
-            // Query matches your actual database structure
-            $stmt = $this->db->prepare("
-                SELECT * FROM licenses 
-                WHERE license_key = ? 
-                AND status != 'expired'
-            ");
-            
-            $stmt->execute([$license_key]);
-            $license = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $db->prepare("
+        SELECT status, expires_at, machine_id 
+        FROM licenses 
+        WHERE license_key = ?
+    ");
+    
+    $stmt->execute([$license_key]);
+    $license = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$license) {
-                $this->sendError('Invalid license key');
-            }
-
-            // Check expiration
-            if ($license['expires_at'] && strtotime($license['expires_at']) < time()) {
-                // Update status to expired
-                $updateStmt = $this->db->prepare("
-                    UPDATE licenses 
-                    SET status = 'expired' 
-                    WHERE license_key = ?
-                ");
-                $updateStmt->execute([$license_key]);
-                $this->sendError('License has expired');
-            }
-
-            if ($license['status'] === 'unused') {
-                // Activate the license
-                $updateStmt = $this->db->prepare("
-                    UPDATE licenses 
-                    SET status = 'active',
-                        activated_at = NOW()
-                    WHERE license_key = ?
-                ");
-                $updateStmt->execute([$license_key]);
-            }
-
-            $this->sendSuccess($license);
-
-        } catch (Exception $e) {
-            $this->sendError('License validation failed: ' . $e->getMessage());
-        }
-    }
-
-    private function countActivations($license_id) {
-        $stmt = $this->db->prepare("
-            SELECT COUNT(*) FROM machine_activations 
-            WHERE license_id = ?
-        ");
-        $stmt->execute([$license_id]);
-        return $stmt->fetchColumn();
-    }
-
-    private function activateMachine($license_id, $machine_id) {
-        $stmt = $this->db->prepare("
-            INSERT INTO machine_activations (license_id, machine_id, activated_at)
-            VALUES (?, ?, NOW())
-        ");
-        $stmt->execute([$license_id, $machine_id]);
-    }
-
-    private function sendError($message) {
-        echo json_encode([
-            'status' => 'error',
-            'message' => $message
-        ]);
+    if (!$license) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid license key']);
         exit;
     }
 
-    private function sendSuccess($license) {
-        echo json_encode([
-            'status' => 'valid',
-            'type' => 'full', // You can modify this based on your needs
-            'expires_at' => $license['expires_at'],
-            'message' => 'License validated successfully'
-        ]);
+    if ($license['status'] === 'expired' || strtotime($license['expires_at']) < time()) {
+        http_response_code(400);
+        echo json_encode(['error' => 'License has expired']);
         exit;
     }
+
+    if ($license['status'] === 'unused') {
+        // Activate license for this machine
+        $stmt = $db->prepare("
+            UPDATE licenses 
+            SET status = 'active', 
+                machine_id = ?,
+                activated_at = CURRENT_TIMESTAMP 
+            WHERE license_key = ?
+        ");
+        $stmt->execute([$machine_id, $license_key]);
+    } else if ($license['machine_id'] && $license['machine_id'] !== $machine_id) {
+        http_response_code(400);
+        echo json_encode(['error' => 'License is already activated on another machine']);
+        exit;
+    }
+
+    echo json_encode([
+        'status' => 'valid',
+        'expires_at' => $license['expires_at']
+    ]);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
 }
-
-$validator = new LicenseValidator();
-$validator->validateLicense();
