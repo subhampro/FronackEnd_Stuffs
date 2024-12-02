@@ -123,7 +123,7 @@ class DDSViewer(PreviewWindow):
 
 class UsageTracker:
     def __init__(self):
-        # Fix the URL format
+        # Fix URL to match actual server path
         self.api_url = 'https://elapsed.in/pro/track.php'
         self.user_id = self.get_machine_id()
         self.track_usage('startup')
@@ -180,7 +180,7 @@ class UsageTracker:
 
 class LicenseManager:
     def __init__(self):
-        # Update the API URL with correct format
+        # Fix base URL to match actual server path
         self.api_url = 'https://elapsed.in/pro'
         self.registry_key = r'Software\DDSConverter'
         self.machine_id = self.get_machine_id()  # Use same method as UsageTracker
@@ -212,16 +212,23 @@ class LicenseManager:
             
         try:
             response = requests.post(
-                f"{self.api_url}verify_license.php",
+                f"{self.api_url}/verify_license.php",  # Corrected endpoint path
                 json={'machine_id': self.machine_id},
                 headers={
                     'Content-Type': 'application/json',
                     'User-Agent': 'DDS-Converter/1.0'
                 },
                 timeout=self.connection_timeout,
-                verify=True  # Enable SSL verification
+                verify=True
             )
-            # ...existing code...
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 'valid':
+                    self.save_license_data(data)
+                    return True, None
+                return False, data.get('message', 'Invalid license response')
+            return False, f"Server error: {response.status_code}"
             
         except (requests.ConnectionError, requests.Timeout) as e:
             print(f"Server connection failed: {str(e)}")
@@ -241,16 +248,21 @@ class LicenseManager:
             license_data = json.loads(base64.b64decode(stored_data))
             winreg.CloseKey(key)
             
-            if license_data.get('type') == 'trial':
-                return True, "Trial Version"
-            elif license_data.get('type') == 'full':
-                return True, None
-        except:
+            now = datetime.now()
+            expiry = datetime.fromisoformat(license_data.get('expires_at', '2000-01-01'))
+            
+            if expiry > now:
+                if license_data.get('type') == 'trial':
+                    return True, "Trial Version"
+                elif license_data.get('type') == 'full':
+                    return True, None
+            return False, "License expired"
+            
+        except Exception:
             if self.first_run:
                 self.first_run = False
                 return self.initialize_trial_license()
-            
-        return True, "Trial Version"
+            return False, "No valid license found"
 
     def save_license_data(self, server_data):
         """Save license data to registry"""
@@ -274,19 +286,34 @@ class LicenseManager:
         """Initialize a new trial license"""
         try:
             key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.registry_key)
+            expires_at = (datetime.now() + timedelta(days=7)).isoformat()
             license_data = {
                 'type': 'trial',
                 'machine_id': self.machine_id,
                 'status': 'trial',
                 'first_launch': datetime.now().isoformat(),
                 'installed': datetime.now().isoformat(),
-                'expires_at': (datetime.now() + timedelta(days=7)).isoformat()
+                'expires_at': expires_at
             }
             encoded_data = base64.b64encode(json.dumps(license_data).encode()).decode()
             winreg.SetValueEx(key, "license_data", 0, winreg.REG_SZ, encoded_data)
             winreg.CloseKey(key)
             
+            try:
+                requests.post(
+                    f"{self.api_url}/register_trial.php",  # Corrected endpoint path
+                    json={
+                        'machine_id': self.machine_id,
+                        'expires_at': expires_at
+                    },
+                    headers={'User-Agent': 'DDS-Converter/1.0'},
+                    timeout=5
+                )
+            except:
+                pass  # Ignore server registration errors for trial
+                
             return True, "Trial Version"
+            
         except Exception as e:
             print(f"Error initializing trial: {e}")
             return False, str(e)
@@ -295,7 +322,7 @@ class LicenseManager:
         """Get remaining time from server"""
         try:
             response = requests.post(
-                f"{self.api_url}verify_license.php",
+                f"{self.api_url}/verify_license.php",  # Corrected endpoint path
                 json={'machine_id': self.machine_id},
                 timeout=5
             )
@@ -325,7 +352,7 @@ class LicenseManager:
         try:
             # First check server status
             response = requests.post(
-                f"{self.api_url}verify_license.php",
+                f"{self.api_url}/verify_license.php",  # Corrected endpoint path
                 json={'machine_id': self.machine_id},
                 headers={'User-Agent': 'DDS-Converter/1.0'},
                 timeout=5
@@ -409,7 +436,7 @@ class LicenseManager:
         """Activate a license key"""
         try:
             response = requests.post(
-                f"{self.api_url}activate_license.php",
+                f"{self.api_url}/activate_license.php",  # Corrected endpoint path
                 json={
                     'machine_id': self.machine_id,
                     'license_key': license_key
