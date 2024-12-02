@@ -12,7 +12,6 @@ function get_geo_data($ip) {
 }
 
 function safe_html($str) {
-    // Fix null parameter warning by providing empty string default
     return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
 }
 
@@ -20,7 +19,6 @@ try {
     $db = new PDO('mysql:host=localhost;dbname=wordpres_test', 'wordpres_test', '$$$Pro381998');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Simplified stats query
     $stats = [
         'total_users' => $db->query("SELECT COUNT(DISTINCT user_id) FROM users")->fetchColumn(),
         'active_today' => $db->query("SELECT COUNT(DISTINCT user_id) FROM users WHERE last_seen >= DATE_SUB(NOW(), INTERVAL 24 HOUR)")->fetchColumn(),
