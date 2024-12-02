@@ -528,13 +528,14 @@ class ImageConverter:
         strength = np.sqrt(dx**2 + dy**2 + z**2)
         
         normal_map = np.stack([
-            ((dx / strength) + 1) / 2,
-            ((dy / strength) + 1) / 2,
-            (z / strength)
+            ((dx / strength) + 1) / 2,  # R channel
+            ((dy / strength) + 1) / 2,  # G channel
+            (z / strength),             # B channel
+            np.ones_like(z)             # A channel
         ], axis=-1)
         
         normal_map = np.clip(normal_map * 255, 0, 255).astype(np.uint8)
-        return Image.fromarray(normal_map, 'RGB')
+        return Image.fromarray(normal_map, 'RGBA')
 
     def generate_roughness_map(self, image):
         gray = image.convert('L')
@@ -589,13 +590,8 @@ class ImageConverter:
         processed_map = np.clip(height_map, 0, 1)
         roughness_map = (processed_map * 255).astype(np.uint8)
         
-        rgb_roughness = Image.merge('RGB', (
-            Image.fromarray(roughness_map),
-            Image.fromarray(roughness_map),
-            Image.fromarray(roughness_map)
-        ))
-        
-        return rgb_roughness
+        # Return single channel image
+        return Image.fromarray(roughness_map, 'L')
 
     def select_single_file(self):
         self.source_file = filedialog.askopenfilename(
@@ -673,18 +669,23 @@ class ImageConverter:
                     else:
                         resized_img = img.resize(selected_dim, Image.Resampling.LANCZOS)
                     
+                    # Save base texture with BC7 compression for best quality
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
-                    resized_img.save(output_path, "DDS")
+                    resized_img.save(output_path, "DDS", flags=['bc7_unorm'])
 
                     if self.generate_heightmap.get():
                         height_path = os.path.join(self.output_dir, base_name + '_normal.dds')
                         normal_map = self.generate_normal_map(resized_img)
-                        normal_map.save(height_path, "DDS")
+                        # Save normal map with BC5 compression (optimal for normal maps)
+                        normal_map = normal_map.convert('RGBA')
+                        normal_map.save(height_path, "DDS", flags=['bc5_unorm'])
 
                     if self.generate_roughness.get():
                         roughness_path = os.path.join(self.output_dir, base_name + '_roughness.dds')
                         roughness_map = self.generate_roughness_map(resized_img)
-                        roughness_map.save(roughness_path, "DDS", flags=['bc1_unorm'])
+                        # Save roughness map with BC4 compression (optimal for single channel maps)
+                        roughness_map = roughness_map.convert('L')
+                        roughness_map.save(roughness_path, "DDS", flags=['bc4_unorm'])
 
                     processed += 1
                     
