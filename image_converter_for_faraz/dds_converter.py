@@ -728,9 +728,14 @@ class ImageConverter:
             self.window.mainloop()
         except KeyboardInterrupt:
             self.signal_handler(None, None)
+        except Exception as e:
+            print(f"Error during execution: {e}")
         finally:
-            if hasattr(self, 'window'):
-                self.window.destroy()
+            try:
+                if hasattr(self, 'window') and self.window.winfo_exists():
+                    self.window.destroy()
+            except:
+                pass
 
 if __name__ == "__main__":
     converter = ImageConverter()
