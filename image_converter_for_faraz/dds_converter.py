@@ -123,7 +123,8 @@ class DDSViewer(PreviewWindow):
 
 class UsageTracker:
     def __init__(self):
-        self.api_url = 'https://https://elapsed.in/pro/track.php'
+        # Fix the URL format
+        self.api_url = 'https://elapsed.in/pro/track.php'
         self.user_id = self.get_machine_id()
         self.track_usage('startup')
         
@@ -159,27 +160,28 @@ class UsageTracker:
                     self.api_url,
                     json=data,
                     headers=headers,
-                    timeout=5
+                    timeout=5,
+                    verify=True  # Enable SSL verification
                 )
                 
                 if response.status_code == 200:
                     return True
                     
-            except requests.ConnectionError:
-                print(f"Connection attempt {attempt + 1} failed, retrying in {retry_delay}s...")
+            except (requests.ConnectionError, requests.Timeout) as e:
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
                     retry_delay *= 2
                     continue
+                else:
+                    print(f"Failed to track usage after {max_retries} attempts")
             except Exception as e:
                 print(f"Error tracking usage: {str(e)}")
-                
             return False
 
 class LicenseManager:
     def __init__(self):
-        # Change the API URL to your new hosting
-        self.api_url = 'https://your-new-domain.com/pro_dds_tool_tracker/'
+        # Update the API URL with correct format
+        self.api_url = 'https://elapsed.in/pro'
         self.registry_key = r'Software\DDSConverter'
         self.machine_id = self.get_machine_id()  # Use same method as UsageTracker
         print(f"Debug - Machine ID: {self.machine_id}")
@@ -212,12 +214,16 @@ class LicenseManager:
             response = requests.post(
                 f"{self.api_url}verify_license.php",
                 json={'machine_id': self.machine_id},
-                headers={'User-Agent': 'DDS-Converter/1.0'},
-                timeout=self.connection_timeout
+                headers={
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'DDS-Converter/1.0'
+                },
+                timeout=self.connection_timeout,
+                verify=True  # Enable SSL verification
             )
             # ...existing code...
             
-        except requests.ConnectionError as e:
+        except (requests.ConnectionError, requests.Timeout) as e:
             print(f"Server connection failed: {str(e)}")
             self.offline_mode = True
             return self.check_local_license()
@@ -988,7 +994,7 @@ class ImageConverter:
             
             if not self.roughness_preview_window or not self.roughness_preview_window.is_active:
                 self.roughness_preview_window = PreviewWindow(self.window, "Roughness Map Preview")
-                self.roughness_preview_window.set_update_callback(self.update_roughness_preview)
+                self.roughness_preview_window.set_update_callback(self.update_roughness_preview())
             
             self.roughness_preview_window.show()
             self.update_roughness_preview()
