@@ -117,6 +117,13 @@ class ImageConverter:
     def __init__(self):
         # Add signal handler
         signal.signal(signal.SIGINT, self.signal_handler)
+
+        self.compression_options = {
+            "No Compression": "none",
+            "8X | BC1 (DXT1)": "bc1_unorm",
+            "4X | BC3 (DXT5)": "bc3_unorm",
+            "4X | BC7": "bc7_unorm"
+        }
         
         self.NORMAL_DEFAULTS = {
             'blur': 0,
@@ -225,6 +232,13 @@ class ImageConverter:
 
         self.status_label = tk.Label(self.window, text="")
         self.status_label.pack(pady=10)
+
+        tk.Label(self.window, text="Select Compression:").pack(pady=5)
+        self.compression_var = tk.StringVar()
+        self.compression_combo = ttk.Combobox(self.window, textvariable=self.compression_var)
+        self.compression_combo['values'] = list(self.compression_options.keys())
+        self.compression_combo.set("No Compression")
+        self.compression_combo.pack(pady=5)
 
     def create_map_controls(self, title, preview_callback):
         prefix = title.split()[0].lower()
@@ -633,6 +647,7 @@ class ImageConverter:
             os.makedirs(self.output_dir)
 
         selected_dim = self.dimensions[self.dim_var.get()]
+        compression = self.compression_options[self.compression_var.get()]
         
         if selected_dim == "custom":
             try:
@@ -670,12 +685,18 @@ class ImageConverter:
                         resized_img = img.resize(selected_dim, Image.Resampling.LANCZOS)
 
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
-                    resized_img.save(output_path, "DDS", flags=['bc7_unorm'])
+                    
+                    # Handle compression
+                    if compression == "none":
+                        resized_img.save(output_path, "DDS")
+                    else:
+                        resized_img.save(output_path, "DDS", flags=[compression])
 
                     if self.generate_heightmap.get():
                         height_path = os.path.join(self.output_dir, base_name + '_normal.dds')
                         normal_map = self.generate_normal_map(resized_img)
                         normal_map = normal_map.convert('RGBA')
+                        # Use BC5 for normal maps as it's better suited
                         normal_map.save(height_path, "DDS", flags=['bc5_unorm'])
 
                     if self.generate_roughness.get():
@@ -685,6 +706,7 @@ class ImageConverter:
                         r = g = b = grayscale
                         a = Image.new('L', grayscale.size, 255)
                         roughness_rgba = Image.merge('RGBA', (r, g, b, a))
+                        # Use BC7 for specular maps as it provides better quality
                         roughness_rgba.save(roughness_path, "DDS", flags=['bc7_unorm'])
 
                     processed += 1
@@ -692,7 +714,8 @@ class ImageConverter:
             except Exception as e:
                 messagebox.showerror("Error", f"Error processing {image_file}: {str(e)}")
 
-        status_msg = f"Successfully converted {processed} images to DDS"
+        compression_text = " with " + self.compression_var.get() if compression != "none" else ""
+        status_msg = f"Successfully converted {processed} images to DDS{compression_text}"
         if self.generate_heightmap.get():
             status_msg += " with normal maps"
         if self.generate_roughness.get():
