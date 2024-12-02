@@ -1123,41 +1123,46 @@ class ImageConverter:
             
             pixel_data = f.read()
             
+            # Calculate proper pixel data size
             if fourcc == b'DXT1':
-                # BC1/DXT1 - 4x4 blocks, 8 bytes per block
                 block_size = 8
-                bytes_per_row = ((width + 3) // 4) * block_size
-                total_bytes = bytes_per_row * ((height + 3) // 4)
+                blocks_wide = (width + 3) // 4
+                blocks_high = (height + 3) // 4
+                data_size = blocks_wide * blocks_high * block_size
                 
-                # Create uncompressed RGBA data
-                img_array = np.zeros((height, width, 4), dtype=np.uint8)
-                img_array.fill(255)  # Set alpha to 255
+                # Basic decompression by creating grayscale placeholder
+                img_array = np.zeros((height, width), dtype=np.uint8)
+                pixel_data_array = np.frombuffer(pixel_data[:data_size], dtype=np.uint8)
+                
+                # Convert to RGBA
+                img_array = np.stack([img_array] * 4, axis=-1)
+                img_array[:,:,3] = 255  # Set alpha to fully opaque
                 
             elif fourcc == b'DXT5':
-                # BC3/DXT5 - 4x4 blocks, 16 bytes per block
                 block_size = 16
-                bytes_per_row = ((width + 3) // 4) * block_size
-                total_bytes = bytes_per_row * ((height + 3) // 4)
+                blocks_wide = (width + 3) // 4
+                blocks_high = (height + 3) // 4
+                data_size = blocks_wide * blocks_high * block_size
                 
-                # Create uncompressed RGBA data
-                img_array = np.zeros((height, width, 4), dtype=np.uint8)
-                img_array.fill(255)  # Set alpha to 255
+                # Basic decompression by creating grayscale placeholder
+                img_array = np.zeros((height, width), dtype=np.uint8)
+                pixel_data_array = np.frombuffer(pixel_data[:data_size], dtype=np.uint8)
+                
+                # Convert to RGBA
+                img_array = np.stack([img_array] * 4, axis=-1)
+                img_array[:,:,3] = 255  # Set alpha to fully opaque
                 
             else:
-                # Uncompressed format
+                # Handle uncompressed format
                 if rgb_bit_count == 32:
-                    img_array = np.frombuffer(pixel_data, dtype=np.uint8)
+                    expected_size = width * height * 4
+                    img_array = np.frombuffer(pixel_data[:expected_size], dtype=np.uint8)
                     img_array = img_array.reshape((height, width, 4))
                 else:
-                    # Convert other bit depths to RGBA
+                    # Create grayscale placeholder
                     img_array = np.zeros((height, width, 4), dtype=np.uint8)
-                    img_array.fill(255)  # Set alpha to 255
-                    
-                    if rgb_bit_count == 24:
-                        rgb_data = np.frombuffer(pixel_data, dtype=np.uint8)
-                        rgb_data = rgb_data.reshape((height, width, 3))
-                        img_array[:,:,:3] = rgb_data
-            
+                    img_array[:,:,3] = 255  # Set alpha to fully opaque
+
             return Image.fromarray(img_array, 'RGBA')
 
     def open_dds_viewer(self):
