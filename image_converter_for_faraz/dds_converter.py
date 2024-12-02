@@ -188,20 +188,20 @@ class LicenseManager:
         self.first_run = True  # Add this flag
         self.retry_delay = 1
         self.max_retries = 3
-        self.offline_mode = True  # Always start in offline mode
+        self.offline_mode = False
         self.base_delay = 1
         self.last_check_time = 0
         self.min_check_interval = 30  # Minimum seconds between checks
-        self.offline_grace_period = 7  # 7 days offline grace period
+        self.offline_grace_period = 7  # Change to 7 days
         self.connection_timeout = 10  # Seconds to wait for connection
         self.connection_retries = 3
         self.offline_mode = False
         self.last_error = None
         self.debug_mode = True  # Enable debug logging
-        self.server_unreachable = True  # Assume server is unreachable by default
+        self.server_unreachable = False
         self.offline_grace_period = 30  # Increase offline grace period to 30 days
         self.online_mode = False  # Start in offline mode by default 
-        self.trial_period = 7  # 7 day trial period
+        self.trial_period = 7  # Add trial period constant
 
     def log_debug(self, message):
         """Debug logging function"""
@@ -219,14 +219,14 @@ class LicenseManager:
 
     def check_license(self):
         """Check license with offline-first approach"""
-        self.log_debug("Starting offline license check")
+        self.log_debug("Starting license check in offline mode")
         
-        # Skip all online checks and go straight to local license
+        # Always try local license first
         local_status, local_msg = self.check_local_license()
         if local_status:
             return True, local_msg
             
-        # If no local license exists, create new offline trial
+        # If no local license exists, create offline trial
         if self.first_run:
             self.first_run = False
             return self.initialize_offline_trial()
@@ -344,48 +344,71 @@ class LicenseManager:
             return False, str(e)
 
     def get_trial_time_remaining(self):
-        """Get remaining trial time without server check"""
+        """Get remaining time from server"""
         try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, 
-                                winreg.KEY_READ)
-            stored_data = winreg.QueryValueEx(key, "license_data")[0]
-            license_data = json.loads(base64.b64decode(stored_data))
-            winreg.CloseKey(key)
+            response = requests.post(
+                f"{self.api_url}/verify_license.php",  # Corrected endpoint path
+                json={'machine_id': self.machine_id},
+                timeout=5
+            )
             
-            if license_data.get('type') == 'trial':
-                first_launch = datetime.fromisoformat(license_data['first_launch'])
-                trial_end = first_launch + timedelta(days=self.trial_period)
-                remaining = trial_end - datetime.now()
-                
-                if remaining.total_seconds() <= 0:
-                    return None
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 'valid':
+                    seconds = int(data.get('seconds_remaining', 0))
                     
-                return {
-                    'days': remaining.days,
-                    'hours': remaining.seconds // 3600,
-                    'minutes': (remaining.seconds % 3600) // 60,
-                    'total_seconds': remaining.total_seconds(),
-                    'type': 'trial'
-                }
-        except Exception as e:
-            self.log_debug(f"Error getting trial time: {str(e)}")
-        return None
+                    # Ensure we don't exceed 7 days for trial
+                    if data.get('type') == 'trial':
+                        seconds = min(seconds, 7 * 24 * 3600)
+                        
+                    return {
+                        'days': seconds // 86400,
+                        'hours': (seconds % 86400) // 3600,
+                        'minutes': (seconds % 3600) // 60,
+                        'total_seconds': seconds,
+                        'type': data.get('type', 'trial')
+                    }
+            return None
+        except:
+            return None
 
     def get_license_expiry(self):
-        """Get license expiry from local storage only"""
+        """Get license expiration details with better error handling"""
         try:
+            # First check server status
+            response = requests.post(
+                f"{self.api_url}/verify_license.php",  # Corrected endpoint path
+                json={'machine_id': self.machine_id},
+                headers={'User-Agent': 'DDS-Converter/1.0'},
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 'valid':
+                    seconds = int(data.get('seconds_remaining', 0))
+                    return {
+                        'days': seconds // 86400,
+                        'hours': (seconds % 86400) // 3600,
+                        'minutes': (seconds % 3600) // 60,
+                        'total_seconds': seconds,
+                        'type': data.get('type', 'trial')
+                    }
+
+            # If server check fails, try local registry
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
             stored_data = winreg.QueryValueEx(key, "license_data")[0]
             license_data = json.loads(base64.b64decode(stored_data))
             winreg.CloseKey(key)
             
             now = datetime.now()
+            
             if license_data.get('type') == 'full':
                 activation_date = datetime.fromisoformat(license_data['activated'])
                 expires_at = activation_date + timedelta(days=30)
             else:  # trial
                 first_launch = datetime.fromisoformat(license_data['first_launch'])
-                expires_at = first_launch + timedelta(days=self.trial_period)
+                expires_at = first_launch + timedelta(days=7)
             
             remaining = expires_at - now
             
@@ -400,8 +423,9 @@ class LicenseManager:
             return None
 
         except Exception as e:
-            self.log_debug(f"Error getting license expiry: {str(e)}")
-            return None
+            print(f"Error getting license expiry: {e}")
+            # Initialize new trial if everything fails
+            return self.initialize_trial_license()
 
     def start_trial(self):
         """Initialize trial period"""
@@ -1515,4 +1539,3 @@ class ImageConverter:
 if __name__ == "__main__":
     converter = ImageConverter()
     converter.run()
-
