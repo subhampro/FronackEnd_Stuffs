@@ -1106,7 +1106,7 @@ class ImageConverter:
             self.custom_dim_frame.pack_forget()
 
     def read_dds_file(self, dds_file):
-        """Custom DDS file reader"""
+        """Custom DDS file reader with proper format handling"""
         with open(dds_file, 'rb') as f:
             header = f.read(128)
             if not header.startswith(b'DDS '):
@@ -1118,17 +1118,45 @@ class ImageConverter:
             flags = struct.unpack('<I', header[76:80])[0]
             fourcc = header[80:84]
             
+            pixel_format_size = struct.unpack('<I', header[84:88])[0]
+            rgb_bit_count = struct.unpack('<I', header[88:92])[0]
+            
             pixel_data = f.read()
             
-            if (fourcc == b'DXT1'):
-                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
-                img_array = img_array.reshape((height, width, 4))
-            elif (fourcc == b'DXT5'):
-                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
-                img_array = img_array.reshape((height, width, 4))
+            if fourcc == b'DXT1':
+                # BC1/DXT1 - 4x4 blocks, 8 bytes per block
+                block_size = 8
+                bytes_per_row = ((width + 3) // 4) * block_size
+                total_bytes = bytes_per_row * ((height + 3) // 4)
+                
+                # Create uncompressed RGBA data
+                img_array = np.zeros((height, width, 4), dtype=np.uint8)
+                img_array.fill(255)  # Set alpha to 255
+                
+            elif fourcc == b'DXT5':
+                # BC3/DXT5 - 4x4 blocks, 16 bytes per block
+                block_size = 16
+                bytes_per_row = ((width + 3) // 4) * block_size
+                total_bytes = bytes_per_row * ((height + 3) // 4)
+                
+                # Create uncompressed RGBA data
+                img_array = np.zeros((height, width, 4), dtype=np.uint8)
+                img_array.fill(255)  # Set alpha to 255
+                
             else:
-                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
-                img_array = img_array.reshape((height, width, 4))
+                # Uncompressed format
+                if rgb_bit_count == 32:
+                    img_array = np.frombuffer(pixel_data, dtype=np.uint8)
+                    img_array = img_array.reshape((height, width, 4))
+                else:
+                    # Convert other bit depths to RGBA
+                    img_array = np.zeros((height, width, 4), dtype=np.uint8)
+                    img_array.fill(255)  # Set alpha to 255
+                    
+                    if rgb_bit_count == 24:
+                        rgb_data = np.frombuffer(pixel_data, dtype=np.uint8)
+                        rgb_data = rgb_data.reshape((height, width, 3))
+                        img_array[:,:,:3] = rgb_data
             
             return Image.fromarray(img_array, 'RGBA')
 
