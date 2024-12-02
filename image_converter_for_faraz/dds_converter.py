@@ -3,11 +3,7 @@ from PIL import Image, ImageTk, ImageEnhance, ImageFilter
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import numpy as np
-from lib import initialize
 import struct
-import io
-import signal
-import sys
 
 class PreviewWindow:
     def __init__(self, parent, title):
@@ -84,34 +80,8 @@ class PreviewWindow:
         self.is_active = False
         self.window.withdraw()
 
-class DDSViewer(PreviewWindow):
-    def __init__(self, parent):
-        super().__init__(parent, "DDS Viewer")
-        self.window.geometry("1024x768")
-        
-        self.fullscreen = False
-        self.fullscreen_btn = ttk.Button(
-            self.controls_frame,
-            text="Toggle Fullscreen",
-            command=self.toggle_fullscreen
-        )
-        self.fullscreen_btn.pack(fill="x", pady=5)
-        
-        self.window.bind('<Escape>', lambda e: self.exit_fullscreen())
-    
-    def toggle_fullscreen(self):
-        self.fullscreen = not self.fullscreen
-        self.window.attributes('-fullscreen', self.fullscreen)
-    
-    def exit_fullscreen(self):
-        self.fullscreen = False
-        self.window.attributes('-fullscreen', False)
-
 class ImageConverter:
     def __init__(self):
-        signal.signal(signal.SIGINT, self.signal_handler)
-        signal.signal(signal.SIGTERM, self.signal_handler)
-        
         self.NORMAL_DEFAULTS = {
             'blur': 0,
             'scale': 300,
@@ -148,16 +118,7 @@ class ImageConverter:
         self.preview_roughness_image = None
         self.normal_preview_window = None
         self.roughness_preview_window = None
-        self.dds_viewer = None
         self.setup_gui()
-
-    def signal_handler(self, sig, frame):
-        """Handle Ctrl+C and other termination signals"""
-        print("\nClosing application gracefully...")
-        if hasattr(self, 'window'):
-            self.window.quit()
-            self.window.destroy()
-        sys.exit(0)
 
     def setup_gui(self):
         self.window = tk.Tk()
@@ -175,9 +136,6 @@ class ImageConverter:
         
         self.single_file_button = tk.Button(source_frame, text="Select Single File", command=self.select_single_file)
         self.single_file_button.pack(side="left", padx=5)
-
-        self.view_dds_button = tk.Button(source_frame, text="View DDS File", command=self.open_dds_viewer)
-        self.view_dds_button.pack(side="left", padx=5)
 
         tk.Label(self.window, text="Select Output Directory:").pack(pady=5)
         self.output_button = tk.Button(self.window, text="Browse", command=self.select_output_dir)
@@ -597,7 +555,7 @@ class ImageConverter:
     def select_single_file(self):
         self.source_file = filedialog.askopenfilename(
             title="Select Image File",
-            filetypes=(("Image files", "*.png *.jpg *.jpeg *.bmp *.tiff *.webp"),)
+            filetypes=(("Image files", "*.png *.jpg *.jpeg *.bmp *.tiff"),)
         )
         if self.source_file:
             self.source_dir = os.path.dirname(self.source_file)
@@ -795,7 +753,7 @@ class ImageConverter:
             image_files = [os.path.basename(self.source_file)]
         else:
             image_files = [f for f in os.listdir(self.source_dir) 
-                          if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp'))]
+                          if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))]
 
         if not image_files:
             messagebox.showinfo("Info", "No image files found!")
@@ -872,59 +830,8 @@ class ImageConverter:
         else:
             self.custom_dim_frame.pack_forget()
 
-    def read_dds_file(self, dds_file):
-        """Custom DDS file reader"""
-        with open(dds_file, 'rb') as f:
-            header = f.read(128)
-            if not header.startswith(b'DDS '):
-                raise ValueError("Not a valid DDS file")
-                
-            height = struct.unpack('<I', header[12:16])[0]
-            width = struct.unpack('<I', header[16:20])[0]
-            
-            flags = struct.unpack('<I', header[76:80])[0]
-            fourcc = header[80:84]
-            
-            pixel_data = f.read()
-            
-            if fourcc == b'DXT1':
-                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
-                img_array = img_array.reshape((height, width, 4))
-            elif fourcc == b'DXT5':
-                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
-                img_array = img_array.reshape((height, width, 4))
-            else:
-                img_array = np.frombuffer(pixel_data, dtype=np.uint8)
-                img_array = img_array.reshape((height, width, 4))
-            
-            return Image.fromarray(img_array, 'RGBA')
-
-    def open_dds_viewer(self):
-        dds_file = filedialog.askopenfilename(
-            title="Select DDS File",
-            filetypes=(("DDS files", "*.dds"),)
-        )
-        if dds_file:
-            try:
-                img = self.read_dds_file(dds_file)
-                
-                if not self.dds_viewer:
-                    self.dds_viewer = DDSViewer(self.window)
-                self.dds_viewer.show()
-                self.dds_viewer.update_preview(img)
-            except Exception as e:
-                messagebox.showerror("Error", f"Error opening DDS file: {str(e)}")
-                if self.dds_viewer:
-                    self.dds_viewer.hide()
-
     def run(self):
-        try:
-            self.window.mainloop()
-        except KeyboardInterrupt:
-            self.signal_handler(signal.SIGINT, None)
-        except Exception as e:
-            print(f"Error: {str(e)}")
-            self.signal_handler(signal.SIGTERM, None)
+        self.window.mainloop()
 
 if __name__ == "__main__":
     converter = ImageConverter()
