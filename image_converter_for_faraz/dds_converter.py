@@ -119,10 +119,30 @@ class ImageConverter:
         signal.signal(signal.SIGINT, self.signal_handler)
 
         self.compression_options = {
-            "No Compression": "none",
-            "8X | BC1 (DXT1)": "bc1_unorm",
-            "4X | BC3 (DXT5)": "bc3_unorm",
-            "4X | BC7": "bc7_unorm"
+            "No Compression": {
+                "flags": None,
+                "ratio": 1,
+                "format": "RGBA",
+                "description": "Uncompressed (32bpp)"
+            },
+            "8X | BC1 (DXT1)": {
+                "flags": ["bc1_unorm"],
+                "ratio": 8,
+                "format": "RGB",
+                "description": "Best for RGB without alpha (4bpp)"
+            },
+            "4X | BC3 (DXT5)": {
+                "flags": ["bc3_unorm"],
+                "ratio": 4,
+                "format": "RGBA",
+                "description": "Best for RGBA images (8bpp)"
+            },
+            "4X | BC7": {
+                "flags": ["bc7_unorm"],
+                "ratio": 4,
+                "format": "RGBA",
+                "description": "Highest quality compression (8bpp)"
+            }
         }
         
         self.NORMAL_DEFAULTS = {
@@ -647,7 +667,7 @@ class ImageConverter:
             os.makedirs(self.output_dir)
 
         selected_dim = self.dimensions[self.dim_var.get()]
-        compression = self.compression_options[self.compression_var.get()]
+        compression_settings = self.compression_options[self.compression_var.get()]
         
         if selected_dim == "custom":
             try:
@@ -677,7 +697,7 @@ class ImageConverter:
                 base_name = os.path.splitext(os.path.basename(image_file))[0]
                 
                 with Image.open(input_path) as img:
-                    img = img.convert('RGBA')
+                    img = img.convert(compression_settings['format'])
                     
                     if selected_dim == "original":
                         resized_img = img
@@ -686,27 +706,32 @@ class ImageConverter:
 
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
                     
-                    # Handle compression
-                    if compression == "none":
+                    if compression_settings['flags'] is None:
                         resized_img.save(output_path, "DDS")
                     else:
-                        resized_img.save(output_path, "DDS", flags=[compression])
+                        resized_img.save(output_path, "DDS", flags=compression_settings['flags'])
+
+                    width, height = resized_img.size
+                    pixels = width * height
+                    expected_size = pixels * (32 if compression_settings['flags'] is None else (32 // compression_settings['ratio']))
+                    expected_size = expected_size // 8 
+
+                    actual_size = os.path.getsize(output_path)
+                    if not (0.8 * expected_size <= actual_size <= 1.2 * expected_size):
+                        print(f"Warning: {image_file} compression ratio may be incorrect. "
+                              f"Expected ~{expected_size//1024}KB, got {actual_size//1024}KB")
 
                     if self.generate_heightmap.get():
                         height_path = os.path.join(self.output_dir, base_name + '_normal.dds')
                         normal_map = self.generate_normal_map(resized_img)
                         normal_map = normal_map.convert('RGBA')
-                        # Use BC5 for normal maps as it's better suited
                         normal_map.save(height_path, "DDS", flags=['bc5_unorm'])
 
                     if self.generate_roughness.get():
                         roughness_path = os.path.join(self.output_dir, base_name + '_spec.dds')
                         roughness_map = self.generate_roughness_map(resized_img)
                         grayscale = roughness_map.convert('L')
-                        r = g = b = grayscale
-                        a = Image.new('L', grayscale.size, 255)
-                        roughness_rgba = Image.merge('RGBA', (r, g, b, a))
-                        # Use BC7 for specular maps as it provides better quality
+                        roughness_rgba = Image.merge('RGBA', (grayscale, grayscale, grayscale, Image.new('L', grayscale.size, 255)))
                         roughness_rgba.save(roughness_path, "DDS", flags=['bc7_unorm'])
 
                     processed += 1
@@ -714,12 +739,12 @@ class ImageConverter:
             except Exception as e:
                 messagebox.showerror("Error", f"Error processing {image_file}: {str(e)}")
 
-        compression_text = " with " + self.compression_var.get() if compression != "none" else ""
-        status_msg = f"Successfully converted {processed} images to DDS{compression_text}"
+        compression_info = f" using {self.compression_var.get()} ({self.compression_options[self.compression_var.get()]['description']})"
+        status_msg = f"Successfully converted {processed} images to DDS{compression_info}"
         if self.generate_heightmap.get():
-            status_msg += " with normal maps"
+            status_msg += " with normal maps (BC5)"
         if self.generate_roughness.get():
-            status_msg += " and specular maps"
+            status_msg += " and specular maps (BC7)"
         self.status_label.config(text=status_msg + "!")
 
     def reset_normal_values(self):
