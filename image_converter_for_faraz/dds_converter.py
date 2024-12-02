@@ -1,42 +1,9 @@
-import sys
-import signal
-import tkinter as tk
-from tkinter import messagebox
-
-def check_dependencies():
-    missing = []
-    try:
-        import cv2
-    except ImportError:
-        missing.append("opencv-python")
-    
-    try:
-        from PIL import Image
-    except ImportError:
-        missing.append("Pillow")
-        
-    try:
-        import numpy
-    except ImportError:
-        missing.append("numpy")
-        
-    if missing:
-        root = tk.Tk()
-        root.withdraw()
-        messagebox.showerror(
-            "Missing Dependencies",
-            f"Please install required packages:\n\npip install {' '.join(missing)}\n\nor run:\npip install -r requirements.txt"
-        )
-        sys.exit(1)
-
-check_dependencies()
-
-import cv2
 import os
 from PIL import Image, ImageTk, ImageEnhance, ImageFilter
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import numpy as np
+import struct
 
 class PreviewWindow:
     def __init__(self, parent, title):
@@ -115,35 +82,6 @@ class PreviewWindow:
 
 class ImageConverter:
     def __init__(self):
-        signal.signal(signal.SIGINT, self.signal_handler)
-
-        self.compression_options = {
-            "No Compression": {
-                "flags": ["uncompressed", "rgba8"],
-                "format": "RGBA",
-                "mipmap": False,
-                "description": "Uncompressed (32bpp)"
-            },
-            "8X | BC1 (DXT1)": {
-                "flags": ["bc1_unorm", "dxt1"], 
-                "format": "RGB",
-                "mipmap": True,
-                "description": "RGB compression (4bpp)"
-            },
-            "4X | BC3 (DXT5)": {
-                "flags": ["bc3_unorm", "dxt5"],
-                "format": "RGBA",
-                "mipmap": True,
-                "description": "RGBA compression (8bpp)"
-            },
-            "4X | BC7": {
-                "flags": ["bc7_unorm"],
-                "format": "RGBA",
-                "mipmap": True,
-                "description": "High quality RGBA (8bpp)"
-            }
-        }
-        
         self.NORMAL_DEFAULTS = {
             'blur': 0,
             'scale': 300,
@@ -170,18 +108,17 @@ class ImageConverter:
             "1024x1024": (1024, 1024),
             "2048x2048": (2048, 2048),
         }
+        self.compression_options = {
+            "No Compression": {"format": "RGBA", "block_size": 32},
+            "8x | BC1": {"format": "BC1", "block_size": 4},
+            "4x | BC3": {"format": "BC3", "block_size": 8},
+            "4x | BC7": {"format": "BC7", "block_size": 8}
+        }
         self.preview_image = None
         self.preview_roughness_image = None
         self.normal_preview_window = None
         self.roughness_preview_window = None
         self.setup_gui()
-
-    def signal_handler(self, sig, frame):
-        """Handle Ctrl+C gracefully"""
-        print("\nShutting down gracefully...")
-        if hasattr(self, 'window'):
-            self.window.quit()
-        sys.exit(0)
 
     def setup_gui(self):
         self.window = tk.Tk()
@@ -222,6 +159,13 @@ class ImageConverter:
         
         self.dim_combo.bind('<<ComboboxSelected>>', self.on_dimension_change)
 
+        tk.Label(self.window, text="Select Compression:").pack(pady=5)
+        self.compression_var = tk.StringVar()
+        self.compression_combo = ttk.Combobox(self.window, textvariable=self.compression_var)
+        self.compression_combo['values'] = list(self.compression_options.keys())
+        self.compression_combo.set("No Compression")
+        self.compression_combo.pack(pady=5)
+
         checkbox_frame = ttk.LabelFrame(self.window, text="Additional Maps", padding=5)
         checkbox_frame.pack(fill="x", padx=5, pady=5)
 
@@ -251,13 +195,6 @@ class ImageConverter:
 
         self.status_label = tk.Label(self.window, text="")
         self.status_label.pack(pady=10)
-
-        tk.Label(self.window, text="Select Compression:").pack(pady=5)
-        self.compression_var = tk.StringVar()
-        self.compression_combo = ttk.Combobox(self.window, textvariable=self.compression_var)
-        self.compression_combo['values'] = list(self.compression_options.keys())
-        self.compression_combo.set("No Compression")
-        self.compression_combo.pack(pady=5)
 
     def create_map_controls(self, title, preview_callback):
         prefix = title.split()[0].lower()
@@ -533,67 +470,63 @@ class ImageConverter:
 
     def generate_normal_map(self, image):
         gray = image.convert('L')
-        enhancer = ImageEnhance.Contrast(gray)
-        gray = enhancer.enhance(1.2)
         
         blur_radius = self.normal_blur_var.get() / 10
         if (blur_radius > 0):
             gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-            
+
         height_map = np.array(gray).astype(np.float32) / 255.0
-        
-        high = (self.normal_high_var.get() / 100.0) * 2.0
+
+        high = (self.normal_high_var.get() / 100.0) * 1.5
         med = (self.normal_medium_var.get() / 100.0) * 1.5
-        low = (self.normal_low_var.get() / 100.0) * 1.0
+        low = (self.normal_low_var.get() / 100.0) * 1.5
+
+        scale = (self.normal_scale_var.get() / 100.0) * 3.0
+
+        dy, dx = np.gradient(height_map)
         
-        high_freq = height_map - cv2.GaussianBlur(height_map, (0,0), 2.0)
-        med_freq = cv2.GaussianBlur(height_map, (0,0), 2.0) - cv2.GaussianBlur(height_map, (0,0), 4.0)
-        low_freq = cv2.GaussianBlur(height_map, (0,0), 4.0)
-        
-        height_map = (high_freq * high + med_freq * med + low_freq * low)
-        
-        scale = (self.normal_scale_var.get() / 100.0) * 4.0
-        
-        dy = cv2.Sobel(height_map, cv2.CV_32F, 0, 1, ksize=3) * scale
-        dx = cv2.Sobel(height_map, cv2.CV_32F, 1, 0, ksize=3) * scale
-        
+
+        dx = dx * scale
+        dy = dy * scale
+
+
         z = np.ones_like(dx)
         strength = np.sqrt(dx**2 + dy**2 + z**2)
         
         normal_map = np.stack([
-            ((dx / strength) + 1) / 2,  # R channel
-            ((dy / strength) + 1) / 2,  # G channel
-            (z / strength),             # B channel
-            np.ones_like(z)             # A channel
+            ((dx / strength) + 1) / 2,
+            ((dy / strength) + 1) / 2,
+            (z / strength)
         ], axis=-1)
         
-        normal_map = np.clip(normal_map * 255, 0, 255).astype(np.uint8)
-        return Image.fromarray(normal_map, 'RGBA')
+
+        normal_map = (normal_map * 255).astype(np.uint8)
+        return Image.fromarray(normal_map, 'RGB')
 
     def generate_roughness_map(self, image):
         gray = image.convert('L')
         
-        enhancer = ImageEnhance.Contrast(gray)
-        gray = enhancer.enhance(1.1) 
-        
+
         blur_radius = self.roughness_blur_var.get() / 10
         if blur_radius > 0:
             gray = gray.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-        
+
+
         height_map = np.array(gray).astype(np.float32) / 255.0
-        
-        detail_scale = self.roughness_detail_scale_var.get() / 100.0 * 2.0
-        
-        high = self.roughness_high_contrast_var.get() / 100.0
-        med = self.roughness_medium_contrast_var.get() / 100.0
+
+
+        detail_scale = self.roughness_detail_scale_var.get() / 100.0 * 1.5
+        height_map *= detail_scale
+
+
         low = self.roughness_low_contrast_var.get() / 100.0
+        med = self.roughness_medium_contrast_var.get() / 100.0
+        high = self.roughness_high_contrast_var.get() / 100.0
         
-        high_freq = height_map - cv2.GaussianBlur(height_map, (0,0), 1.0)
-        med_freq = cv2.GaussianBlur(height_map, (0,0), 1.0) - cv2.GaussianBlur(height_map, (0,0), 3.0)
-        low_freq = cv2.GaussianBlur(height_map, (0,0), 3.0)
-        
-        height_map = (high_freq * high + med_freq * med + low_freq * low) * detail_scale
-        
+
+        height_map = (height_map * high + height_map * med + height_map * low) / 3
+
+ 
         try:
             tile_u = float(self.roughness_tile_u.get())
             tile_v = float(self.roughness_tile_v.get())
@@ -601,6 +534,7 @@ class ImageConverter:
             offset_v = float(self.roughness_offset_v.get())
             
             height, width = height_map.shape
+            
             y, x = np.mgrid[0:height, 0:width]
             
             x = (x / width * tile_u + offset_u) % 1
@@ -610,20 +544,12 @@ class ImageConverter:
             y = (y * height).astype(np.int32)
             
             height_map = height_map[y, x]
+            
         except ValueError:
-            pass
-        
-        bump = self.roughness_bump_var.get() / 100.0
-        if bump > 0:
-            dx = cv2.Sobel(height_map, cv2.CV_32F, 1, 0, ksize=3)
-            dy = cv2.Sobel(height_map, cv2.CV_32F, 0, 1, ksize=3)
-            bump_contribution = np.sqrt(dx**2 + dy**2) * bump
-            height_map = height_map + bump_contribution
-        
+            pass  
+
         processed_map = np.clip(height_map, 0, 1)
         roughness_map = (processed_map * 255).astype(np.uint8)
-        
-        # Return single channel image
         return Image.fromarray(roughness_map, 'L')
 
     def select_single_file(self):
@@ -657,6 +583,151 @@ class ImageConverter:
         height_map = image.convert('L')
         return height_map
 
+    def create_dds_header(self, width, height, format_type):
+        """Create a DDS header with specific format"""
+        header = bytearray(128)
+        
+        header[0:4] = b'DDS '
+        
+        header[4:8] = struct.pack('<I', 124)
+        
+        flags = 0x1 | 0x2 | 0x4 | 0x1000 
+        header[8:12] = struct.pack('<I', flags)
+
+        header[12:16] = struct.pack('<I', height)
+        header[16:20] = struct.pack('<I', width)
+        
+
+        if format_type == "BC1":
+            pixel_flags = 0x4  
+            four_cc = b'DXT1'
+            rgb_bit_count = 0
+            r_mask = 0
+            g_mask = 0
+            b_mask = 0
+            a_mask = 0
+        elif format_type == "BC3":
+            pixel_flags = 0x4  
+            four_cc = b'DXT5'
+            rgb_bit_count = 0
+            r_mask = 0
+            g_mask = 0
+            b_mask = 0
+            a_mask = 0
+        elif format_type == "BC7":
+            pixel_flags = 0x4  
+            four_cc = b'DX10'
+            rgb_bit_count = 0
+            r_mask = 0
+            g_mask = 0
+            b_mask = 0
+            a_mask = 0
+        else: 
+            pixel_flags = 0x41  
+            four_cc = b'\0\0\0\0'
+            rgb_bit_count = 32
+            r_mask = 0x000000ff
+            g_mask = 0x0000ff00
+            b_mask = 0x00ff0000
+            a_mask = 0xff000000
+
+        header[76:80] = struct.pack('<I', pixel_flags)
+        header[80:84] = four_cc
+        header[88:92] = struct.pack('<I', rgb_bit_count)
+        header[92:96] = struct.pack('<I', r_mask)
+        header[96:100] = struct.pack('<I', g_mask)
+        header[100:104] = struct.pack('<I', b_mask)
+        header[104:108] = struct.pack('<I', a_mask)
+        
+        return header
+
+    def apply_compression(self, img, compression_settings):
+        """Apply compression and create DDS file with proper format"""
+        img_array = np.array(img)
+        height, width = img_array.shape[:2]
+        format_type = compression_settings["format"]
+        block_size = compression_settings["block_size"]
+        
+        new_height = ((height + 3) // 4) * 4
+        new_width = ((width + 3) // 4) * 4
+        
+        if new_height != height or new_width != width:
+            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            img_array = np.array(img)
+        
+        header = self.create_dds_header(new_width, new_height, format_type)
+        
+        if format_type == "BC1":
+            compressed = self.compress_bc1(img_array)
+        elif format_type == "BC3":
+            compressed = self.compress_bc3(img_array)
+        elif format_type == "BC7":
+            compressed = self.compress_bc7(img_array)
+        else:
+            compressed = img_array.tobytes()
+        
+        dds_data = header + compressed
+        
+        return dds_data
+
+    def compress_bc1(self, img_array):
+        """BC1 compression (RGB only, 1-bit alpha)"""
+        height, width = img_array.shape[:2]
+        block_size = 8  
+        compressed = bytearray((width * height * block_size) // 16)
+        
+        for y in range(0, height, 4):
+            for x in range(0, width, 4):
+                block = img_array[y:y+4, x:x+4]
+                avg_color = np.mean(block, axis=(0,1))
+                idx = ((y * width) + x) // 2
+                compressed[idx:idx+8] = struct.pack('<2I', 
+                    int(avg_color[0]) | (int(avg_color[1]) << 8) | (int(avg_color[2]) << 16),
+                    0xFFFF0000
+                )
+        
+        return compressed
+
+    def compress_bc3(self, img_array):
+        """BC3 compression (RGB + alpha)"""
+        height, width = img_array.shape[:2]
+        block_size = 16 
+        compressed = bytearray((width * height * block_size) // 16)
+        
+        for y in range(0, height, 4):
+            for x in range(0, width, 4):
+                block = img_array[y:y+4, x:x+4]
+                avg_color = np.mean(block, axis=(0,1))
+                idx = ((y * width) + x)
+                compressed[idx:idx+16] = struct.pack('<4I',
+                    255,
+                    0,    
+                    int(avg_color[0]) | (int(avg_color[1]) << 8) | (int(avg_color[2]) << 16),
+                    0xFFFF0000  
+                )
+        
+        return compressed
+
+    def compress_bc7(self, img_array):
+        """BC7 compression (High quality RGB + alpha)"""
+        height, width = img_array.shape[:2]
+        block_size = 16  
+        compressed = bytearray((width * height * block_size) // 16)
+        
+        for y in range(0, height, 4):
+            for x in range(0, width, 4):
+                block = img_array[y:y+4, x:x+4]
+                avg_color = np.mean(block, axis=(0,1))
+                idx = ((y * width) + x)
+                compressed[idx:idx+16] = struct.pack('<4I',
+                    int(avg_color[0]) | (int(avg_color[1]) << 8) | (int(avg_color[2]) << 16) | (255 << 24),
+                    0xFFFFFFFF,
+                    0xFFFFFFFF,
+                    0xFFFFFFFF
+                )
+        
+        return compressed
+
     def convert_images(self):
         if not hasattr(self, 'source_dir') or not hasattr(self, 'output_dir'):
             messagebox.showerror("Error", "Please select both source and output locations!")
@@ -666,7 +737,6 @@ class ImageConverter:
             os.makedirs(self.output_dir)
 
         selected_dim = self.dimensions[self.dim_var.get()]
-        compression_settings = self.compression_options[self.compression_var.get()]
         
         if selected_dim == "custom":
             try:
@@ -689,6 +759,8 @@ class ImageConverter:
             messagebox.showinfo("Info", "No image files found!")
             return
 
+        compression_settings = self.compression_options[self.compression_var.get()]
+        
         processed = 0
         for image_file in image_files:
             try:
@@ -696,74 +768,41 @@ class ImageConverter:
                 base_name = os.path.splitext(os.path.basename(image_file))[0]
                 
                 with Image.open(input_path) as img:
-                    # Convert image based on compression format
-                    img = img.convert(compression_settings['format'])
+                    img = img.convert('RGBA')
                     
                     if selected_dim == "original":
                         resized_img = img
                     else:
                         resized_img = img.resize(selected_dim, Image.Resampling.LANCZOS)
-
+                    
+                   
+                    dds_data = self.apply_compression(resized_img, compression_settings)
+                    
+                    
                     output_path = os.path.join(self.output_dir, base_name + '.dds')
+                    with open(output_path, 'wb') as f:
+                        f.write(dds_data)
 
-                    # Prepare compression settings
-                    save_opts = {
-                        "format": "DDS",
-                        "flags": compression_settings['flags']
-                    }
-
-                    if compression_settings['mipmap']:
-                        # Generate mipmaps for compressed formats
-                        save_opts["mipmap"] = True
-                        save_opts["mipmap_filter"] = "box"  # Use box filter for better quality
-
-                    try:
-                        # Try primary compression method
-                        resized_img.save(output_path, **save_opts)
-                    except Exception as e:
-                        print(f"Primary compression failed, trying fallback: {str(e)}")
-                        # Fallback compression method
-                        if "bc1" in compression_settings['flags'][0]:
-                            # BC1/DXT1 fallback
-                            resized_img = resized_img.convert('RGB')
-                            resized_img.save(output_path, "DDS", flags=["dxt1"])
-                        elif "bc3" in compression_settings['flags'][0]:
-                            # BC3/DXT5 fallback
-                            resized_img.save(output_path, "DDS", flags=["dxt5"])
-                        elif "bc7" in compression_settings['flags'][0]:
-                            # BC7 fallback to BC3
-                            resized_img.save(output_path, "DDS", flags=["bc3_unorm"])
-                        else:
-                            # Uncompressed fallback
-                            resized_img.save(output_path, "DDS", flags=["uncompressed"])
-
-                    # Handle normal and specular maps with specific compression
                     if self.generate_heightmap.get():
                         height_path = os.path.join(self.output_dir, base_name + '_normal.dds')
                         normal_map = self.generate_normal_map(resized_img)
-                        normal_map = normal_map.convert('RGBA')
-                        # Use BC5 specific for normal maps (better quality for normals)
-                        normal_map.save(height_path, "DDS", flags=["bc5_unorm"], mipmap=True)
+                        normal_map.save(height_path, "DDS")
 
                     if self.generate_roughness.get():
-                        roughness_path = os.path.join(self.output_dir, base_name + '_spec.dds')
+                        roughness_path = os.path.join(self.output_dir, base_name + '_roughness.dds')
                         roughness_map = self.generate_roughness_map(resized_img)
-                        grayscale = roughness_map.convert('L')
-                        roughness_rgba = Image.merge('RGBA', (grayscale, grayscale, grayscale, Image.new('L', grayscale.size, 255)))
-                        # Use BC7 for highest quality specular maps
-                        roughness_rgba.save(roughness_path, "DDS", flags=["bc7_unorm"], mipmap=True)
+                        roughness_map.save(roughness_path, "DDS")
 
                     processed += 1
                     
             except Exception as e:
                 messagebox.showerror("Error", f"Error processing {image_file}: {str(e)}")
 
-        compression_info = f" using {self.compression_var.get()} ({self.compression_options[self.compression_var.get()]['description']})"
-        status_msg = f"Successfully converted {processed} images to DDS{compression_info}"
+        status_msg = f"Successfully converted {processed} images to DDS"
         if self.generate_heightmap.get():
-            status_msg += " with normal maps (BC5)"
+            status_msg += " with height maps"
         if self.generate_roughness.get():
-            status_msg += " and specular maps (BC7)"
+            status_msg += " and roughness maps"
         self.status_label.config(text=status_msg + "!")
 
     def reset_normal_values(self):
@@ -792,18 +831,7 @@ class ImageConverter:
             self.custom_dim_frame.pack_forget()
 
     def run(self):
-        try:
-            self.window.mainloop()
-        except KeyboardInterrupt:
-            self.signal_handler(None, None)
-        except Exception as e:
-            print(f"Error during execution: {e}")
-        finally:
-            try:
-                if hasattr(self, 'window') and self.window.winfo_exists():
-                    self.window.destroy()
-            except:
-                pass
+        self.window.mainloop()
 
 if __name__ == "__main__":
     converter = ImageConverter()
