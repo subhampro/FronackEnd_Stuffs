@@ -279,19 +279,11 @@ class LicenseManager:
 
 class ImageConverter:
     def __init__(self):
-
         self.is_running = True
-        
-
         self.license_manager = LicenseManager()
         is_licensed, message = self.license_manager.check_license()
         
-        remaining = self.license_manager.get_trial_time_remaining()
-        if remaining and remaining['total_seconds'] <= 0:
-            messagebox.showerror("Trial Expired", 
-                "Your trial period has expired. Please activate a license to continue.")
-            sys.exit(1)
-        
+        # Remove redundant trial check since it's handled by check_license()
         if not is_licensed:
             root = tk.Tk()
             root.withdraw()
@@ -312,7 +304,7 @@ class ImageConverter:
                     sys.exit(1)
             else:
                 sys.exit(1)
-        
+
         self.tracker = UsageTracker()
         self.tracker.track_usage('start')
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -359,9 +351,7 @@ class ImageConverter:
         self._start_background_services()
         self.setup_gui()
         
-        remaining = (self.license_manager.get_license_expiry() or 
-                    self.license_manager.get_trial_time_remaining())
-                    
+        remaining = self.license_manager.get_license_expiry()
         if remaining:
             self.countdown_label = tk.Label(
                 self.window, 
@@ -1174,8 +1164,7 @@ class ImageConverter:
         """Update countdown timer for both trial and full license"""
         while getattr(self, 'is_running', True):
             try:
-                remaining = (self.license_manager.get_license_expiry() or 
-                           self.license_manager.get_trial_time_remaining())
+                remaining = self.license_manager.get_license_expiry()
                            
                 if remaining:
                     license_type = "LICENSE" if remaining.get('type') == 'full' else "TRIAL"
@@ -1186,7 +1175,7 @@ class ImageConverter:
                         
                     if remaining['total_seconds'] <= 0:
                         self.is_running = False
-                        expire_msg = "Your license has expired. Please renew to continue." if remaining.get('type') == 'full' else "Your trial period has expired. Please activate a license to continue."
+                        expire_msg = "Your license has expired. Please renew to continue."
                         if hasattr(self, 'window'):
                             self.window.after(0, lambda: messagebox.showerror("Expired", expire_msg))
                             self.window.after(100, self._force_close)
