@@ -1,9 +1,13 @@
-
 # Security headers
 Header set X-Content-Type-Options "nosniff"
 Header set X-Frame-Options "SAMEORIGIN"
 Header set X-XSS-Protection "1; mode=block"
 Header set Content-Security-Policy "default-src 'self'"
+
+# Allow cross-origin requests from main domain
+Header set Access-Control-Allow-Origin "https://wordpress.atz.li"
+Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+Header set Access-Control-Allow-Headers "Content-Type"
 
 # Disable directory listing
 Options -Indexes
@@ -23,6 +27,9 @@ RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [L]
+
+# Set base path
+RewriteBase /pro-dds-tool/
 
 # Limit file upload size
 php_value upload_max_filesize 10M

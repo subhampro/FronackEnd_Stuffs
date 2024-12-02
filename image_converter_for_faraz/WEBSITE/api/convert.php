@@ -2,13 +2,31 @@
 require_once '../config/config.php';
 
 class ImageConverter {
+    private $db;
+    private $config;
     private $allowed_formats = ['dds', 'png', 'jpg'];
     private $max_file_size = 10485760; // 10MB
     private $upload_dir = '../uploads/';
     private $output_dir = '../converted/';
 
     public function __construct() {
+        $this->config = require '../config/config.php';
+        $this->connectDB();
         $this->ensureDirectoriesExist();
+    }
+
+    private function connectDB() {
+        try {
+            $this->db = new PDO(
+                "mysql:host={$this->config['db']['host']};dbname={$this->config['db']['name']}",
+                $this->config['db']['user'],
+                $this->config['db']['pass'],
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
+        } catch (PDOException $e) {
+            error_log("Database connection failed: " . $e->getMessage());
+            throw new Exception("Service temporarily unavailable");
+        }
     }
 
     private function ensureDirectoriesExist() {
@@ -122,6 +140,14 @@ class ImageConverter {
         header('Content-Type: application/octet-stream');
         header('Content-Disposition: attachment; filename="' . basename($file_path) . '"');
         readfile($file_path);
+    }
+
+    private function logUsage($user_id, $event_type) {
+        $stmt = $this->db->prepare("
+            INSERT INTO usage_stats (user_id, event_type, ip_address, created_at)
+            VALUES (?, ?, ?, NOW())
+        ");
+        $stmt->execute([$user_id, $event_type, $_SERVER['REMOTE_ADDR']]);
     }
 }
 

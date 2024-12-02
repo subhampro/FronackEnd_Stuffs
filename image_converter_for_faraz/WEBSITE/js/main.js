@@ -10,6 +10,7 @@ class DDSConverter {
         this.validateLicense();
 
         this.initializeEventListeners();
+        this.apiBase = 'https://wordpress.atz.li/pro-dds-tool/api';
     }
 
     initializeEventListeners() {
@@ -44,7 +45,7 @@ class DDSConverter {
         }
 
         try {
-            const response = await fetch('/api/license.php', {
+            const response = await fetch(`${this.apiBase}/license.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -102,7 +103,7 @@ class DDSConverter {
 
         this.progress.classList.remove('hidden');
         try {
-            const response = await fetch('/api/convert.php', {
+            const response = await fetch(`${this.apiBase}/convert.php`, {
                 method: 'POST',
                 body: formData
             });
