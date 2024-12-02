@@ -68,15 +68,20 @@ try {
             l.status as license_status,
             l.expires_at as license_expires,
             CASE 
-                WHEN l.status = 'active' THEN 'licensed'
+                WHEN l.id IS NOT NULL AND l.status = 'active' THEN 'full'
                 WHEN l.id IS NULL AND TIMESTAMPDIFF(DAY, u.first_seen, NOW()) <= 7 THEN 'trial'
-                WHEN l.status = 'expired' THEN 'expired'
-                ELSE 'trial_expired'
-            END as user_status,
-            COALESCE(
-                l.expires_at,
-                DATE_ADD(u.first_seen, INTERVAL 7 DAY)
-            ) as effective_expiry
+                ELSE 'expired'
+            END as user_type,
+            CASE
+                WHEN l.id IS NOT NULL AND l.status = 'active' THEN l.expires_at
+                ELSE DATE_ADD(u.first_seen, INTERVAL 7 DAY)
+            END as effective_expiry,
+            TIMESTAMPDIFF(SECOND, NOW(), 
+                CASE
+                    WHEN l.id IS NOT NULL AND l.status = 'active' THEN l.expires_at
+                    ELSE DATE_ADD(u.first_seen, INTERVAL 7 DAY)
+                END
+            ) as seconds_remaining
         FROM users u
         LEFT JOIN licenses l ON u.user_id = l.machine_id
         WHERE u.user_id = ?
@@ -90,7 +95,6 @@ try {
     
     $now = new DateTime();
     $expiry = new DateTime($user['effective_expiry']);
-    $interval = $now->diff($expiry);
     $seconds_remaining = max(0, $expiry->getTimestamp() - $now->getTimestamp());
     
     // Try to update last check time if column exists
@@ -104,9 +108,9 @@ try {
     
     echo json_encode([
         'status' => 'valid',
-        'type' => $user['license_status'] == 'active' ? 'licensed' : 'trial',
+        'type' => $user['user_type'],
         'seconds_remaining' => $seconds_remaining,
-        'user_status' => $user['user_status'],
+        'user_status' => $user['user_type'],
         'expires_at' => $user['effective_expiry']
     ]);
 

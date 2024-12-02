@@ -251,12 +251,19 @@ class LicenseManager:
             now = datetime.now()
             expiry = datetime.fromisoformat(license_data.get('expires_at', '2000-01-01'))
             
+            # Added proper trial detection
             if expiry > now:
-                if license_data.get('type') == 'trial':
-                    return True, "Trial Version"
-                elif license_data.get('type') == 'full':
+                if license_data.get('type') == 'full':
                     return True, None
-            return False, "License expired"
+                else:  # Always treat as trial if not full
+                    return True, "Trial Version"
+            
+            # Calculate remaining time for trial
+            time_left = expiry - now
+            if time_left.total_seconds() > 0:
+                return True, f"Trial Version ({time_left.days}d {time_left.seconds//3600}h remaining)"
+                
+            return False, "Trial expired"
             
         except Exception:
             if self.first_run:
