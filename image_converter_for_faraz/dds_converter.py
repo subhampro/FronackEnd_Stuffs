@@ -3,6 +3,7 @@ from PIL import Image, ImageTk, ImageEnhance, ImageFilter
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import numpy as np
+from lib import initialize
 import struct
 import io
 import signal
@@ -108,7 +109,6 @@ class DDSViewer(PreviewWindow):
 
 class ImageConverter:
     def __init__(self):
-        # Add signal handlers
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
         
