@@ -194,6 +194,15 @@ class LicenseManager:
         self.min_check_interval = 30  # Minimum seconds between checks
         self.offline_grace_period = 7  # Days to allow offline usage
         self.connection_timeout = 10  # Seconds to wait for connection
+        self.connection_retries = 3
+        self.offline_mode = False
+        self.last_error = None
+        self.debug_mode = True  # Enable debug logging
+        
+    def log_debug(self, message):
+        """Debug logging function"""
+        if self.debug_mode:
+            print(f"Debug - {message}")
 
     def get_machine_id(self):
         """Generate a unique machine ID that persists across runs"""
@@ -207,41 +216,51 @@ class LicenseManager:
     def check_license(self):
         """Check license with improved error handling and fallback"""
         if self.offline_mode:
-            print("Operating in offline mode")
+            self.log_debug("Operating in offline mode")
             return self.check_local_license()
             
-        try:
-            response = requests.post(
-                f"{self.api_url}/verify_license.php",  # Corrected endpoint path
-                json={'machine_id': self.machine_id},
-                headers={
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'DDS-Converter/1.0'
-                },
-                timeout=self.connection_timeout,
-                verify=True
-            )
+        for attempt in range(self.connection_retries):
+            try:
+                self.log_debug(f"License check attempt {attempt + 1}")
+                response = requests.post(
+                    f"{self.api_url}/verify_license.php",
+                    json={'machine_id': self.machine_id},
+                    headers={
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'DDS-Converter/1.0'
+                    },
+                    timeout=5
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('status') == 'valid':
+                        self.save_license_data(data)
+                        return True, None
+                    return False, data.get('message', 'Invalid license response')
+                
+                self.log_debug(f"Server returned status code: {response.status_code}")
+                
+            except requests.ConnectionError as e:
+                self.last_error = str(e)
+                self.log_debug(f"Connection error: {self.last_error}")
+                if attempt == self.connection_retries - 1:
+                    self.offline_mode = True
+                    return self.check_local_license()
+            except Exception as e:
+                self.last_error = str(e)
+                self.log_debug(f"Unexpected error: {self.last_error}")
+                if attempt == self.connection_retries - 1:
+                    self.offline_mode = True
+                    return self.check_local_license()
             
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('status') == 'valid':
-                    self.save_license_data(data)
-                    return True, None
-                return False, data.get('message', 'Invalid license response')
-            return False, f"Server error: {response.status_code}"
-            
-        except (requests.ConnectionError, requests.Timeout) as e:
-            print(f"Server connection failed: {str(e)}")
-            self.offline_mode = True
-            return self.check_local_license()
-            
-        except Exception as e:
-            print(f"License check error: {str(e)}")
-            self.offline_mode = True
-            return self.check_local_license()
+            time.sleep(1)  # Wait before retry
+        
+        self.offline_mode = True
+        return self.check_local_license()
 
     def check_local_license(self):
-        """Check local license status"""
+        """Check local license with improved offline handling"""
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.registry_key, 0, winreg.KEY_READ)
             stored_data = winreg.QueryValueEx(key, "license_data")[0]
@@ -251,21 +270,20 @@ class LicenseManager:
             now = datetime.now()
             expiry = datetime.fromisoformat(license_data.get('expires_at', '2000-01-01'))
             
-            # Added proper trial detection
+            # More lenient offline grace period
+            if self.offline_mode and (expiry - now).days <= 0:
+                expiry = now + timedelta(days=7)  # 7-day grace period in offline mode
+                license_data['expires_at'] = expiry.isoformat()
+                self.save_license_data(license_data)
+            
             if expiry > now:
-                if license_data.get('type') == 'full':
-                    return True, None
-                else:  # Always treat as trial if not full
-                    return True, "Trial Version"
-            
-            # Calculate remaining time for trial
-            time_left = expiry - now
-            if time_left.total_seconds() > 0:
-                return True, f"Trial Version ({time_left.days}d {time_left.seconds//3600}h remaining)"
+                msg = "Trial Version (Offline Mode)" if license_data.get('type') != 'full' else None
+                return True, msg
                 
-            return False, "Trial expired"
+            return False, "License expired"
             
-        except Exception:
+        except Exception as e:
+            self.log_debug(f"Local license check failed: {str(e)}")
             if self.first_run:
                 self.first_run = False
                 return self.initialize_trial_license()
@@ -1521,4 +1539,5 @@ class ImageConverter:
             
 if __name__ == "__main__":
     converter = ImageConverter()
-    converter.run()
+    converter.run() 
+
