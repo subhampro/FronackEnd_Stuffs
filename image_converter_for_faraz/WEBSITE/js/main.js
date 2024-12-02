@@ -56,14 +56,25 @@ class DDSConverter {
                 })
             });
 
-            if (!response.ok) {
-                throw new Error('Invalid license');
+            const data = await response.json();
+
+            if (!response.ok || data.error) {
+                throw new Error(data.error || 'License validation failed');
             }
 
             this.enableConverter();
+            this.updateLicenseStatus('License valid', false);
         } catch (error) {
-            this.showLicensePrompt();
+            this.updateLicenseStatus(error.message, true);
+            localStorage.removeItem('licenseKey');
+            setTimeout(() => this.showLicensePrompt(), 1500);
         }
+    }
+
+    updateLicenseStatus(message, isError = false) {
+        const statusElement = document.getElementById('licenseStatus');
+        statusElement.textContent = message;
+        statusElement.className = `license-status ${isError ? 'license-invalid' : ''}`;
     }
 
     showLicensePrompt() {
@@ -72,6 +83,8 @@ class DDSConverter {
             this.licenseKey = license;
             localStorage.setItem('licenseKey', license);
             this.validateLicense();
+        } else {
+            this.updateLicenseStatus('License required', true);
         }
     }
 
