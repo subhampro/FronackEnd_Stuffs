@@ -192,7 +192,7 @@ class LicenseManager:
         self.base_delay = 1
         self.last_check_time = 0
         self.min_check_interval = 30  # Minimum seconds between checks
-        self.offline_grace_period = 7  # Days to allow offline usage
+        self.offline_grace_period = 7  # Change to 7 days
         self.connection_timeout = 10  # Seconds to wait for connection
         self.connection_retries = 3
         self.offline_mode = False
@@ -201,6 +201,7 @@ class LicenseManager:
         self.server_unreachable = False
         self.offline_grace_period = 30  # Increase offline grace period to 30 days
         self.online_mode = False  # Start in offline mode by default 
+        self.trial_period = 7  # Add trial period constant
 
     def log_debug(self, message):
         """Debug logging function"""
@@ -236,7 +237,7 @@ class LicenseManager:
         """Initialize offline trial license"""
         try:
             now = datetime.now()
-            expires_at = (now + timedelta(days=30)).isoformat()  # 30-day trial
+            expires_at = (now + timedelta(days=self.trial_period)).isoformat()  # 7-day trial
             
             license_data = {
                 'type': 'trial',
@@ -254,7 +255,7 @@ class LicenseManager:
             winreg.CloseKey(key)
             
             self.log_debug("Created new offline trial license")
-            return True, "Offline Trial Version (30 days)"
+            return True, "Offline Trial Version (7 days)"
             
         except Exception as e:
             self.log_debug(f"Error creating offline trial: {str(e)}")
@@ -275,9 +276,9 @@ class LicenseManager:
                 msg = "Offline Trial Version" if license_data.get('type') == 'trial' else None 
                 return True, msg
                 
-            # If expired but offline mode, extend by 30 days
+            # If expired but offline mode, extend by 7 days
             if license_data.get('offline_mode'):
-                new_expiry = now + timedelta(days=30)
+                new_expiry = now + timedelta(days=self.trial_period)  # Use trial_period constant
                 license_data['expires_at'] = new_expiry.isoformat()
                 self.save_license_data(license_data)
                 return True, "Offline Trial Extended"
@@ -1464,10 +1465,10 @@ class ImageConverter:
             
             pixel_data = f.read()
             
-            if fourcc == b'DXT1':
+            if (fourcc == b'DXT1'):
                 img_array = np.frombuffer(pixel_data, dtype=np.uint8)
                 img_array = img_array.reshape((height, width, 4))
-            elif fourcc == b'DXT5':
+            elif (fourcc == b'DXT5'):
                 img_array = np.frombuffer(pixel_data, dtype=np.uint8)
                 img_array = img_array.reshape((height, width, 4))
             else:
