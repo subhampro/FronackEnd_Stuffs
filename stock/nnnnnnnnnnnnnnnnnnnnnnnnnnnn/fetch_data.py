@@ -1,11 +1,11 @@
 import yfinance as yf
 import pandas as pd
+import json
 from datetime import datetime, timedelta
+import requests
 
 def fetch_all_tickers():
-    """Fetch all NSE stocks using Yahoo Finance"""
     try:
-        # Use Yahoo Finance API to get Indian stocks
         url = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
         params = {
             "formatted": "true",
@@ -19,52 +19,45 @@ def fetch_all_tickers():
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
         
-        df = pd.read_json(url, params=params)
+        response = requests.get(url, params=params, headers=headers)
+        json_data = json.loads(response.text)
         
-        # Extract symbols and filter NSE stocks
         stocks = []
-        if 'quotes' in df['finance']['result'][0]:
-            quotes = df['finance']['result'][0]['quotes']
-            stocks = [q['symbol'] for q in quotes if '.NS' in q['symbol']]
+        if (json_data 
+            and 'finance' in json_data 
+            and 'result' in json_data['finance'] 
+            and json_data['finance']['result']
+            and 'quotes' in json_data['finance']['result'][0]):
             
-            # Filter out Nifty50 stocks (usually have high market cap)
+            quotes = json_data['finance']['result'][0]['quotes']
+            stocks = [q['symbol'] for q in quotes if '.NS' in q['symbol']]
             stocks = [s for s in stocks if not any(x in s for x in ['NIFTY', 'SENSEX', 'BANKNIFTY'])]
         
-        return stocks if stocks else []
-    except Exception as e:
-        print(f"Error fetching stock list: {e}")
-        # Comprehensive list of active mid and small cap stocks
-        return [
+        return stocks if stocks else [
             # New Age Tech & Digital
-            "ZOMATO.NS", "NYKAA.NS", "PAYTM.NS", "POLICYBZR.NS", "DELHIVERY.NS",
-            
+            "ZOMATO.NS", "NYKAA.NS", "PAYTM.NS", "DELHIVERY.NS",
             # IT & Software
-            "PERSISTENT.NS", "LTTS.NS", "COFORGE.NS", "HAPPSTMNDS.NS", "TANLA.NS",
-            
+            "PERSISTENT.NS", "LTTS.NS", "COFORGE.NS", "HAPPSTMNDS.NS",
             # Pharma & Healthcare
-            "ALKEM.NS", "TORNTPHARM.NS", "AUROPHARMA.NS", "BIOCON.NS", "NATCO.NS",
-            
+            "ALKEM.NS", "TORNTPHARM.NS", "AUROPHARMA.NS", "BIOCON.NS",
             # Manufacturing & Industrial
             "DIXON.NS", "AMBER.NS", "POLYCAB.NS", "VGUARD.NS", "BLUESTARCO.NS",
-            
             # Financial Services
-            "MUTHOOTFIN.NS", "CHOLAFIN.NS", "MANAPPURAM.NS", "MASFIN.NS", "CREDITACC.NS",
-            
+            "MUTHOOTFIN.NS", "CHOLAFIN.NS", "MANAPPURAM.NS", "MASFIN.NS",
             # Chemical & Materials
             "CLEAN.NS", "DEEPAKFERT.NS", "AARTIIND.NS", "ALKYLAMINE.NS", "GALAXYSURF.NS",
-            
             # Consumer & Retail
-            "VSTIND.NS", "RADICO.NS", "METROPOLIS.NS", "RELAXO.NS", "PGHL.NS",
-            
+            "VSTIND.NS", "RADICO.NS", "METROPOLIS.NS", "RELAXO.NS",
             # Infrastructure & Real Estate
-            "OBEROIRLTY.NS", "PRESTIGE.NS", "BRIGADE.NS", "SOBHA.NS", "MAHLIFE.NS",
-            
+            "OBEROIRLTY.NS", "PRESTIGE.NS", "BRIGADE.NS", "SOBHA.NS",
             # Energy & Utilities
-            "TATAPOWER.NS", "TORNTPOWER.NS", "KAVERITEL.NS", "MNRE.NS", "GIPCL.NS",
-            
+            "TATAPOWER.NS", "TORNTPOWER.NS",
             # Others
             "LXCHEM.NS", "KIMS.NS", "CAMPUS.NS", "MEDPLUS.NS", "LATENTVIEW.NS"
         ]
+    except Exception as e:
+        print(f"Error fetching stock list: {e}")
+        return []
 
 def fetch_stock_data(ticker, interval='1h'):
     try:
