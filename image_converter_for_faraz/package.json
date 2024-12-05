@@ -1,0 +1,16 @@
+{
+  "name": "dds-compressor",
+  "version": "1.0.0",
+  "main": "compress_dds.js",
+  "scripts": {
+    "start": "node compress_dds.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "sharp": "^0.32.6"
+  },
+  "devDependencies": {},
+  "description": "DDS file compressor for OpenIV compatibility"
+}

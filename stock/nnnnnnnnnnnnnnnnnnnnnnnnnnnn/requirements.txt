@@ -1,0 +1,5 @@
+pandas
+yfinance>=0.2.28
+mplfinance
+streamlit
+requests
