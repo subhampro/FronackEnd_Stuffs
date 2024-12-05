@@ -4,6 +4,25 @@ import json
 from datetime import datetime, timedelta
 import requests
 
+def get_all_nse_stocks():
+    try:
+        urls = [
+            "https://archives.nseindia.com/content/equities/EQUITY_L.csv",
+            "https://www1.nseindia.com/content/equities/EQUITY_L.csv"
+        ]
+        
+        for url in urls:
+            try:
+                df = pd.read_csv(url)
+                if not df.empty:
+                    return [f"{symbol}.NS" for symbol in df['SYMBOL'].tolist()]
+            except:
+                continue
+                
+        return []
+    except:
+        return []
+
 def fetch_all_tickers():
     try:
         url = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
@@ -33,6 +52,11 @@ def fetch_all_tickers():
             stocks = [q['symbol'] for q in quotes if '.NS' in q['symbol']]
             stocks = [s for s in stocks if not any(x in s for x in ['NIFTY', 'SENSEX', 'BANKNIFTY'])]
         
+        if len(stocks) < 100:
+            nse_stocks = get_all_nse_stocks()
+            if nse_stocks:
+                return nse_stocks
+        
         return stocks if stocks else [
             # New Age Tech & Digital
             "ZOMATO.NS", "NYKAA.NS", "PAYTM.NS", "DELHIVERY.NS",
@@ -57,7 +81,8 @@ def fetch_all_tickers():
         ]
     except Exception as e:
         print(f"Error fetching stock list: {e}")
-        return []
+        nse_stocks = get_all_nse_stocks()
+        return nse_stocks if nse_stocks else []
 
 def fetch_stock_data(ticker, interval='1h'):
     try:
