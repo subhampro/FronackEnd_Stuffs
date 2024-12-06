@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 def detect_pattern(data, pattern_type="Volatility Contraction"):
-    if data.empty or len(data) < 14:
+    if data.empty or len(data) < 60:  # Changed minimum required candles to 60
         return False
     
     if pattern_type.lower() in ["volatility contraction", "volatility contraction positive"]:
@@ -50,25 +50,32 @@ def detect_pattern(data, pattern_type="Volatility Contraction"):
                 print(f"Rejected: ATR decrease ({atr_decrease:.2%}) below threshold ({atr_threshold:.2%})")
                 return False
                 
-            # Get last 10 candles for pattern check
+            # Get last 60 candles for higher lows check and last 10 for other conditions
+            last_60_candles = data.tail(60).copy()
             last_10_candles = data.tail(10).copy()
             
-            # Condition 1: Check for higher lows formation
-            lows = last_10_candles['Low'].values
+            # Condition 1: Check for higher lows formation over 60 candles
+            lows = last_60_candles['Low'].values
             min_points = []
             
-            for i in range(1, len(lows)-1):
-                if lows[i] < lows[i-1] and lows[i] < lows[i+1]:
+            # Find significant low points (local minima)
+            for i in range(2, len(lows)-2):
+                if (lows[i] < lows[i-1] and lows[i] < lows[i-2] and 
+                    lows[i] < lows[i+1] and lows[i] < lows[i+2]):
                     min_points.append(lows[i])
             
-            # Need at least 2 min points to check higher lows
-            if len(min_points) >= 2:
+            # Need at least 3 min points to confirm higher lows trend
+            if len(min_points) >= 3:
                 higher_lows = all(min_points[i] > min_points[i-1] for i in range(1, len(min_points)))
+                print(f"Higher lows check: Found {len(min_points)} low points, trend {'confirmed' if higher_lows else 'failed'}")
                 if not higher_lows:
-                    print(f"Rejected: Not in higher lows formation")
+                    print(f"Rejected: Not in higher lows formation over 60 candles")
                     return False
+            else:
+                print(f"Rejected: Insufficient low points ({len(min_points)}) to confirm trend")
+                return False
             
-            # Condition 2: Current close vs first candle's low
+            # Condition 2: Current close vs first candle's low (using last 10 candles)
             first_candle_low = last_10_candles['Low'].iloc[0]
             current_close = last_10_candles['Close'].iloc[-1]
             
