@@ -106,22 +106,22 @@ def fetch_stock_data(ticker, interval='1h'):
         periods_to_try = interval_config.get(interval, ['1mo', '5d', '1d'])
         
         data = pd.DataFrame()
-        success = False
+        had_error = False
         initial_error = None
         
         for period in periods_to_try:
             try:
                 data = stock.history(period=period, interval=interval)
                 if not data.empty:
-                    if not success:  # Only print success if we had an initial error
-                        if initial_error:
-                            print(f"{ticker}: {initial_error}")  # Print the first error
-                        print(f"{ticker}: Successfully fetched data with period '{period}'")
-                    success = True
+                    # Only show success message if we had a previous error
+                    if had_error:
+                        print(f"{ticker}: {initial_error}")  # Print the original error
+                        print(f"{ticker}: Successfully fetched data with fallback period '{period}'")
                     break
             except Exception as e:
-                if not success and not initial_error:
-                    initial_error = str(e)  # Store first error message
+                if not had_error:
+                    initial_error = str(e)
+                    had_error = True
                 continue
                 
         if data.empty:
