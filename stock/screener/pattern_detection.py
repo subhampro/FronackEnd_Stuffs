@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
 
-def detect_pattern(data, pattern_type="volatility_contraction"):
+def detect_pattern(data, pattern_type="Volatility Contraction"):
     if data.empty or len(data) < 14:
         return False
     
-    if pattern_type.lower() == "volatility_contraction":
+    if pattern_type.lower() == "volatility contraction":
         data['TR'] = np.maximum(
             data['High'] - data['Low'],
             np.maximum(

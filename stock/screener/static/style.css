@@ -1,0 +1,145 @@
+
+/* Hide Streamlit Default Elements */
+#MainMenu {visibility: hidden;}
+header {visibility: hidden;}
+footer {visibility: hidden;}
+.stDeployButton, div[data-testid="stDecoration"] {display: none;}
+div.stApp > div[data-testid="stStatusWidget"] {visibility: hidden;}
+div[data-testid="stToolbar"] {visibility: hidden;}
+
+/* Layout Adjustments */
+.block-container {
+    padding-top: 1rem !important;
+    max-width: 95% !important;
+}
+
+/* Title Styling */
+h1 {
+    background: linear-gradient(45deg, #1f6feb, #238636);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 2.5em !important;
+    text-align: center;
+    margin-bottom: 2rem !important;
+    animation: fadeIn 1s ease-in;
+}
+
+/* Button Styling */
+.stButton > button {
+    width: 100%;
+    border-radius: 8px !important;
+    background: linear-gradient(45deg, #1f6feb, #238636) !important;
+    border: none !important;
+    transition: transform 0.2s, box-shadow 0.2s !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(31, 111, 235, 0.3);
+}
+
+/* Select Box Styling */
+.stSelectbox > div > div {
+    background-color: #1a1a1a !important;
+    border-radius: 8px !important;
+    border: 1px solid #333 !important;
+    transition: border-color 0.3s;
+}
+
+.stSelectbox > div > div:hover {
+    border-color: #1f6feb !important;
+}
+
+/* Progress Bar Enhancement */
+.stProgress > div > div > div {
+    background: linear-gradient(45deg, #1f6feb, #238636) !important;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Expander Styling */
+.streamlit-expander {
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+    margin-bottom: 1rem !important;
+    transition: all 0.3s ease;
+}
+
+.streamlit-expander:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-color: #1f6feb !important;
+}
+
+/* Info/Success/Warning Box Styling */
+.stAlert {
+    border-radius: 8px !important;
+    animation: slideIn 0.5s ease-out;
+}
+
+/* Images */
+img {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+img:hover {
+    transform: scale(1.02);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Loading Animation */
+.stSpinner > div {
+    border-color: #1f6feb transparent !important;
+}
+
+/* Table Styling */
+.dataframe {
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+
+.dataframe th {
+    background-color: #1a1a1a !important;
+    padding: 12px !important;
+}
+
+.dataframe td {
+    padding: 10px !important;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #1f6feb;
+}

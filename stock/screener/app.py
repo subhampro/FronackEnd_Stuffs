@@ -11,34 +11,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
     menu_items={}
 )
-st.markdown("""
-    <style>
-        /* Hide Streamlit header, footer, menu */
-        #MainMenu {visibility: hidden;}
-        header {visibility: hidden;}
-        footer {visibility: hidden;}
-        
-        /* Hide Streamlit default elements and branding */
-        .stDeployButton, div[data-testid="stDecoration"] {display: none;}
-        
-        /* Override Streamlit loading animation */
-        div.stApp > div[data-testid="stStatusWidget"] {visibility: hidden;}
-        
-        /* Hide Streamlit branding in widgets */
-        .reportview-container .main .block-container {padding-top: 0rem;}
-        .reportview-container .main footer {display: none;}
-        
-        /* Remove padding and margins that might show Streamlit flashes */
-        div.block-container {padding-top: 0rem;}
-        section[data-testid="stSidebar"] > div {padding-top: 0rem;}
-        
-        /* Ensure no white flash during load */
-        div[data-testid="stToolbar"] {visibility: hidden;}
-        div[data-testid="stMarkdown"] > div {padding-top: 0rem;}
-    </style>
-""", unsafe_allow_html=True)
+
+def load_css():
+    with open('static/style.css') as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 def main():
+    load_css()
     if 'matching_stocks' not in st.session_state:
         st.session_state.matching_stocks = []
     if 'stop_scan' not in st.session_state:
@@ -53,7 +32,7 @@ def main():
     with col1:
         pattern = st.selectbox(
             "Select the chart pattern to search for:",
-            ["volatility_contraction"]
+            ["Volatility Contraction"]
         )
     with col2:
         interval = st.selectbox(
