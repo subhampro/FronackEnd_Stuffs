@@ -19,7 +19,14 @@ def detect_pattern(data, pattern_type="Volatility Contraction"):
         if not last_5_atr.is_monotonic_decreasing:
             return False
             
-        atr_decrease = (last_5_atr.iloc[0] - last_5_atr.iloc[-1]) / last_5_atr.iloc[0]
+        # Add protection against division by zero and NaN values
+        first_atr = last_5_atr.iloc[0]
+        last_atr = last_5_atr.iloc[-1]
+        
+        if pd.isna(first_atr) or pd.isna(last_atr) or first_atr == 0:
+            return False
+            
+        atr_decrease = (first_atr - last_atr) / first_atr
         return atr_decrease > 0.1
     
     return False
