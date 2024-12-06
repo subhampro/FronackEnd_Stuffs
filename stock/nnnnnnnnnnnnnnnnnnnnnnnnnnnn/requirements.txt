@@ -3,3 +3,8 @@ yfinance>=0.2.28
 mplfinance
 streamlit
 requests
+
+
+# On Windows Create Environment!
+# python -m venv stockenv 
+# stockenv\Scripts\activate
