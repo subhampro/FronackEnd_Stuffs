@@ -17,7 +17,6 @@ def load_css():
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 def get_tradingview_url(ticker):
-    # Convert .NS suffix to NSE for TradingView
     symbol = ticker.replace('.NS', '')
     return f"https://www.tradingview.com/chart?symbol=NSE:{symbol}"
 
@@ -98,10 +97,8 @@ def main():
                     company_name = get_company_name(ticker)
                     st.session_state.matching_stocks.append((ticker, company_name, data))
                     
-                    # Update results counter
                     results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
                     
-                    # Add new result at the bottom
                     with results_container:
                         with st.expander(f"{company_name} ({ticker})", expanded=True):
                             col1, col2 = st.columns([4, 1])
@@ -124,7 +121,6 @@ def main():
                 st.write(f"Error scanning {ticker}: {e}")
                 continue
         
-        # Show final results
         total_time = (datetime.now() - start_time).seconds
         if st.session_state.stop_scan:
             st.info(f"Scan stopped after {total_time} seconds. Showing all results...")
@@ -132,7 +128,6 @@ def main():
             progress_bar.progress(1.0)
             st.success(f"Scan completed in {total_time} seconds!")
 
-    # Show complete results list
     if st.session_state.matching_stocks:
         st.header("All Matching Stocks")
         for ticker, company_name, data in st.session_state.matching_stocks:

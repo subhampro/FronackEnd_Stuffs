@@ -19,7 +19,6 @@ def detect_pattern(data, pattern_type="Volatility Contraction"):
         if not last_5_atr.is_monotonic_decreasing:
             return False
             
-        # Add protection against division by zero and NaN values
         first_atr = last_5_atr.iloc[0]
         last_atr = last_5_atr.iloc[-1]
         
