@@ -4,7 +4,6 @@ from plot_chart import plot_candlestick
 from pattern_detection import detect_pattern
 from datetime import datetime
 
-# Configure page and hide all Streamlit branding
 st.set_page_config(
     page_title="Indian Stock Market Screener",
     page_icon="📈",
@@ -12,8 +11,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
     menu_items={}
 )
-
-# Hide all Streamlit elements and loading animation
 st.markdown("""
     <style>
         /* Hide Streamlit header, footer, menu */
@@ -42,7 +39,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def main():
-    # Initialize session state
     if 'matching_stocks' not in st.session_state:
         st.session_state.matching_stocks = []
     if 'stop_scan' not in st.session_state:
@@ -73,7 +69,7 @@ def main():
         )
     
     if st.button("Scan for Patterns"):
-        # Reset state for new scan
+
         st.session_state.matching_stocks = []
         st.session_state.stop_scan = False
         
@@ -86,7 +82,7 @@ def main():
         st.info(f"Found {total_stocks} stocks to scan. Estimated time: {total_stocks * 2} seconds")
         st.write(f"Scanning for {pattern} pattern...")
         
-        # Create stop button
+
         st.button("Stop Scan", on_click=stop_scan, key='stop_button')
         
         progress_text = st.empty()
