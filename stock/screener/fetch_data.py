@@ -94,34 +94,28 @@ def fetch_stock_data(ticker, interval='1h'):
     try:
         stock = yf.Ticker(ticker)
         
-        # Updated interval config with more conservative periods
+        # Updated interval config with fallback periods
         interval_config = {
-            '15m': ('5d', 1),     # 15 min data for 5 day
-            '30m': ('1mo', 5),     # 30 min data for 5 days
-            '1h': ('1mo', 30),    # 1 hour data for 1 month
-            '1d': ('6mo', 30),    # daily data for 1 month (changed from 6mo)
-            '5d': ('2y', 30)     # 5 day data for 1 month (changed from 2y)
+            '15m': ['5d', '1d'],      
+            '30m': ['1mo', '5d', '1d'],      
+            '1h': ['1mo', '5d', '1d'],
+            '1d': ['6mo', '3mo', '1mo', '5d', '1d', 'ytd', 'max'],
+            '5d': ['2y', '1y', '6mo', '3mo', '1mo', 'ytd', 'max']
         }
         
-        period, days = interval_config.get(interval, ('1mo', 30))
+        periods_to_try = interval_config.get(interval, ['1mo', '5d', '1d'])
         
-        try:
-            # First attempt with configured period
-            data = stock.history(period=period, interval=interval)
-        except Exception as e:
-            error_str = str(e).lower()
-            if "period" in error_str and "invalid" in error_str:
-                # For new stocks, try progressively shorter periods
-                for fallback_period in ['1mo', '5d', '1d']:
-                    try:
-                        print(f"{ticker}: Attempting fallback period '{fallback_period}'")
-                        data = stock.history(period=fallback_period, interval=interval)
-                        if not data.empty:
-                            break
-                    except Exception:
-                        continue
-            else:
-                raise e
+        data = pd.DataFrame()
+        for period in periods_to_try:
+            try:
+                print(f"{ticker}: Attempting period '{period}'")
+                data = stock.history(period=period, interval=interval)
+                if not data.empty:
+                    print(f"{ticker}: Successfully fetched data for period '{period}'")
+                    break
+            except Exception as e:
+                print(f"{ticker}: Failed with period '{period}' - {str(e)}")
+                continue
                 
         if data.empty:
             print(f"{ticker}: No data available for any time period")
