@@ -60,13 +60,17 @@ def main():
         total_stocks = len(tickers)
         st.info(f"Found {total_stocks} stocks to scan. Estimated time: {total_stocks * 2} seconds")
         st.write(f"Scanning for {pattern} pattern...")
-        
 
         st.button("Stop Scan", on_click=stop_scan, key='stop_button')
         
         progress_text = st.empty()
         progress_bar = st.progress(0)
         stats_text = st.empty()
+        
+        # Create placeholder for real-time results
+        results_container = st.container()
+        results_text = results_container.empty()
+        results_area = results_container.empty()
         
         start_time = datetime.now()
         stocks_processed = 0
@@ -90,23 +94,32 @@ def main():
                     company_name = get_company_name(ticker)
                     st.session_state.matching_stocks.append((ticker, company_name, data))
                     
+                    # Update results in real-time
+                    results_text.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
+                    with results_area.container():
+                        # Show only the last found stock
+                        with st.expander(f"{company_name} ({ticker})", expanded=True):
+                            st.write(data.tail())
+                            plot_candlestick(data, ticker, company_name)
+                            st.image('chart.png')
+                    
                 stocks_processed += 1
                 
             except Exception as e:
                 st.write(f"Error scanning {ticker}: {e}")
                 continue
         
-        # Show results
+        # Show final results
         total_time = (datetime.now() - start_time).seconds
         if st.session_state.stop_scan:
-            st.info(f"Scan stopped after {total_time} seconds. Showing partial results...")
+            st.info(f"Scan stopped after {total_time} seconds. Showing all results...")
         else:
             progress_bar.progress(1.0)
             st.success(f"Scan completed in {total_time} seconds!")
-    
-    # Always show results if we have any matches (even after stopping)
+
+    # Show complete results list
     if st.session_state.matching_stocks:
-        st.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
+        st.header("All Matching Stocks")
         for ticker, company_name, data in st.session_state.matching_stocks:
             with st.expander(f"{company_name} ({ticker})"):
                 st.write(data.tail())
