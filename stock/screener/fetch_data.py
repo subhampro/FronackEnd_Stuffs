@@ -93,11 +93,22 @@ def fetch_all_tickers(exchange_filter="NSE"):
 def fetch_stock_data(ticker, interval='1h'):
     try:
         stock = yf.Ticker(ticker)
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=60)  # Keep this at 60 days
         
-        # Get real-time data with valid period parameter
-        data = stock.history(period="3mo", interval=interval)  # Changed from "2mo" to "3mo"
+        # Updated interval config with more widely supported periods
+        interval_config = {
+            '15m': ('5d', 1),      # 15 min data for 5 day
+            '30m': ('5d', 5),      # 30 min data for 5 days
+            '1h': ('15d', 30),     # 1 hour data for 15 days
+            '1d': ('3mo', 30),     # daily data for 3 month
+            '5d': ('6mo', 30)      # 5 day data for 6 month
+        }
+        
+        period, days = interval_config.get(interval, ('1mo', 30))
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Get real-time data with universally supported periods
+        data = stock.history(period=period, interval=interval)
         if data.empty:
             return pd.DataFrame()
             
