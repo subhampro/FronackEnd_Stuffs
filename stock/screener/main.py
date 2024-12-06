@@ -38,7 +38,7 @@ def main():
     with col1:
         pattern = st.selectbox(
             "Select the chart pattern to search for:",
-            ["Volatility Contraction"]
+            ["Volatility Contraction", "Volatility Contraction Positive"]
         )
     with col2:
         interval = st.selectbox(

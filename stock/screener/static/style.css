@@ -16,6 +16,7 @@ div[data-testid="stToolbar"] {visibility: hidden;}
 h1 {
     background: linear-gradient(45deg, #1f6feb, #238636);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     font-size: 2.5em !important;
     text-align: center;
