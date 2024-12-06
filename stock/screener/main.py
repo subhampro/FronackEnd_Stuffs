@@ -16,6 +16,11 @@ def load_css():
     with open('static/style.css') as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
+def get_tradingview_url(ticker):
+    # Convert .NS suffix to NSE for TradingView
+    symbol = ticker.replace('.NS', '')
+    return f"https://www.tradingview.com/chart?symbol=NSE:{symbol}"
+
 def main():
     load_css()
     if 'matching_stocks' not in st.session_state:
@@ -99,7 +104,17 @@ def main():
                     # Add new result at the bottom
                     with results_container:
                         with st.expander(f"{company_name} ({ticker})", expanded=True):
-                            st.write(data.tail())
+                            col1, col2 = st.columns([4, 1])
+                            with col1:
+                                st.write(data.tail())
+                            with col2:
+                                st.markdown(
+                                    f'<a href="{get_tradingview_url(ticker)}" target="_blank">'
+                                    '<button style="background-color: #2962FF; color: white; padding: 8px 16px; '
+                                    'border: none; border-radius: 4px; cursor: pointer; width: 100%;">'
+                                    '📊 TradingView</button></a>',
+                                    unsafe_allow_html=True
+                                )
                             plot_candlestick(data, ticker, company_name)
                             st.image('chart.png')
                     
@@ -122,7 +137,17 @@ def main():
         st.header("All Matching Stocks")
         for ticker, company_name, data in st.session_state.matching_stocks:
             with st.expander(f"{company_name} ({ticker})"):
-                st.write(data.tail())
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.write(data.tail())
+                with col2:
+                    st.markdown(
+                        f'<a href="{get_tradingview_url(ticker)}" target="_blank">'
+                        '<button style="background-color: #2962FF; color: white; padding: 8px 16px; '
+                        'border: none; border-radius: 4px; cursor: pointer; width: 100%;">'
+                        '📊 TradingView</button></a>',
+                        unsafe_allow_html=True
+                    )
                 plot_candlestick(data, ticker, company_name)
                 st.image('chart.png')
     elif st.session_state.stop_scan:
