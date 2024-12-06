@@ -102,7 +102,7 @@ def main():
                     st.session_state.fetched_stocks.append((ticker, company_name, data))
                     fetched_header.info(f"Successfully fetched data for {len(st.session_state.fetched_stocks)} stocks")
                     
-                    if detect_pattern(data, pattern):
+                    if detect_pattern(data, pattern, ticker):  # Pass ticker to detect_pattern
                         st.session_state.matching_stocks.append((ticker, company_name, data))
                         results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
                         

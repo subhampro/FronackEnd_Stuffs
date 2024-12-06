@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def detect_pattern(data, pattern_type="Volatility Contraction"):
+def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"):  # Added ticker parameter
     if data.empty or len(data) < 60:  # Changed minimum required candles to 60
         return False
     
@@ -47,7 +47,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction"):
         # Positive volatility contraction check
         elif pattern_type.lower() == "volatility contraction positive":
             if atr_decrease <= atr_threshold:
-                print(f"Rejected: ATR decrease ({atr_decrease:.2%}) below threshold ({atr_threshold:.2%})")
+                print(f"{ticker}: Rejected - ATR decrease ({atr_decrease:.2%}) below threshold ({atr_threshold:.2%})")
                 return False
                 
             # Get last 60 candles for higher lows check and last 10 for other conditions
@@ -67,12 +67,12 @@ def detect_pattern(data, pattern_type="Volatility Contraction"):
             # Need at least 3 min points to confirm higher lows trend
             if len(min_points) >= 3:
                 higher_lows = all(min_points[i] > min_points[i-1] for i in range(1, len(min_points)))
-                print(f"Higher lows check: Found {len(min_points)} low points, trend {'confirmed' if higher_lows else 'failed'}")
+                print(f"{ticker}: Higher lows check - Found {len(min_points)} low points, trend {'confirmed' if higher_lows else 'failed'}")
                 if not higher_lows:
-                    print(f"Rejected: Not in higher lows formation over 60 candles")
+                    print(f"{ticker}: Rejected - Not in higher lows formation over 60 candles")
                     return False
             else:
-                print(f"Rejected: Insufficient low points ({len(min_points)}) to confirm trend")
+                print(f"{ticker}: Rejected - Insufficient low points ({len(min_points)}) to confirm trend")
                 return False
             
             # Condition 2: Current close vs first candle's low (using last 10 candles)
@@ -87,11 +87,11 @@ def detect_pattern(data, pattern_type="Volatility Contraction"):
             if data.index.freq == 'D' or len(data) >= 60:
                 price_move = (current_close - first_candle_low) / first_candle_low
                 if price_move < 0.02:  # Minimum 2% move
-                    print(f"Rejected: Price move ({price_move:.2%}) below minimum threshold (2%)")
+                    print(f"{ticker}: Rejected - Price move ({price_move:.2%}) below minimum threshold (2%)")
                     return False
             
             if current_close <= first_candle_low:
-                print(f"Rejected: Current close ({current_close:.2f}) below first candle low ({first_candle_low:.2f})")
+                print(f"{ticker}: Rejected - Current close ({current_close:.2f}) below first candle low ({first_candle_low:.2f})")
                 return False
                 
             print(f"Success: Pattern found with ATR decrease of {atr_decrease:.2%}")
