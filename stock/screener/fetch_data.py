@@ -97,8 +97,8 @@ def fetch_stock_data(ticker, interval='1h'):
         # Updated interval config with more widely supported periods
         interval_config = {
             '15m': ('5d', 1),      # 15 min data for 5 day
-            '30m': ('5d', 5),      # 30 min data for 5 days
-            '1h': ('15d', 30),     # 1 hour data for 15 days
+            '30m': ('1mo', 5),      # 30 min data for 1 month
+            '1h': ('1mo', 30),     # 1 hour data for 1 month
             '1d': ('3mo', 30),     # daily data for 3 month
             '5d': ('6mo', 30)      # 5 day data for 6 month
         }
