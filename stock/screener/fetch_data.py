@@ -97,7 +97,7 @@ def fetch_stock_data(ticker, interval='1h'):
         # Updated interval config with fallback periods
         interval_config = {
             '15m': ['5d', '1d'],      
-            '30m': ['1mo', '5d', '1d'],      
+            '30m': ['5d', '5d', '1d'],      
             '1h': ['1mo', '5d', '1d'],
             '1d': ['6mo', '3mo', '1mo', '5d', '1d', 'ytd', 'max'],
             '5d': ['2y', '1y', '6mo', '3mo', '1mo', 'ytd', 'max']

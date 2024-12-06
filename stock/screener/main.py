@@ -24,6 +24,8 @@ def main():
     load_css()
     if 'matching_stocks' not in st.session_state:
         st.session_state.matching_stocks = []
+    if 'fetched_stocks' not in st.session_state:
+        st.session_state.fetched_stocks = []
     if 'stop_scan' not in st.session_state:
         st.session_state.stop_scan = False
 
@@ -54,6 +56,7 @@ def main():
     if st.button("Scan for Patterns"):
 
         st.session_state.matching_stocks = []
+        st.session_state.fetched_stocks = []
         st.session_state.stop_scan = False
         
         tickers = fetch_all_tickers(exchange)
@@ -72,8 +75,9 @@ def main():
         stats_text = st.empty()
         
         results_header = st.empty()
-        
+        fetched_header = st.empty()
         results_container = st.container()
+        fetched_container = st.container()
         
         start_time = datetime.now()
         stocks_processed = 0
@@ -93,25 +97,28 @@ def main():
                 stats_text.text(f"Elapsed: {elapsed_time}s | ETA: {int(eta)}s | Found: {len(st.session_state.matching_stocks)} matches")
                 
                 data = fetch_stock_data(ticker, interval)
-                if not data.empty and detect_pattern(data, pattern):
+                if not data.empty:
                     company_name = get_company_name(ticker)
-                    st.session_state.matching_stocks.append((ticker, company_name, data))
+                    st.session_state.fetched_stocks.append((ticker, company_name, data))
+                    fetched_header.info(f"Successfully fetched data for {len(st.session_state.fetched_stocks)} stocks")
                     
-                    results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
-                    
-                    with results_container:
-                        with st.expander(f"{company_name} ({ticker})", expanded=True):
-                            col1, col2 = st.columns([4, 1])
-                            with col1:
-                                st.write(data.tail())
-                            with col2:
-                                st.markdown(
-                                    f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
-                                    '📊 TradingView</a>',
-                                    unsafe_allow_html=True
-                                )
-                            plot_candlestick(data, ticker, company_name)
-                            st.image('chart.png')
+                    if detect_pattern(data, pattern):
+                        st.session_state.matching_stocks.append((ticker, company_name, data))
+                        results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
+                        
+                        with results_container:
+                            with st.expander(f"{company_name} ({ticker}) - Pattern Match", expanded=True):
+                                col1, col2 = st.columns([4, 1])
+                                with col1:
+                                    st.write(data.tail())
+                                with col2:
+                                    st.markdown(
+                                        f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
+                                        '📊 TradingView</a>',
+                                        unsafe_allow_html=True
+                                    )
+                                plot_candlestick(data, ticker, company_name)
+                                st.image('chart.png')
                     
                 stocks_processed += 1
                 
@@ -126,8 +133,26 @@ def main():
             progress_bar.progress(1.0)
             st.success(f"Scan completed in {total_time} seconds!")
 
+    # Display all successfully fetched stocks
+    if st.session_state.fetched_stocks:
+        st.header("All Stocks with Available Data")
+        for ticker, company_name, data in st.session_state.fetched_stocks:
+            with st.expander(f"{company_name} ({ticker})", expanded=False):
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.write(data.tail())
+                with col2:
+                    st.markdown(
+                        f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
+                        '📊 TradingView</a>',
+                        unsafe_allow_html=True
+                    )
+                plot_candlestick(data, ticker, company_name)
+                st.image('chart.png')
+    
+    # Display pattern matching stocks
     if st.session_state.matching_stocks:
-        st.header("All Matching Stocks")
+        st.header("Stocks Matching Pattern")
         for ticker, company_name, data in st.session_state.matching_stocks:
             with st.expander(f"{company_name} ({ticker})"):
                 col1, col2 = st.columns([4, 1])
