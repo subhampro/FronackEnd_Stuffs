@@ -37,23 +37,14 @@ def detect_pattern(data, pattern_type="Volatility Contraction"):
             if atr_decrease <= 0.1:
                 return False
                 
-            # Get last 5 candles
-            last_5_candles = data.tail(5)
+            # Get last 10 candles
+            last_10_candles = data.tail(10)
             
-            # Check if price is in uptrend
-            is_uptrend = (last_5_candles['Close'].iloc[-1] > last_5_candles['Close'].iloc[0])
+            # Check if current close is not below first candle's low
+            first_candle_low = last_10_candles['Low'].iloc[0]
+            current_close = last_10_candles['Close'].iloc[-1]
             
-            # Check if closing prices are above opening prices (bullish candles)
-            bullish_candles = (last_5_candles['Close'] > last_5_candles['Open']).sum() >= 3
-            
-            # Check for higher lows
-            higher_lows = all(last_5_candles['Low'].iloc[i] >= last_5_candles['Low'].iloc[i-1] 
-                            for i in range(1, len(last_5_candles)))
-            
-            # Volume trend check
-            increasing_volume = (last_5_candles['Volume'].pct_change() > 0).sum() >= 3
-            
-            # Return True only if all conditions are met
-            return (is_uptrend and bullish_candles and higher_lows and increasing_volume)
+            # Return True if current close is above first candle's low
+            return current_close >= first_candle_low
     
     return False
