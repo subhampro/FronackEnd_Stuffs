@@ -1,4 +1,3 @@
-
 /* Hide Streamlit Default Elements */
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
@@ -142,4 +141,59 @@ img:hover {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #1f6feb;
+}
+
+/* TradingView Button Styling */
+.tradingview-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2962FF, #1E40AF);
+    color: #ffffff !important;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(41, 98, 255, 0.1);
+    margin: 4px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.tradingview-button:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.tradingview-button:hover {
+    background: linear-gradient(135deg, #1E40AF, #1E3A8A);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(41, 98, 255, 0.25);
+}
+
+.tradingview-button:hover:before {
+    left: 100%;
+}
+
+.tradingview-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(41, 98, 255, 0.2);
 }

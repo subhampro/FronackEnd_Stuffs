@@ -106,10 +106,8 @@ def main():
                                 st.write(data.tail())
                             with col2:
                                 st.markdown(
-                                    f'<a href="{get_tradingview_url(ticker)}" target="_blank">'
-                                    '<button style="background-color: #2962FF; color: white; padding: 8px 16px; '
-                                    'border: none; border-radius: 4px; cursor: pointer; width: 100%;">'
-                                    '📊 TradingView</button></a>',
+                                    f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
+                                    '📊 TradingView</a>',
                                     unsafe_allow_html=True
                                 )
                             plot_candlestick(data, ticker, company_name)
@@ -137,10 +135,8 @@ def main():
                     st.write(data.tail())
                 with col2:
                     st.markdown(
-                        f'<a href="{get_tradingview_url(ticker)}" target="_blank">'
-                        '<button style="background-color: #2962FF; color: white; padding: 8px 16px; '
-                        'border: none; border-radius: 4px; cursor: pointer; width: 100%;">'
-                        '📊 TradingView</button></a>',
+                        f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
+                        '📊 TradingView</a>',
                         unsafe_allow_html=True
                     )
                 plot_candlestick(data, ticker, company_name)
