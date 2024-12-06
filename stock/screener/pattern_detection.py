@@ -32,19 +32,29 @@ def detect_pattern(data, pattern_type="Volatility Contraction"):
         if pattern_type.lower() == "volatility contraction":
             return atr_decrease > 0.1
         
-        # Additional checks for positive volatility contraction
+        # Positive volatility contraction check
         elif pattern_type.lower() == "volatility contraction positive":
+            # First check ATR decrease
             if atr_decrease <= 0.1:
                 return False
                 
             # Get last 10 candles
-            last_10_candles = data.tail(10)
+            last_10_candles = data.tail(10).copy()  # Using .copy() to avoid SettingWithCopyWarning
             
-            # Check if current close is not below first candle's low
+            # Get first candle's low and last candle's close
             first_candle_low = last_10_candles['Low'].iloc[0]
-            current_close = last_10_candles['Close'].iloc[-1]
+            last_candle_close = last_10_candles['Close'].iloc[-1]
             
-            # Return True if current close is above first candle's low
-            return current_close >= first_candle_low
+            # Debug prints to verify the condition
+            print(f"First candle low: {first_candle_low}")
+            print(f"Last candle close: {last_candle_close}")
+            print(f"Close above low?: {last_candle_close > first_candle_low}")
+            
+            # Strict condition: last close must be ABOVE (not equal to) first candle's low
+            if last_candle_close <= first_candle_low:
+                print(f"Rejected: Last close ({last_candle_close}) not above first candle low ({first_candle_low})")
+                return False
+                
+            return True
     
     return False
