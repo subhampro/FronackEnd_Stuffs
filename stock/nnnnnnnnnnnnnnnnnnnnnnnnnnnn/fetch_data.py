@@ -1,3 +1,4 @@
+from bs4 import BeautifulSoup
 import yfinance as yf
 import pandas as pd
 import json

@@ -4,6 +4,13 @@ from plot_chart import plot_candlestick
 from pattern_detection import detect_pattern
 from datetime import datetime
 
+# Hide the entire header
+st.markdown("""
+    <style>
+        header {display: none !important;}
+    </style>
+""", unsafe_allow_html=True)
+
 def main():
     # Initialize session state
     if 'matching_stocks' not in st.session_state:
