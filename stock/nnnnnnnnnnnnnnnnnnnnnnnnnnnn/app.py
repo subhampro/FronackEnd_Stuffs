@@ -7,7 +7,7 @@ from datetime import datetime
 def main():
     st.title("Indian Stock Market Screener")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         pattern = st.selectbox(
             "Select the chart pattern to search for:",
@@ -19,9 +19,15 @@ def main():
             ["1h", "15m", "30m", "1d", "5d"],
             index=0
         )
+    with col3:
+        exchange = st.selectbox(
+            "Select exchange:",
+            ["NSE", "NSE+BSE", "ALL"],
+            index=0
+        )
     
     if st.button("Scan for Patterns"):
-        tickers = fetch_all_tickers()
+        tickers = fetch_all_tickers(exchange)
         if not tickers:
             st.error("Unable to fetch stock list. Please try again later.")
             return

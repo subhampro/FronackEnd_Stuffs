@@ -23,7 +23,7 @@ def get_all_nse_stocks():
     except:
         return []
 
-def fetch_all_tickers():
+def fetch_all_tickers(exchange_filter="NSE"):
     try:
         url = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
         params = {
@@ -49,10 +49,15 @@ def fetch_all_tickers():
             and 'quotes' in json_data['finance']['result'][0]):
             
             quotes = json_data['finance']['result'][0]['quotes']
-            stocks = [q['symbol'] for q in quotes if '.NS' in q['symbol']]
-            stocks = [s for s in stocks if not any(x in s for x in ['NIFTY', 'SENSEX', 'BANKNIFTY'])]
-        
-        if len(stocks) < 100:
+            
+            if exchange_filter.upper() == "NSE":
+                stocks = [q['symbol'] for q in quotes if '.NS' in q['symbol'] and not any(x in q['symbol'] for x in ['NIFTY', 'SENSEX', 'BANKNIFTY'])]
+            elif exchange_filter.upper() == "NSE+BSE":
+                stocks = [q['symbol'] for q in quotes if ('.NS' in q['symbol'] or '.BO' in q['symbol']) and not any(x in q['symbol'] for x in ['NIFTY', 'SENSEX', 'BANKNIFTY'])]
+            else:  # ALL
+                stocks = [q['symbol'] for q in quotes if '.NS' in q['symbol'] or '.BO' in q['symbol']]
+
+        if len(stocks) < 100 and exchange_filter.upper() == "NSE":
             nse_stocks = get_all_nse_stocks()
             if nse_stocks:
                 return nse_stocks
@@ -81,8 +86,10 @@ def fetch_all_tickers():
         ]
     except Exception as e:
         print(f"Error fetching stock list: {e}")
-        nse_stocks = get_all_nse_stocks()
-        return nse_stocks if nse_stocks else []
+        if exchange_filter.upper() == "NSE":
+            nse_stocks = get_all_nse_stocks()
+            return nse_stocks if nse_stocks else []
+        return []
 
 def fetch_stock_data(ticker, interval='1h'):
     try:
