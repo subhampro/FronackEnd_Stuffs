@@ -94,10 +94,10 @@ def fetch_stock_data(ticker, interval='1h'):
     try:
         stock = yf.Ticker(ticker)
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=30)
+        start_date = end_date - timedelta(days=60)  # Keep this at 60 days
         
-        # Get real-time data
-        data = stock.history(period="1mo", interval=interval)
+        # Get real-time data with valid period parameter
+        data = stock.history(period="3mo", interval=interval)  # Changed from "2mo" to "3mo"
         if data.empty:
             return pd.DataFrame()
             
