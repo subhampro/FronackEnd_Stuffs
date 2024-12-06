@@ -4,10 +4,40 @@ from plot_chart import plot_candlestick
 from pattern_detection import detect_pattern
 from datetime import datetime
 
-# Hide the entire header
+# Configure page and hide all Streamlit branding
+st.set_page_config(
+    page_title="Indian Stock Market Screener",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={}
+)
+
+# Hide all Streamlit elements and loading animation
 st.markdown("""
     <style>
-        header {display: none !important;}
+        /* Hide Streamlit header, footer, menu */
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+        
+        /* Hide Streamlit default elements and branding */
+        .stDeployButton, div[data-testid="stDecoration"] {display: none;}
+        
+        /* Override Streamlit loading animation */
+        div.stApp > div[data-testid="stStatusWidget"] {visibility: hidden;}
+        
+        /* Hide Streamlit branding in widgets */
+        .reportview-container .main .block-container {padding-top: 0rem;}
+        .reportview-container .main footer {display: none;}
+        
+        /* Remove padding and margins that might show Streamlit flashes */
+        div.block-container {padding-top: 0rem;}
+        section[data-testid="stSidebar"] > div {padding-top: 0rem;}
+        
+        /* Ensure no white flash during load */
+        div[data-testid="stToolbar"] {visibility: hidden;}
+        div[data-testid="stMarkdown"] > div {padding-top: 0rem;}
     </style>
 """, unsafe_allow_html=True)
 
