@@ -67,10 +67,9 @@ def main():
         progress_bar = st.progress(0)
         stats_text = st.empty()
         
-        # Create placeholder for real-time results
+        results_header = st.empty()
+        
         results_container = st.container()
-        results_text = results_container.empty()
-        results_area = results_container.empty()
         
         start_time = datetime.now()
         stocks_processed = 0
@@ -94,10 +93,11 @@ def main():
                     company_name = get_company_name(ticker)
                     st.session_state.matching_stocks.append((ticker, company_name, data))
                     
-                    # Update results in real-time
-                    results_text.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
-                    with results_area.container():
-                        # Show only the last found stock
+                    # Update results counter
+                    results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
+                    
+                    # Add new result at the bottom
+                    with results_container:
                         with st.expander(f"{company_name} ({ticker})", expanded=True):
                             st.write(data.tail())
                             plot_candlestick(data, ticker, company_name)
