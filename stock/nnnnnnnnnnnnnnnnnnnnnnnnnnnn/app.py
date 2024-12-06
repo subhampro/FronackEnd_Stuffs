@@ -31,7 +31,7 @@ def main():
     with col3:
         exchange = st.selectbox(
             "Select exchange:",
-            ["NSE", "NSE+BSE", "ALL"],
+            ["NSE", "ALL"],
             index=0
         )
     
