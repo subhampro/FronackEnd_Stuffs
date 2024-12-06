@@ -100,7 +100,7 @@ def fetch_stock_data(ticker, interval='1h'):
             '30m': ('1mo', 5),      # 30 min data for 1 month
             '1h': ('1mo', 30),     # 1 hour data for 1 month
             '1d': ('6mo', 30),     # daily data for 6 month
-            '5d': ('2y', 30)      # 5 day data for 2 years
+            '5d': ('1y', 30)      # 5 day data for 1 years
         }
         
         period, days = interval_config.get(interval, ('1mo', 30))
