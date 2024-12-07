@@ -24,7 +24,48 @@ def get_tradingview_url(ticker):
 def main():
     load_css()
     cache_manager = CacheManager()
-    
+
+    def display_results():
+        if len(st.session_state.stocks_with_issues) > 0:
+            st.header("All Rest Matched Stocks Old Chart Data Not Available")
+            st.info(f"Found {len(st.session_state.stocks_with_issues)} stocks with data availability issues")
+            
+            for ticker, company_name, data in st.session_state.stocks_with_issues:
+                with st.expander(f"{company_name} ({ticker}) - Limited Data", expanded=False):
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.write(data.tail())
+                    with col2:
+                        st.markdown(
+                            f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
+                            '📊 TradingView</a>',
+                            unsafe_allow_html=True
+                        )
+                    plot_candlestick(data, ticker, company_name)
+                    st.image('chart.png')
+        
+        if st.session_state.matching_stocks:
+            st.header("Stocks Matching Pattern")
+            for ticker, company_name, data in st.session_state.matching_stocks:
+                with st.expander(f"{company_name} ({ticker})"):
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.write(data.tail())
+                    with col2:
+                        st.markdown(
+                            f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
+                            '📊 TradingView</a>',
+                            unsafe_allow_html=True
+                        )
+                    plot_candlestick(data, ticker, company_name)
+                    st.image('chart.png')
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.button("🔄 New Search", key="new_search_button", 
+                         help="Start a new stock scan", on_click=trigger_reset)
+        elif st.session_state.stop_scan:
+            st.warning("No matching stocks found before scan was stopped")
+
     # Initialize session state
     if 'should_reset' not in st.session_state:
         st.session_state.should_reset = False
@@ -183,20 +224,38 @@ def main():
             
             st.markdown('</div>', unsafe_allow_html=True)
 
-        if progress_data and not st.session_state.should_reset:
-            tickers = [t for t in tickers if t not in processed_stocks]
-        else:
+        # Add total_processed counter to session state
+        if 'total_processed' not in st.session_state:
+            st.session_state.total_processed = 0
+
+        # Add resume_start_time to track elapsed time for resumed scans
+        if 'resume_start_time' not in st.session_state:
+            st.session_state.resume_start_time = datetime.now()
+            st.session_state.initial_processed = 0
+
+        # Reset counter when starting fresh
+        if not progress_data or st.session_state.should_reset:
+            st.session_state.total_processed = 0
             processed_stocks = set()
             total_stocks = len(tickers)
-            st.session_state.matching_stocks = []
-            st.session_state.stocks_with_issues = []
+            st.session_state.total_stocks = total_stocks
             stocks_processed = 0
             initial_progress = 0
-
-        if not progress_data or st.session_state.should_reset:
-            st.session_state.total_stocks = len(tickers)
+            st.session_state.resume_start_time = datetime.now()
+            st.session_state.initial_processed = 0
         else:
+            # Use cached progress data
+            processed_stocks = progress_data['processed_stocks']
+            st.session_state.total_processed = len(processed_stocks)
             st.session_state.total_stocks = progress_data['total_stocks']
+            stocks_processed = st.session_state.total_processed
+            initial_progress = stocks_processed / st.session_state.total_stocks
+            if 'initial_processed' not in st.session_state:
+                st.session_state.initial_processed = stocks_processed
+
+        # Filter out already processed stocks
+        if progress_data and not st.session_state.should_reset:
+            tickers = [t for t in tickers if t not in processed_stocks]
 
         start_time = datetime.now()
         
@@ -213,12 +272,12 @@ def main():
         try:
             for i, ticker in enumerate(tickers):
                 if st.session_state.stop_scan:
-                    st.warning(f"Scan stopped by user after processing {stocks_processed} stocks")
+                    st.warning(f"Scan stopped by user after processing {st.session_state.total_processed} stocks")
                     break
 
                 processed_stocks.add(ticker)
-                current_total_processed = stocks_processed + i + 1
-                progress = current_total_processed / st.session_state.total_stocks 
+                st.session_state.total_processed = len(processed_stocks)
+                progress = min(st.session_state.total_processed / st.session_state.total_stocks, 1.0)
                 
                 if i % 10 == 0 or st.session_state.stop_scan:
                     cache_manager.save_progress_to_cache(
@@ -228,12 +287,18 @@ def main():
                         processed_stocks,
                         st.session_state.matching_stocks,
                         st.session_state.stocks_with_issues,
-                        total_stocks
+                        st.session_state.total_stocks
                     )
 
-                elapsed_time = (datetime.now() - start_time).seconds
-                remaining_stocks = total_stocks - current_total_processed
-                eta = int((elapsed_time / (i + 1)) * remaining_stocks) if i > 0 else 0
+                elapsed_time = max(1, (datetime.now() - st.session_state.resume_start_time).seconds)
+                processed_since_resume = st.session_state.total_processed - st.session_state.initial_processed
+                
+                if processed_since_resume > 0 and elapsed_time > 0:
+                    stocks_per_second = processed_since_resume / elapsed_time
+                    remaining_stocks = st.session_state.total_stocks - st.session_state.total_processed
+                    eta = int(remaining_stocks / stocks_per_second) if stocks_per_second > 0 else 0
+                else:
+                    eta = 0
                 
                 progress_container.markdown(f"""
                     <div class="scan-progress">
@@ -249,7 +314,7 @@ def main():
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">Stocks Scanned</div>
-                            <div class="stat-value">{current_total_processed}/{st.session_state.total_stocks}</div>
+                            <div class="stat-value">{st.session_state.total_processed}/{st.session_state.total_stocks}</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">Time Elapsed</div>
@@ -290,7 +355,7 @@ def main():
                 
                 stocks_processed += 1
             
-            if not st.session_state.stop_scan:
+            if not st.session_state.stop_scan and st.session_state.total_processed >= st.session_state.total_stocks:
                 # Save final results when scan completes
                 cache_manager.save_final_results(
                     pattern,
@@ -301,6 +366,7 @@ def main():
                     st.session_state.total_stocks
                 )
                 cache_manager.clear_progress_cache(pattern, interval, exchange)
+                st.session_state.scanning = False
                 
         finally:
             if st.session_state.stop_scan:
@@ -311,7 +377,7 @@ def main():
                     processed_stocks,
                     st.session_state.matching_stocks,
                     st.session_state.stocks_with_issues,
-                    total_stocks
+                    st.session_state.total_stocks
                 )
 
             progress_container.empty()
@@ -325,48 +391,6 @@ def main():
                 st.info(f"Scan stopped after {total_time} seconds. Showing all results...")
             else:
                 st.success(f"Scan completed in {total_time} seconds!")
-
-    def display_results():
-        # Move results display logic here
-        if len(st.session_state.stocks_with_issues) > 0:
-            st.header("All Rest Matched Stocks Old Chart Data Not Available")
-            st.info(f"Found {len(st.session_state.stocks_with_issues)} stocks with data availability issues")
-            
-            for ticker, company_name, data in st.session_state.stocks_with_issues:
-                with st.expander(f"{company_name} ({ticker}) - Limited Data", expanded=False):
-                    col1, col2 = st.columns([4, 1])
-                    with col1:
-                        st.write(data.tail())
-                    with col2:
-                        st.markdown(
-                            f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
-                            '📊 TradingView</a>',
-                            unsafe_allow_html=True
-                        )
-                    plot_candlestick(data, ticker, company_name)
-                    st.image('chart.png')
-        
-        if st.session_state.matching_stocks:
-            st.header("Stocks Matching Pattern")
-            for ticker, company_name, data in st.session_state.matching_stocks:
-                with st.expander(f"{company_name} ({ticker})"):
-                    col1, col2 = st.columns([4, 1])
-                    with col1:
-                        st.write(data.tail())
-                    with col2:
-                        st.markdown(
-                            f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
-                            '📊 TradingView</a>',
-                            unsafe_allow_html=True
-                        )
-                    plot_candlestick(data, ticker, company_name)
-                    st.image('chart.png')
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                st.button("🔄 New Search", key="new_search_button", 
-                         help="Start a new stock scan", on_click=trigger_reset)
-        elif st.session_state.stop_scan:
-            st.warning("No matching stocks found before scan was stopped")
 
 if __name__ == "__main__":
     main()
