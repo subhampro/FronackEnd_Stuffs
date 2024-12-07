@@ -3,7 +3,6 @@ import numpy as np
 from datetime import datetime
 import os
 
-# Add new global variable at top of file
 TOTAL_STOCKS_SCANNED = 0
 
 def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions=None):
@@ -35,7 +34,6 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
         return False
     
     if pattern_type.lower() == "volatility contraction":
-        # Calculate True Range and ATR
         data['TR'] = np.maximum(
             data['High'] - data['Low'],
             np.maximum(
@@ -44,7 +42,6 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             )
         )
         
-        # Make ATR check more strict for daily timeframe
         if data.index.freq == 'D' or len(data) >= 60:
             atr_window = 14
             lookback_period = 10
@@ -79,26 +76,21 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
                 "ema_proximity": False
             }
             
-            # 1. Check sample size (changed from 180 to 126)
             last_126_candles = data.tail(126).copy()
-            if len(last_126_candles) >= 126:  # Changed from 100 to 126 to match required candle count
+            if len(last_126_candles) >= 126:
                 conditions_met["sample_size"] = True
             else:
                 print(f"{ticker}: Failed - Insufficient candles ({len(last_126_candles)})")
                 return False
             
-            # Calculate 20 EMA
             last_126_candles['EMA20'] = last_126_candles['Close'].ewm(span=20, adjust=False).mean()
             
-            # 2. Check first 45 candles for tight consolidation - MODIFIED
-            first_45_candles = last_126_candles.head(45)  # Changed from 40 to 45
+            first_45_candles = last_126_candles.head(45)
             consolidation_range = (first_45_candles['High'].max() - first_45_candles['Low'].min()) / first_45_candles['Close'].mean()
-            if 0.05 <= consolidation_range <= 0.25:  # Changed to check if range is between 5% and 25%
+            if 0.05 <= consolidation_range <= 0.25:
                 conditions_met["tight_consolidation"] = True
             
-            # 3. Check volatility and impulses - MUCH MORE RELAXED
-            # Extended section to look for impulses
-            volatility_section = last_126_candles.iloc[60:100].copy()  # Extended window from 65:96 to 60:100
+            volatility_section = last_126_candles.iloc[60:100].copy()
             volatility_section['TR'] = np.maximum(
                 volatility_section['High'] - data['Low'],
                 np.maximum(
@@ -106,45 +98,38 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
                     abs(volatility_section['Low'] - volatility_section['Close'].shift(1))
                 )
             )
-            volatility_section['ATR'] = volatility_section['TR'].rolling(window=8).mean()  # Increased from 5 to 8
-            price_moves = volatility_section['Close'].pct_change().abs()  # Added abs() for both up/down moves
+            volatility_section['ATR'] = volatility_section['TR'].rolling(window=8).mean()
+            price_moves = volatility_section['Close'].pct_change().abs()
             
-            # Much more relaxed impulse threshold
-            if any((move >= 0.03 and move <= 0.30) for move in price_moves):  # Changed from 0.05-0.25 to 0.03-0.30
+            if any((move >= 0.03 and move <= 0.30) for move in price_moves):
                 conditions_met["volatility_impulse"] = True
             
-            # 4. Check low volume consolidation - MORE RELAXED
             last_20_candles = last_126_candles.tail(20)
             avg_volume = last_126_candles['Volume'].mean()
             recent_volume = last_20_candles['Volume'].mean()
             recent_range = (last_20_candles['High'].max() - last_20_candles['Low'].min()) / last_20_candles['Close'].mean()
             
-            # Further relaxed volume and range requirements
-            if (recent_volume >= (avg_volume * 0.10) and  # Changed from 0.15 to 0.10
-                recent_volume <= (avg_volume * 1.5) and   # Changed from 1.2 to 1.5
-                recent_range <= 0.15):                    # Changed from 0.10 to 0.15
+            if (recent_volume >= (avg_volume * 0.10) and
+                recent_volume <= (avg_volume * 1.5) and
+                recent_range <= 0.15):
                 conditions_met["low_volume_consolidation"] = True
             
-            # 5. Check EMA proximity - RELAXED
             last_15_candles = last_126_candles.tail(15)
             ema_proximity = True
             for _, candle in last_15_candles.iterrows():
-                if abs(candle['Close'] - candle['EMA20']) / candle['Close'] > 0.05:  # Changed from 0.03 to 0.05 (5% deviation allowed)
+                if abs(candle['Close'] - candle['EMA20']) / candle['Close'] > 0.05:
                     ema_proximity = False
                     break
             if ema_proximity:
                 conditions_met["ema_proximity"] = True
             
-            # Count conditions met
             conditions_count = sum(conditions_met.values())
             
-            # Log results for stocks meeting at least 2 conditions
             if conditions_count >= 2:
                 met_conditions = [cond for cond, met in conditions_met.items() if met]
                 failed_conditions = [cond for cond, met in conditions_met.items() if not met]
                 log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions)
             
-            # Return True only if all conditions are met
             return all(conditions_met.values())
             
         except Exception as e:
@@ -159,14 +144,13 @@ def generate_summary_report():
     if not os.path.exists(log_dir):
         return
         
-    # Get all log files created in the last hour
     current_time = datetime.now()
     log_files = []
     for file in os.listdir(log_dir):
         if file.startswith('pattern_scan_') and file.endswith('.log'):
             file_path = os.path.join(log_dir, file)
             file_time = datetime.fromtimestamp(os.path.getctime(file_path))
-            if (current_time - file_time).total_seconds() < 3600:  # Within last hour
+            if (current_time - file_time).total_seconds() < 3600:
                 log_files.append(file_path)
     
     if not log_files:
@@ -176,7 +160,6 @@ def generate_summary_report():
     matching_stocks = 0
     processed_tickers = set()
     
-    # Track failed conditions
     condition_failures = {
         "sample_size": 0,
         "tight_consolidation": 0,
@@ -219,7 +202,6 @@ def generate_summary_report():
         f.write(f"Total Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
         f.write(f"Stocks Meeting 2+ Conditions: {matching_stocks}\n\n")
         
-        # Write condition failure statistics
         f.write("Condition Failure Analysis:\n")
         f.write("-" * 30 + "\n")
         for condition, failures in condition_failures.items():
