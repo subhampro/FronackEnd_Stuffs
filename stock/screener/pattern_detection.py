@@ -136,6 +136,88 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             print(f"Error in Lucifer pattern detection for {ticker}: {str(e)}")
             return False
 
+    elif pattern_type.lower() == "15% reversal":
+        try:
+            conditions_met = {
+                "sample_size": False,
+                "tight_consolidation": False,
+                "volatility_impulse": False,
+                "low_volume_consolidation": False,
+                "ema_proximity": False,
+                "reversal_level": False
+            }
+            
+            last_126_candles = data.tail(126).copy()
+            if len(last_126_candles) >= 126:
+                conditions_met["sample_size"] = True
+            else:
+                print(f"{ticker}: Failed - Insufficient candles ({len(last_126_candles)})")
+                return False
+            
+            last_126_candles['EMA20'] = last_126_candles['Close'].ewm(span=20, adjust=False).mean()
+            
+            first_45_candles = last_126_candles.head(45)
+            consolidation_range = (first_45_candles['High'].max() - first_45_candles['Low'].min()) / first_45_candles['Close'].mean()
+            if 0.05 <= consolidation_range <= 0.25:
+                conditions_met["tight_consolidation"] = True
+            
+            volatility_section = last_126_candles.iloc[60:100].copy()
+            volatility_section['TR'] = np.maximum(
+                volatility_section['High'] - data['Low'],
+                np.maximum(
+                    abs(volatility_section['High'] - volatility_section['Close'].shift(1)),
+                    abs(volatility_section['Low'] - volatility_section['Close'].shift(1))
+                )
+            )
+            volatility_section['ATR'] = volatility_section['TR'].rolling(window=8).mean()
+            price_moves = volatility_section['Close'].pct_change().abs()
+            
+            if any((move >= 0.03 and move <= 0.30) for move in price_moves):
+                conditions_met["volatility_impulse"] = True
+            
+            last_20_candles = last_126_candles.tail(20)
+            avg_volume = last_126_candles['Volume'].mean()
+            recent_volume = last_20_candles['Volume'].mean()
+            recent_range = (last_20_candles['High'].max() - last_20_candles['Low'].min()) / last_20_candles['Close'].mean()
+            
+            if (recent_volume >= (avg_volume * 0.10) and
+                recent_volume <= (avg_volume * 1.5) and
+                recent_range <= 0.15):
+                conditions_met["low_volume_consolidation"] = True
+            
+            last_15_candles = last_126_candles.tail(15)
+            ema_proximity = True
+            for _, candle in last_15_candles.iterrows():
+                if abs(candle['Close'] - candle['EMA20']) / candle['Close'] > 0.05:
+                    ema_proximity = False
+                    break
+            if ema_proximity:
+                conditions_met["ema_proximity"] = True
+                
+            first_100_candles = last_126_candles.head(100)
+            top_high = first_100_candles['High'].max()
+            
+            reversal_percentage = 0.15  # Can be modified to any value between 0.15-0.20
+            reversal_level = top_high * (1 - reversal_percentage)
+            
+            last_30_candles = last_126_candles.tail(30)
+            above_reversal_level = all(close > reversal_level for close in last_30_candles['Close'])
+            
+            if above_reversal_level:
+                conditions_met["reversal_level"] = True
+            
+            conditions_count = sum(conditions_met.values())
+            if conditions_count >= 2:
+                met_conditions = [cond for cond, met in conditions_met.items() if met]
+                failed_conditions = [cond for cond, met in conditions_met.items() if not met]
+                log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions)
+            
+            return all(conditions_met.values())
+            
+        except Exception as e:
+            print(f"Error in 15% Reversal pattern detection for {ticker}: {str(e)}")
+            return False
+
     return False
 
 def generate_summary_report():
