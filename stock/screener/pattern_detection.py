@@ -5,7 +5,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
     if data.empty or len(data) < 60:  # Changed minimum required candles to 60
         return False
     
-    if pattern_type.lower() in ["volatility contraction", "volatility contraction positive"]:
+    if pattern_type.lower() in ["volatility contraction", "lucifer custom filter"]:
         # Calculate True Range and ATR
         data['TR'] = np.maximum(
             data['High'] - data['Low'],
@@ -44,8 +44,8 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
         if pattern_type.lower() == "volatility contraction":
             return atr_decrease > atr_threshold
         
-        # Positive volatility contraction check
-        elif pattern_type.lower() == "volatility contraction positive":
+        # Lucifer Custom Filter check (previously Volatility Contraction Positive)
+        elif pattern_type.lower() == "lucifer custom filter":
             if atr_decrease <= atr_threshold:
                 print(f"{ticker}: Rejected - ATR decrease ({atr_decrease:.2%}) below threshold ({atr_threshold:.2%})")
                 return False
