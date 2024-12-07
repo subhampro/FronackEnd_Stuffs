@@ -119,10 +119,10 @@ def main():
                         </div>
                     </div>
                     <div class="scan-status-right">
-                        <button class="new-search-button" onclick="window.location.href=window.location.pathname">
-                            <span class="button-icon">🔄</span>
-                            <span class="button-text">New Search</span>
-                        </button>
+                        <div class="new-search-wrapper">
+                        {st.button("🔄 New Search", key="new_search_status", 
+                                 help="Start a new stock scan", on_click=new_search)}
+                        </div>
                     </div>
                 </div>
             ''', unsafe_allow_html=True)
@@ -254,11 +254,11 @@ def main():
                     )
                 plot_candlestick(data, ticker, company_name)
                 st.image('chart.png')
-        st.markdown("""
-            <div class="new-search-container">
-                <button class="new-search-button" onclick="window.location.href=window.location.pathname">🔄 New Search</button>
-            </div>
-        """, unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("🔄 New Search", key="new_search_button", 
+                        help="Start a new stock scan"):
+                new_search()
     elif st.session_state.stop_scan:
         st.warning("No matching stocks found before scan was stopped")
 

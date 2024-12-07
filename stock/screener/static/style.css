@@ -625,3 +625,38 @@ button[data-testid="baseButton-secondary"]:hover::before {
 .new-search-button:hover::before {
     left: 100%;
 }
+
+/* Update button styling for Streamlit buttons */
+button[data-testid="baseButton-secondary"] {
+    position: relative;
+    background: linear-gradient(135deg, #238636, #1f6feb) !important;
+    color: white !important;
+    font-weight: bold !important;
+    padding: 0.75rem 2rem !important;
+    font-size: 1.1rem !important;
+    border: none !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 12px rgba(31, 111, 235, 0.2);
+    text-align: center;
+    width: auto !important;
+    min-width: 200px;
+}
+
+button[data-testid="baseButton-secondary"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(31, 111, 235, 0.3);
+    background: linear-gradient(135deg, #1f6feb, #238636) !important;
+}
+
+button[data-testid="baseButton-secondary"]:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(31, 111, 235, 0.2);
+}
+
+/* Remove old new-search-button styles that were using onclick */
+.new-search-container,
+.new-search-button {
+    display: none;
+}
