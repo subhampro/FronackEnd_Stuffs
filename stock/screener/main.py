@@ -28,32 +28,59 @@ def main():
         st.session_state.stocks_with_issues = []
     if 'stop_scan' not in st.session_state:
         st.session_state.stop_scan = False
+    if 'scanning' not in st.session_state:
+        st.session_state.scanning = False
+    if 'form_data' not in st.session_state:
+        st.session_state.form_data = {
+            'pattern': 'Volatility Contraction',
+            'interval': '1h',
+            'exchange': 'NSE'
+        }
 
     def stop_scan():
         st.session_state.stop_scan = True
+        st.session_state.scanning = False
 
-    st.title("Indian Stock Market Screener")
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        pattern = st.selectbox(
-            "Select the chart Pattern",
-            ["Volatility Contraction", "Volatility Contraction Positive"]
-        )
-    with col2:
-        interval = st.selectbox(
-            "Select time interval:",
-            ["1h", "15m", "30m", "1d", "5d"],
-            index=0
-        )
-    with col3:
-        exchange = st.selectbox(
-            "Select exchange:",
-            ["NSE", "NIFTY50", "ALL"],
-            index=0
-        )
-    
-    if st.button("Scan for Patterns"):
+    # Only show input form if not scanning
+    if not st.session_state.scanning:
+        with st.form(key='scan_form'):
+            st.title("Indian Stock Market Screener")
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                pattern = st.selectbox(
+                    "Select the chart Pattern",
+                    ["Volatility Contraction", "Volatility Contraction Positive"]
+                )
+            with col2:
+                interval = st.selectbox(
+                    "Select time interval:",
+                    ["1h", "15m", "30m", "1d", "5d"],
+                    index=0
+                )
+            with col3:
+                exchange = st.selectbox(
+                    "Select exchange:",
+                    ["NSE", "NIFTY50", "ALL"],
+                    index=0
+                )
+            
+            submitted = st.form_submit_button("Scan for Patterns")
+            if submitted:
+                st.session_state.form_data = {
+                    'pattern': pattern,
+                    'interval': interval,
+                    'exchange': exchange
+                }
+                st.session_state.scanning = True
+                st.rerun()
+
+    # Scanning logic
+    if st.session_state.scanning:
+        pattern = st.session_state.form_data['pattern']
+        interval = st.session_state.form_data['interval']
+        exchange = st.session_state.form_data['exchange']
+        
         st.session_state.matching_stocks = []
         st.session_state.stocks_with_issues = []
         st.session_state.stop_scan = False
@@ -70,7 +97,12 @@ def main():
         # Create scan container with status display
         scan_container = st.container()
         with scan_container:
-            st.markdown('<div class="scan-container">', unsafe_allow_html=True)
+            st.markdown("""
+                <div class="scan-container">
+                    <div class="website-header">
+                        <h2 class="header-title">Indian Stock Market Screener By SubhaM</h2>
+                    </div>
+                    """, unsafe_allow_html=True)
             
             # Scan header and status
             st.markdown(f'''

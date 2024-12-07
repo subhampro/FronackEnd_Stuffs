@@ -333,3 +333,156 @@ img:hover {
     text-decoration: none !important;
     color: #ffffff !important;
 }
+
+/* Upper Section Control */
+.upper-section {
+    transition: all 0.5s ease-in-out;
+    opacity: 1;
+    transform: translateY(0);
+    height: auto;
+    margin-bottom: 2rem;
+}
+
+.upper-section.hidden {
+    opacity: 0;
+    transform: translateY(-20px);
+    height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Animation for section hiding */
+@keyframes slideUpFade {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+        height: auto;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+        height: 0;
+    }
+}
+
+/* Animation for section showing */
+@keyframes slideDownFade {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+        height: 0;
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+        height: auto;
+    }
+}
+
+/* Upper Section Control */
+.stMarkdown {
+    transition: all 0.3s ease-in-out;
+}
+
+.element-container {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Add smooth transitions for appearing/disappearing elements */
+.stButton, .stSelectbox {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Ensure containers are properly hidden */
+.stHidden {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+}
+
+/* Website Header Styling */
+.website-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: rgba(31, 111, 235, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(31, 111, 235, 0.2);
+}
+
+.header-title {
+    font-size: 2.5em !important;
+    background: linear-gradient(45deg, #1f6feb, #238636);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem !important;
+    animation: fadeIn 1s ease-in;
+}
+
+.header-subtitle {
+    font-size: 1.2em;
+    color: #e6edf3;
+    opacity: 0.8;
+    margin: 0;
+    font-weight: 500;
+    background: linear-gradient(45deg, #238636, #1f6feb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Form Submit Button Enhancement */
+.stButton > button[type="submit"], 
+button[data-testid="baseButton-secondary"] {
+    background: linear-gradient(135deg, #1f6feb, #238636) !important;
+    color: white !important;
+    font-weight: bold !important;
+    padding: 0.75rem 2rem !important;
+    font-size: 1.1rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(31, 111, 235, 0.2) !important;
+    transition: all 0.3s ease !important;
+}
+
+.stButton > button[type="submit"]:hover,
+button[data-testid="baseButton-secondary"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(31, 111, 235, 0.3) !important;
+    background: linear-gradient(135deg, #238636, #1f6feb) !important;
+}
+
+.stButton > button[type="submit"]:active,
+button[data-testid="baseButton-secondary"]:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(31, 111, 235, 0.2) !important;
+}
+
+/* Add shine effect to submit button */
+.stButton > button[type="submit"]::before,
+button[data-testid="baseButton-secondary"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.stButton > button[type="submit"]:hover::before,
+button[data-testid="baseButton-secondary"]:hover::before {
+    left: 100%;
+}
