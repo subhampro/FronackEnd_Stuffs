@@ -119,36 +119,6 @@ def main():
             stocks_processed = len(processed_stocks)
             initial_progress = stocks_processed / total_stocks
             
-            if st.session_state.matching_stocks:
-                results_header = st.empty()
-                results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
-                with st.container():
-                    for ticker, company_name, data in st.session_state.matching_stocks:
-                        with st.expander(f"{company_name} ({ticker}) - Pattern Match", expanded=False):
-                            col1, col2 = st.columns([4, 1])
-                            with col1:
-                                st.write(data.tail())
-                            with col2:
-                                st.markdown(
-                                    f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
-                                    '📊 TradingView</a>',
-                                    unsafe_allow_html=True
-                                )
-                            plot_candlestick(data, ticker, company_name)
-                            st.image('chart.png')
-            
-            tickers = [t for t in tickers if t not in processed_stocks]
-            st.info(f"Resuming scan from {stocks_processed} previously processed stocks ({initial_progress:.1%})")
-        else:
-            processed_stocks = set()
-            total_stocks = len(tickers)
-            st.session_state.matching_stocks = []
-            st.session_state.stocks_with_issues = []
-            stocks_processed = 0
-            initial_progress = 0
-
-        start_time = datetime.now()
-        
         scan_container = st.container()
         with scan_container:
             st.markdown("""
@@ -180,6 +150,7 @@ def main():
             progress_container = st.empty()
             stats_container = st.empty()
             stop_button_container = st.empty()
+            resume_info = st.empty()
             results_container = st.container()
             results_header = st.empty()
             fetched_header = st.empty()
@@ -190,8 +161,39 @@ def main():
                 on_click=stop_scan,
                 type="primary"
             )
+
+            if progress_data and not st.session_state.should_reset:
+                resume_info.info(f"Resuming scan from {stocks_processed} previously processed stocks ({initial_progress:.1%})")
+                if st.session_state.matching_stocks:
+                    with results_container:
+                        st.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
+                        for ticker, company_name, data in st.session_state.matching_stocks:
+                            with st.expander(f"{company_name} ({ticker}) - Pattern Match", expanded=False):
+                                col1, col2 = st.columns([4, 1])
+                                with col1:
+                                    st.write(data.tail())
+                                with col2:
+                                    st.markdown(
+                                        f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
+                                        '📊 TradingView</a>',
+                                        unsafe_allow_html=True
+                                    )
+                                plot_candlestick(data, ticker, company_name)
+                                st.image('chart.png')
             
             st.markdown('</div>', unsafe_allow_html=True)
+
+        if progress_data and not st.session_state.should_reset:
+            tickers = [t for t in tickers if t not in processed_stocks]
+        else:
+            processed_stocks = set()
+            total_stocks = len(tickers)
+            st.session_state.matching_stocks = []
+            st.session_state.stocks_with_issues = []
+            stocks_processed = 0
+            initial_progress = 0
+
+        start_time = datetime.now()
         
         try:
             for i, ticker in enumerate(tickers):
