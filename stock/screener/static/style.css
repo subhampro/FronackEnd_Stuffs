@@ -198,3 +198,86 @@ img:hover {
     transform: translateY(0);
     box-shadow: 0 2px 8px rgba(41, 98, 255, 0.2);
 }
+
+/* Scan Status Styles */
+.scan-container {
+    background: rgba(31, 111, 235, 0.05);
+    border: 1px solid rgba(31, 111, 235, 0.2);
+    border-radius: 10px;
+    padding: 2rem;
+    margin: 1rem 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.scan-status {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.scan-status h3 {
+    margin: 0;
+    background: linear-gradient(45deg, #1f6feb, #238636);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.5rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.stat-card {
+    background: rgba(31, 111, 235, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #1f6feb, #238636);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Enhanced Progress Bar */
+.scan-progress {
+    height: 8px !important;
+    border-radius: 4px !important;
+    background: rgba(31, 111, 235, 0.1) !important;
+}
+
+.scan-progress > div {
+    background: linear-gradient(90deg, #1f6feb, #238636) !important;
+    border-radius: 4px !important;
+}
+
+/* Stop Button Enhancement */
+.stop-button button {
+    background: linear-gradient(45deg, #dc3545, #dc2f02) !important;
+    color: white !important;
+    font-weight: bold !important;
+}
+
+.stop-button button:hover {
+    background: linear-gradient(45deg, #bb2d3b, #bc2602) !important;
+}

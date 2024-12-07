@@ -54,9 +54,8 @@ def main():
         )
     
     if st.button("Scan for Patterns"):
-
         st.session_state.matching_stocks = []
-        st.session_state.stocks_with_issues = []  # Reset stocks with issues
+        st.session_state.stocks_with_issues = []
         st.session_state.stop_scan = False
         
         tickers = fetch_all_tickers(exchange)
@@ -65,55 +64,87 @@ def main():
             return
             
         total_stocks = len(tickers)
-        st.info(f"Found {total_stocks} stocks to scan. Estimated time: {total_stocks * 2} seconds")
-        
-        # Create placeholders for elements we want to clear later
-        scan_message = st.empty()
-        stop_button = st.empty()
-        
-        scan_message.write(f"Scanning for {pattern} pattern...")
-        stop_button.button("Stop Scan", on_click=stop_scan, key='stop_button')
-        
-        progress_text = st.empty()
-        progress_bar = st.progress(0)
-        stats_text = st.empty()
-        
-        results_header = st.empty()
-        fetched_header = st.empty()
-        results_container = st.container()
-        fetched_container = st.container()
-        
         start_time = datetime.now()
-        stocks_processed = 0
+        stocks_processed = 0  # Initialize stocks_processed here
         
-        for i, ticker in enumerate(tickers):
-            try:
+        # Create scan container with status display
+        scan_container = st.container()
+        with scan_container:
+            st.markdown('<div class="scan-container">', unsafe_allow_html=True)
+            
+            # Scan header and status
+            st.markdown('<div class="scan-status"><h3>🔍 Stock Scanner</h3></div>', unsafe_allow_html=True)
+            
+            # Progress and stats containers
+            progress_container = st.empty()
+            stats_container = st.empty()
+            stop_button_container = st.empty()  # Container for stop button
+            results_container = st.container()
+            results_header = st.empty()
+            fetched_header = st.empty()
+            
+            # Stop button in its container
+            stop_button_container.button(
+                "🛑 Stop Scan",
+                key="stop_scan_button",
+                on_click=stop_scan,
+                type="primary"
+            )
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        try:
+            for i, ticker in enumerate(tickers):
                 if st.session_state.stop_scan:
                     st.warning(f"Scan stopped by user after processing {i} stocks")
                     break
                 
                 progress = (i + 1) / total_stocks
                 elapsed_time = (datetime.now() - start_time).seconds
-                eta = (elapsed_time / (i + 1)) * (total_stocks - i - 1) if i > 0 else 0
+                eta = int((elapsed_time / (i + 1)) * (total_stocks - i - 1)) if i > 0 else 0
                 
-                progress_text.text(f"Processing {ticker} ({i+1}/{total_stocks})")
-                progress_bar.progress(progress)
-                stats_text.text(f"Elapsed: {elapsed_time}s | ETA: {int(eta)}s | Found: {len(st.session_state.matching_stocks)} matches")
+                # Update progress and stats
+                progress_container.markdown(f"""
+                    <div class="scan-progress">
+                        <div style="width: {progress*100}%"></div>
+                    </div>
+                """, unsafe_allow_html=True)
                 
+                stats_container.markdown(f"""
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Progress</div>
+                            <div class="stat-value">{progress*100:.1f}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Stocks Scanned</div>
+                            <div class="stat-value">{i+1}/{total_stocks}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Time Elapsed</div>
+                            <div class="stat-value">{elapsed_time}s</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">ETA</div>
+                            <div class="stat-value">{eta}s</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Process stock data
                 data, has_period_issues = fetch_stock_data(ticker, interval)
                 if not data.empty:
                     company_name = get_company_name(ticker)
                     fetched_header.info(f"Processing {ticker}...")
                     
-                    # Check and add to stocks_with_issues first
                     if has_period_issues:
-                        print(f"Adding {ticker} to stocks with issues")  # Debug print
                         st.session_state.stocks_with_issues.append((ticker, company_name, data))
                     
                     if detect_pattern(data, pattern, ticker):
                         st.session_state.matching_stocks.append((ticker, company_name, data))
                         results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
                         
+                        # Display matched stock
                         with results_container:
                             with st.expander(f"{company_name} ({ticker}) - Pattern Match", expanded=True):
                                 col1, col2 = st.columns([4, 1])
@@ -127,25 +158,23 @@ def main():
                                     )
                                 plot_candlestick(data, ticker, company_name)
                                 st.image('chart.png')
-                    
+                
                 stocks_processed += 1
                 
-            except Exception as e:
-                st.write(f"Error scanning {ticker}: {e}")
-                continue
-        
-        # Clear all progress elements and scan-related UI
-        progress_text.empty()
-        progress_bar.empty()
-        stats_text.empty()
-        scan_message.empty()  # Clear the scanning message
-        stop_button.empty()   # Clear the stop button
-        
-        total_time = (datetime.now() - start_time).seconds
-        if st.session_state.stop_scan:
-            st.info(f"Scan stopped after {total_time} seconds. Showing all results...")
-        else:
-            st.success(f"Scan completed in {total_time} seconds!")
+        finally:
+            # Clear the scanning interface
+            progress_container.empty()
+            stats_container.empty()
+            stop_button_container.empty()
+            fetched_header.empty()
+            scan_container.empty()
+            
+            # Show completion message
+            total_time = (datetime.now() - start_time).seconds
+            if st.session_state.stop_scan:
+                st.info(f"Scan stopped after {total_time} seconds. Showing all results...")
+            else:
+                st.success(f"Scan completed in {total_time} seconds!")
 
     # Display stocks with period-related issues FIRST
     if len(st.session_state.stocks_with_issues) > 0:  # Changed condition
