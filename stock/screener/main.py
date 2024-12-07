@@ -37,7 +37,7 @@ def main():
     col1, col2, col3 = st.columns(3)
     with col1:
         pattern = st.selectbox(
-            "Select the chart pattern to search for:",
+            "Select the chart Pattern",
             ["Volatility Contraction", "Volatility Contraction Positive"]
         )
     with col2:
@@ -66,9 +66,13 @@ def main():
             
         total_stocks = len(tickers)
         st.info(f"Found {total_stocks} stocks to scan. Estimated time: {total_stocks * 2} seconds")
-        st.write(f"Scanning for {pattern} pattern...")
-
-        st.button("Stop Scan", on_click=stop_scan, key='stop_button')
+        
+        # Create placeholders for elements we want to clear later
+        scan_message = st.empty()
+        stop_button = st.empty()
+        
+        scan_message.write(f"Scanning for {pattern} pattern...")
+        stop_button.button("Stop Scan", on_click=stop_scan, key='stop_button')
         
         progress_text = st.empty()
         progress_bar = st.progress(0)
@@ -126,16 +130,22 @@ def main():
                 st.write(f"Error scanning {ticker}: {e}")
                 continue
         
+        # Clear all progress elements and scan-related UI
+        progress_text.empty()
+        progress_bar.empty()
+        stats_text.empty()
+        scan_message.empty()  # Clear the scanning message
+        stop_button.empty()   # Clear the stop button
+        
         total_time = (datetime.now() - start_time).seconds
         if st.session_state.stop_scan:
             st.info(f"Scan stopped after {total_time} seconds. Showing all results...")
         else:
-            progress_bar.progress(1.0)
             st.success(f"Scan completed in {total_time} seconds!")
 
     # Display all successfully fetched stocks
     if st.session_state.fetched_stocks:
-        st.header("All Stocks with Available Data")
+        st.header("All Rest Stocks Available Not Match The Filtered Pattern")
         for ticker, company_name, data in st.session_state.fetched_stocks:
             with st.expander(f"{company_name} ({ticker})", expanded=False):
                 col1, col2 = st.columns([4, 1])
