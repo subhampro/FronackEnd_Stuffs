@@ -65,7 +65,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             # 2. Check first 40-50 candles for tight consolidation
             first_50_candles = last_180_candles.head(50)
             consolidation_range = (first_50_candles['High'].max() - first_50_candles['Low'].min()) / first_50_candles['Close'].mean()
-            if consolidation_range <= 0.03:
+            if consolidation_range <= 0.10:  # Changed from 0.03 (3%) to 0.10 (10%)
                 conditions_met["tight_consolidation"] = True
             
             # 3. Check for higher lows
@@ -94,7 +94,8 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             )
             volatility_section['ATR'] = volatility_section['TR'].rolling(window=5).mean()
             price_moves = volatility_section['Close'].pct_change()
-            if any(abs(move) > 0.02 for move in price_moves):
+            # Changed impulse threshold to 15-25% range
+            if any((move >= 0.15 and move <= 0.25) for move in price_moves):  # Changed from 0.02 to 0.15-0.25 range
                 conditions_met["volatility_impulse"] = True
             
             # 5. Check low volume consolidation
@@ -103,7 +104,10 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             recent_volume = last_25_candles['Volume'].mean()
             recent_range = (last_25_candles['High'].max() - last_25_candles['Low'].min()) / last_25_candles['Close'].mean()
             
-            if recent_volume <= (avg_volume * 0.8) and recent_range <= 0.04:
+            # Changed volume check to be between 50-80% of average
+            if (recent_volume >= (avg_volume * 0.5) and 
+                recent_volume <= (avg_volume * 0.8) and 
+                recent_range <= 0.04):
                 conditions_met["low_volume_consolidation"] = True
             
             # 6. Check EMA proximity
