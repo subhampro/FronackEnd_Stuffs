@@ -22,6 +22,25 @@ def get_tradingview_url(ticker):
 
 def main():
     load_css()
+    
+    # Initialize session state
+    if 'should_reset' not in st.session_state:
+        st.session_state.should_reset = False
+        
+    # Reset all states if should_reset is True
+    if st.session_state.should_reset:
+        st.session_state.matching_stocks = []
+        st.session_state.stocks_with_issues = []
+        st.session_state.stop_scan = False
+        st.session_state.scanning = False
+        st.session_state.should_reset = False
+        st.session_state.form_data = {
+            'pattern': 'Volatility Contraction',
+            'interval': '1h',
+            'exchange': 'NSE'
+        }
+    
+    # Initialize other session states if they don't exist
     if 'matching_stocks' not in st.session_state:
         st.session_state.matching_stocks = []
     if 'stocks_with_issues' not in st.session_state:
@@ -41,12 +60,9 @@ def main():
         st.session_state.stop_scan = True
         st.session_state.scanning = False
 
-    def new_search():
-        st.session_state.scanning = False
-        st.session_state.stop_scan = False
-        st.session_state.matching_stocks = []
-        st.session_state.stocks_with_issues = []
-        st.rerun()
+    # Replace new_search function with this:
+    def trigger_reset():
+        st.session_state.should_reset = True
 
     if not st.session_state.scanning:
         with st.form(key='scan_form'):
@@ -119,10 +135,8 @@ def main():
                         </div>
                     </div>
                     <div class="scan-status-right">
-                        <div class="new-search-wrapper">
                         {st.button("🔄 New Search", key="new_search_status", 
-                                 help="Start a new stock scan", on_click=new_search)}
-                        </div>
+                                 help="Start a new stock scan", on_click=trigger_reset)}
                     </div>
                 </div>
             ''', unsafe_allow_html=True)
@@ -256,9 +270,8 @@ def main():
                 st.image('chart.png')
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("🔄 New Search", key="new_search_button", 
-                        help="Start a new stock scan"):
-                new_search()
+            st.button("🔄 New Search", key="new_search_button", 
+                     help="Start a new stock scan", on_click=trigger_reset)
     elif st.session_state.stop_scan:
         st.warning("No matching stocks found before scan was stopped")
 
