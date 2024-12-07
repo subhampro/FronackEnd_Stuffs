@@ -97,68 +97,67 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             if 0.05 <= consolidation_range <= 0.25:  # Changed to check if range is between 5% and 25%
                 conditions_met["tight_consolidation"] = True
             
-            # 3. Modified Higher Lows Check - After consolidation period
-            # Look at candles 5-50 after the consolidation period
-            check_start = 45 + 5  # Start 5 candles after consolidation
-            check_end = min(45 + 50, len(last_126_candles))  # Look up to 50 candles after consolidation
+            # 3. Modified Higher Lows Check - MUCH MORE RELAXED
+            check_start = 45 + 3  # Reduced from 5 to 3 candles after consolidation
+            check_end = min(45 + 65, len(last_126_candles))  # Extended window further
             check_section = last_126_candles.iloc[check_start:check_end]
-            
-            if len(check_section) >= 10:  # Ensure we have enough candles to analyze
-                # Find local minima using rolling window of 5 candles
+
+            if len(check_section) >= 6:  # Reduced from 8 to 6 minimum candles
                 lows = check_section['Low'].values
                 min_points = []
                 min_indices = []
                 
-                for i in range(2, len(lows)-2):
-                    if (lows[i] < lows[i-1] and lows[i] < lows[i-2] and 
-                        lows[i] < lows[i+1] and lows[i] < lows[i+2]):
+                # Use smaller window to find more potential low points
+                for i in range(1, len(lows)-1):
+                    # More lenient low point detection - allow equal lows
+                    if (lows[i] <= lows[i-1] * 1.001 and lows[i] <= lows[i+1] * 1.001):  # Allow 0.1% variance
                         min_points.append(lows[i])
                         min_indices.append(i)
                 
-                # Check if we found at least 3 minima and they're forming higher lows
-                if len(min_points) >= 3:
-                    # Verify higher lows with minimum price increase threshold
+                if len(min_points) >= 2:  # Keep minimum 2 points
                     is_higher_lows = True
-                    min_increase = 0.001  # 0.1% minimum increase between lows
+                    min_increase = 0.0001  # Reduced from 0.0003 to 0.0001 (0.01% minimum increase)
                     
                     for i in range(1, len(min_points)):
-                        if min_points[i] <= min_points[i-1] or \
-                           (min_points[i] - min_points[i-1]) / min_points[i-1] < min_increase:
+                        # Allow more deviation in higher lows
+                        if min_points[i] < min_points[i-1] * (1 - 0.005):  # Allow 0.5% deviation instead of 0.2%
                             is_higher_lows = False
                             break
                         
-                        # Verify the distance between minima is at least 3 candles
-                        if min_indices[i] - min_indices[i-1] < 3:
+                        # Minimum distance between lows remains at 1 candle
+                        if min_indices[i] - min_indices[i-1] < 1:
                             is_higher_lows = False
                             break
                     
                     conditions_met["higher_lows"] = is_higher_lows
             
-            # 4. Check volatility and impulses (adjusted range - MORE RELAXED)
-            volatility_section = last_126_candles.iloc[76:96].copy()
+            # 4. Check volatility and impulses - MUCH MORE RELAXED
+            # Extended section to look for impulses
+            volatility_section = last_126_candles.iloc[60:100].copy()  # Extended window from 65:96 to 60:100
             volatility_section['TR'] = np.maximum(
-                volatility_section['High'] - volatility_section['Low'],
+                volatility_section['High'] - data['Low'],
                 np.maximum(
                     abs(volatility_section['High'] - volatility_section['Close'].shift(1)),
                     abs(volatility_section['Low'] - volatility_section['Close'].shift(1))
                 )
             )
-            volatility_section['ATR'] = volatility_section['TR'].rolling(window=5).mean()
-            price_moves = volatility_section['Close'].pct_change()
-            # CHANGED: Relaxed impulse threshold to 8-25% range (from 15-25%)
-            if any((move >= 0.08 and move <= 0.25) for move in price_moves):
+            volatility_section['ATR'] = volatility_section['TR'].rolling(window=8).mean()  # Increased from 5 to 8
+            price_moves = volatility_section['Close'].pct_change().abs()  # Added abs() for both up/down moves
+            
+            # Much more relaxed impulse threshold
+            if any((move >= 0.03 and move <= 0.30) for move in price_moves):  # Changed from 0.05-0.25 to 0.03-0.30
                 conditions_met["volatility_impulse"] = True
             
-            # 5. Check low volume consolidation (MORE RELAXED)
+            # 5. Check low volume consolidation - MORE RELAXED
             last_20_candles = last_126_candles.tail(20)
             avg_volume = last_126_candles['Volume'].mean()
             recent_volume = last_20_candles['Volume'].mean()
             recent_range = (last_20_candles['High'].max() - last_20_candles['Low'].min()) / last_20_candles['Close'].mean()
             
-            # CHANGED: Further relaxed volume and range requirements
-            if (recent_volume >= (avg_volume * 0.2) and  # Changed from 0.3 to 0.2
-                recent_volume <= (avg_volume * 1.1) and  # Changed from 0.9 to 1.1
-                recent_range <= 0.08):  # Changed from 0.06 to 0.08 (8% range allowed)
+            # Further relaxed volume and range requirements
+            if (recent_volume >= (avg_volume * 0.10) and  # Changed from 0.15 to 0.10
+                recent_volume <= (avg_volume * 1.5) and   # Changed from 1.2 to 1.5
+                recent_range <= 0.15):                    # Changed from 0.10 to 0.15
                 conditions_met["low_volume_consolidation"] = True
             
             # 6. Check EMA proximity - RELAXED
