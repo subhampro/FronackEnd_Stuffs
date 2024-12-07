@@ -116,15 +116,36 @@ def main():
             st.session_state.matching_stocks = progress_data['matching_stocks']
             st.session_state.stocks_with_issues = progress_data['stocks_with_issues']
             total_stocks = progress_data['total_stocks']
+            stocks_processed = len(processed_stocks)
+            initial_progress = stocks_processed / total_stocks
+            
+            if st.session_state.matching_stocks:
+                results_header = st.empty()
+                results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
+                with st.container():
+                    for ticker, company_name, data in st.session_state.matching_stocks:
+                        with st.expander(f"{company_name} ({ticker}) - Pattern Match", expanded=False):
+                            col1, col2 = st.columns([4, 1])
+                            with col1:
+                                st.write(data.tail())
+                            with col2:
+                                st.markdown(
+                                    f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
+                                    '📊 TradingView</a>',
+                                    unsafe_allow_html=True
+                                )
+                            plot_candlestick(data, ticker, company_name)
+                            st.image('chart.png')
             
             tickers = [t for t in tickers if t not in processed_stocks]
-            
-            st.info(f"Resuming scan from {len(processed_stocks)} previously processed stocks")
+            st.info(f"Resuming scan from {stocks_processed} previously processed stocks ({initial_progress:.1%})")
         else:
             processed_stocks = set()
             total_stocks = len(tickers)
             st.session_state.matching_stocks = []
             st.session_state.stocks_with_issues = []
+            stocks_processed = 0
+            initial_progress = 0
 
         start_time = datetime.now()
         
@@ -175,10 +196,12 @@ def main():
         try:
             for i, ticker in enumerate(tickers):
                 if st.session_state.stop_scan:
-                    st.warning(f"Scan stopped by user after processing {len(processed_stocks)} stocks")
+                    st.warning(f"Scan stopped by user after processing {stocks_processed} stocks")
                     break
 
                 processed_stocks.add(ticker)
+                current_total_processed = stocks_processed + i + 1
+                progress = current_total_processed / total_stocks
                 
                 if i % 10 == 0 or st.session_state.stop_scan:
                     cache_manager.save_progress_to_cache(
@@ -191,9 +214,9 @@ def main():
                         total_stocks
                     )
 
-                progress = (i + 1) / total_stocks
                 elapsed_time = (datetime.now() - start_time).seconds
-                eta = int((elapsed_time / (i + 1)) * (total_stocks - i - 1)) if i > 0 else 0
+                remaining_stocks = total_stocks - current_total_processed
+                eta = int((elapsed_time / (i + 1)) * remaining_stocks) if i > 0 else 0
                 
                 progress_container.markdown(f"""
                     <div class="scan-progress">
@@ -209,7 +232,7 @@ def main():
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">Stocks Scanned</div>
-                            <div class="stat-value">{i+1}/{total_stocks}</div>
+                            <div class="stat-value">{current_total_processed}/{total_stocks}</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">Time Elapsed</div>
