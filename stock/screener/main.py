@@ -3,6 +3,7 @@ from fetch_data import fetch_stock_data, get_company_name, fetch_all_tickers
 from plot_chart import plot_candlestick
 from pattern_detection import detect_pattern, generate_summary_report
 from datetime import datetime
+from cache_manager import CacheManager
 
 st.set_page_config(
     page_title="Indian Stock Market Screener",
@@ -22,6 +23,7 @@ def get_tradingview_url(ticker):
 
 def main():
     load_css()
+    cache_manager = CacheManager()
     
     # Initialize session state
     if 'should_reset' not in st.session_state:
@@ -101,7 +103,15 @@ def main():
         pattern = st.session_state.form_data['pattern']
         interval = st.session_state.form_data['interval']
         exchange = st.session_state.form_data['exchange']
+
+        # Check cache first
+        cached_data = cache_manager.get_from_cache(pattern, interval, exchange)
+        if cached_data:
+            st.session_state.matching_stocks, st.session_state.stocks_with_issues = cached_data
+            st.session_state.scanning = False
+            st.rerun()
         
+        # If no cache, proceed with scanning
         st.session_state.matching_stocks = []
         st.session_state.stocks_with_issues = []
         st.session_state.stop_scan = False
@@ -224,9 +234,15 @@ def main():
                 
                 stocks_processed += 1
             
-            # Generate summary but don't display it
+            # Save to cache if scan completed successfully
             if not st.session_state.stop_scan:
-                generate_summary_report()
+                cache_manager.save_to_cache(
+                    pattern,
+                    interval,
+                    exchange,
+                    st.session_state.matching_stocks,
+                    st.session_state.stocks_with_issues
+                )
                 
         finally:
             progress_container.empty()

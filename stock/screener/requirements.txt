@@ -10,6 +10,8 @@ matplotlib>=3.7.0
 # Optional but recommended for better performance
 plotly>=5.15.0
 
+pytz>=2023.3
+
 # On Windows Create Environment!
 # python -m venv screenerenv 
 # stockenv\Scripts\activate
