@@ -24,8 +24,8 @@ def main():
     load_css()
     if 'matching_stocks' not in st.session_state:
         st.session_state.matching_stocks = []
-    if 'fetched_stocks' not in st.session_state:
-        st.session_state.fetched_stocks = []
+    if 'stocks_with_issues' not in st.session_state:
+        st.session_state.stocks_with_issues = []
     if 'stop_scan' not in st.session_state:
         st.session_state.stop_scan = False
 
@@ -56,7 +56,7 @@ def main():
     if st.button("Scan for Patterns"):
 
         st.session_state.matching_stocks = []
-        st.session_state.fetched_stocks = []
+        st.session_state.stocks_with_issues = []  # Reset stocks with issues
         st.session_state.stop_scan = False
         
         tickers = fetch_all_tickers(exchange)
@@ -100,13 +100,17 @@ def main():
                 progress_bar.progress(progress)
                 stats_text.text(f"Elapsed: {elapsed_time}s | ETA: {int(eta)}s | Found: {len(st.session_state.matching_stocks)} matches")
                 
-                data = fetch_stock_data(ticker, interval)
+                data, has_period_issues = fetch_stock_data(ticker, interval)
                 if not data.empty:
                     company_name = get_company_name(ticker)
-                    st.session_state.fetched_stocks.append((ticker, company_name, data))
-                    fetched_header.info(f"Successfully fetched data for {len(st.session_state.fetched_stocks)} stocks")
+                    fetched_header.info(f"Processing {ticker}...")
                     
-                    if detect_pattern(data, pattern, ticker):  # Pass ticker to detect_pattern
+                    # Check and add to stocks_with_issues first
+                    if has_period_issues:
+                        print(f"Adding {ticker} to stocks with issues")  # Debug print
+                        st.session_state.stocks_with_issues.append((ticker, company_name, data))
+                    
+                    if detect_pattern(data, pattern, ticker):
                         st.session_state.matching_stocks.append((ticker, company_name, data))
                         results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
                         
@@ -143,11 +147,13 @@ def main():
         else:
             st.success(f"Scan completed in {total_time} seconds!")
 
-    # Display all successfully fetched stocks
-    if st.session_state.fetched_stocks:
+    # Display stocks with period-related issues FIRST
+    if len(st.session_state.stocks_with_issues) > 0:  # Changed condition
         st.header("All Rest Matched Stocks Old Chart Data Not Available")
-        for ticker, company_name, data in st.session_state.fetched_stocks:
-            with st.expander(f"{company_name} ({ticker})", expanded=False):
+        st.info(f"Found {len(st.session_state.stocks_with_issues)} stocks with data availability issues")
+        
+        for ticker, company_name, data in st.session_state.stocks_with_issues:
+            with st.expander(f"{company_name} ({ticker}) - Limited Data", expanded=False):
                 col1, col2 = st.columns([4, 1])
                 with col1:
                     st.write(data.tail())

@@ -102,6 +102,8 @@ def fetch_all_tickers(exchange_filter="NSE"):
                 return nse_stocks
         
         return stocks if stocks else [
+            # Old Data Not Available
+            "ACMESOLAR.NS",
             # New Age Tech & Digital
             "ZOMATO.NS", "NYKAA.NS", "PAYTM.NS", "DELHIVERY.NS",
             # IT & Software
@@ -136,7 +138,6 @@ def fetch_stock_data(ticker, interval='1h'):
     try:
         stock = yf.Ticker(ticker)
         
-        # Updated interval config with fallback periods
         interval_config = {
             '15m': ['5d', '1d'],      
             '30m': ['5d', '5d', '1d'],      
@@ -150,30 +151,38 @@ def fetch_stock_data(ticker, interval='1h'):
         data = pd.DataFrame()
         had_error = False
         initial_error = None
+        has_period_issues = False
         
         for period in periods_to_try:
             try:
                 data = stock.history(period=period, interval=interval)
                 if not data.empty:
-                    # Only show success message if we had a previous error
                     if had_error:
-                        print(f"{ticker}: {initial_error}")  # Print the original error
-                        print(f"{ticker}: Successfully fetched data with fallback period '{period}'")
+                        print(f"{ticker}: Previous error - {initial_error}")
+                        if "Period" in str(initial_error) and "is invalid" in str(initial_error):
+                            has_period_issues = True
+                            print(f"{ticker}: Marked as having period issues")
                     break
             except Exception as e:
+                error_str = str(e)
                 if not had_error:
-                    initial_error = str(e)
+                    initial_error = error_str
                     had_error = True
+                    if "Period" in error_str and "is invalid" in error_str:
+                        has_period_issues = True
+                        print(f"{ticker}: Initial period issue detected - {error_str}")
                 continue
                 
         if data.empty:
             print(f"{ticker}: No data available for any time period")
-            return pd.DataFrame()
+            return pd.DataFrame(), False
             
-        return data
+        print(f"{ticker}: Returning data with has_period_issues = {has_period_issues}")  # Debug print
+        return data, has_period_issues
+
     except Exception as e:
         print(f"Error fetching data for {ticker}: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame(), False
 
 def get_company_name(ticker):
     try:
