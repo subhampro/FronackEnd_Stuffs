@@ -135,11 +135,13 @@ def main():
                         </div>
                     </div>
                     <div class="scan-status-right">
-                        {st.button("🔄 New Search", key="new_search_status", 
-                                 help="Start a new stock scan", on_click=trigger_reset)}
                     </div>
                 </div>
             ''', unsafe_allow_html=True)
+            
+            with st.container():
+                st.button("🔄 New Search", key="new_search_status", 
+                         help="Start a new stock scan", on_click=trigger_reset)
             
             progress_container = st.empty()
             stats_container = st.empty()
