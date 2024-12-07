@@ -149,35 +149,30 @@ def fetch_stock_data(ticker, interval='1h'):
         periods_to_try = interval_config.get(interval, ['1mo', '5d', '1d'])
         
         data = pd.DataFrame()
-        had_error = False
-        initial_error = None
+        period_errors = []
         has_period_issues = False
         
         for period in periods_to_try:
             try:
-                data = stock.history(period=period, interval=interval)
-                if not data.empty:
-                    if had_error:
-                        print(f"{ticker}: Previous error - {initial_error}")
-                        if "Period" in str(initial_error) and "is invalid" in str(initial_error):
-                            has_period_issues = True
-                            print(f"{ticker}: Marked as having period issues")
+                temp_data = stock.history(period=period, interval=interval)
+                if not temp_data.empty:
+                    data = temp_data
+                    if period != periods_to_try[0]:
+                        has_period_issues = True
                     break
             except Exception as e:
                 error_str = str(e)
-                if not had_error:
-                    initial_error = error_str
-                    had_error = True
-                    if "Period" in error_str and "is invalid" in error_str:
-                        has_period_issues = True
-                        print(f"{ticker}: Initial period issue detected - {error_str}")
+                period_errors.append(f"Period '{period}': {error_str}")
+                if "Period" in error_str and "is invalid" in error_str:
+                    has_period_issues = True
                 continue
-                
+        
+        if period_errors:
+            has_period_issues = True
+        
         if data.empty:
-            print(f"{ticker}: No data available for any time period")
-            return pd.DataFrame(), False
+            return pd.DataFrame(), has_period_issues
             
-        print(f"{ticker}: Returning data with has_period_issues = {has_period_issues}")  # Debug print
         return data, has_period_issues
 
     except Exception as e:
