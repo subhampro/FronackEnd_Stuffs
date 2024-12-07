@@ -1,5 +1,29 @@
 import pandas as pd
 import numpy as np
+from datetime import datetime
+import os
+
+def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions=None):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_dir = "pattern_logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+        
+    log_file = os.path.join(log_dir, f"pattern_scan_{timestamp}.log")
+    
+    with open(log_file, "a", encoding='utf-8') as f:
+        f.write(f"\n{'='*50}\n")
+        f.write(f"Ticker: {ticker}\n")
+        f.write(f"Conditions Met: {len(met_conditions)} of 6\n")
+        f.write("\nSuccessful Conditions:\n")
+        for cond in met_conditions:
+            f.write(f"✓ {cond.replace('_', ' ').title()}\n")
+        
+        if failed_conditions:
+            f.write("\nFailed Conditions:\n")
+            for cond in failed_conditions:
+                f.write(f"✗ {cond.replace('_', ' ').title()}\n")
+        f.write(f"\nTimestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
 def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"):
     if data.empty or len(data) < 60:
@@ -145,18 +169,11 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             # Count conditions met
             conditions_count = sum(conditions_met.values())
             
-            # Debug output for stocks meeting at least 2 conditions
+            # Log results for stocks meeting at least 2 conditions
             if conditions_count >= 2:
                 met_conditions = [cond for cond, met in conditions_met.items() if met]
-                print(f"\n{ticker} fulfilled {conditions_count} conditions:")
-                for cond in met_conditions:
-                    print(f"✓ {cond.replace('_', ' ').title()}")
-                if conditions_count < 6:
-                    failed_conditions = [cond for cond, met in conditions_met.items() if not met]
-                    print("Failed conditions:")
-                    for cond in failed_conditions:
-                        print(f"✗ {cond.replace('_', ' ').title()}")
-                print("------------------------")
+                failed_conditions = [cond for cond, met in conditions_met.items() if not met]
+                log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions)
             
             # Return True only if all conditions are met
             return all(conditions_met.values())
@@ -166,3 +183,44 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             return False
 
     return False
+
+def generate_summary_report():
+    log_dir = "pattern_logs"
+    if not os.path.exists(log_dir):
+        return
+        
+    latest_log = max([os.path.join(log_dir, f) for f in os.listdir(log_dir)], key=os.path.getctime)
+    
+    stocks_by_conditions = {i: [] for i in range(2, 7)}
+    total_stocks = 0
+    
+    with open(latest_log, 'r', encoding='utf-8') as f:
+        current_ticker = None
+        current_conditions = 0
+        
+        for line in f:
+            if line.startswith("Ticker:"):
+                current_ticker = line.split(":")[1].strip()
+            elif line.startswith("Conditions Met:"):
+                conditions = int(line.split(":")[1].split()[0])
+                if current_ticker and conditions >= 2:
+                    stocks_by_conditions[conditions].append(current_ticker)
+                    total_stocks += 1
+    
+    summary_file = os.path.join(log_dir, "pattern_summary.txt")
+    # Just create the file but don't return it
+    with open(summary_file, 'w', encoding='utf-8') as f:
+        f.write(f"Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"{'='*50}\n\n")
+        f.write(f"Total Stocks Analyzed: {total_stocks}\n\n")
+        
+        for conditions in range(6, 1, -1):
+            stocks = stocks_by_conditions[conditions]
+            f.write(f"\n{conditions} Conditions Met ({len(stocks)} stocks):\n")
+            f.write("-" * 30 + "\n")
+            for stock in stocks:
+                f.write(f"- {stock}\n")
+        
+        f.write(f"\nLog file: {latest_log}\n")
+    
+    return

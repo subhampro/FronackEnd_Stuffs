@@ -1,7 +1,7 @@
 import streamlit as st
 from fetch_data import fetch_stock_data, get_company_name, fetch_all_tickers
 from plot_chart import plot_candlestick
-from pattern_detection import detect_pattern
+from pattern_detection import detect_pattern, generate_summary_report
 from datetime import datetime
 
 st.set_page_config(
@@ -223,6 +223,10 @@ def main():
                                 st.image('chart.png')
                 
                 stocks_processed += 1
+            
+            # Generate summary but don't display it
+            if not st.session_state.stop_scan:
+                generate_summary_report()
                 
         finally:
             progress_container.empty()
