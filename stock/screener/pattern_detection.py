@@ -62,14 +62,14 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             # Calculate 20 EMA
             last_126_candles['EMA20'] = last_126_candles['Close'].ewm(span=20, adjust=False).mean()
             
-            # 2. Check first 40-50 candles for tight consolidation
-            first_50_candles = last_126_candles.head(50)
-            consolidation_range = (first_50_candles['High'].max() - first_50_candles['Low'].min()) / first_50_candles['Close'].mean()
-            if consolidation_range <= 0.10:  # Changed from 0.03 (3%) to 0.10 (10%)
+            # 2. Check first 30-40 candles for tight consolidation (changed from 50)
+            first_40_candles = last_126_candles.head(40)  # Changed from 50 to 40
+            consolidation_range = (first_40_candles['High'].max() - first_40_candles['Low'].min()) / first_40_candles['Close'].mean()
+            if consolidation_range <= 0.10:
                 conditions_met["tight_consolidation"] = True
             
-            # 3. Check for higher lows (adjusted range)
-            next_50_candles = last_126_candles.iloc[50:76]  # Adjusted range
+            # 3. Check for higher lows (adjusted ranges accordingly)
+            next_50_candles = last_126_candles.iloc[40:66]  # Changed start from 50 to 40
             lows = next_50_candles['Low'].values
             min_points = []
             
@@ -84,7 +84,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
                     conditions_met["higher_lows"] = True
             
             # 4. Check volatility and impulses (adjusted range)
-            volatility_section = last_126_candles.iloc[76:96]  # Adjusted range
+            volatility_section = last_126_candles.iloc[76:96].copy()  # Adjusted range
             volatility_section['TR'] = np.maximum(
                 volatility_section['High'] - volatility_section['Low'],
                 np.maximum(
