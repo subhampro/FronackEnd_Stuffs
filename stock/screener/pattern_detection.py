@@ -62,10 +62,10 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             # Calculate 20 EMA
             last_126_candles['EMA20'] = last_126_candles['Close'].ewm(span=20, adjust=False).mean()
             
-            # 2. Check first 30-40 candles for tight consolidation - RELAXED
-            first_40_candles = last_126_candles.head(40)  # Changed from 50 to 40
-            consolidation_range = (first_40_candles['High'].max() - first_40_candles['Low'].min()) / first_40_candles['Close'].mean()
-            if consolidation_range <= 0.15:  # Changed from 0.10 to 0.15 (15% range allowed)
+            # 2. Check first 45 candles for tight consolidation - MODIFIED
+            first_45_candles = last_126_candles.head(45)  # Changed from 40 to 45
+            consolidation_range = (first_45_candles['High'].max() - first_45_candles['Low'].min()) / first_45_candles['Close'].mean()
+            if 0.05 <= consolidation_range <= 0.25:  # Changed to check if range is between 5% and 25%
                 conditions_met["tight_consolidation"] = True
             
             # 3. Check for higher lows
