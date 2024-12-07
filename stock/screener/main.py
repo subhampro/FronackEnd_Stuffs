@@ -28,6 +28,7 @@ def main():
     # Initialize session state
     if 'should_reset' not in st.session_state:
         st.session_state.should_reset = False
+        st.session_state.total_stocks = 0
         
     # Reset all states if should_reset is True
     if st.session_state.should_reset:
@@ -35,6 +36,7 @@ def main():
         st.session_state.stocks_with_issues = []
         st.session_state.stop_scan = False
         st.session_state.scanning = False
+        st.session_state.total_stocks = 0
         st.session_state.should_reset = False
         st.session_state.form_data = {
             'pattern': 'Volatility Contraction',
@@ -42,7 +44,6 @@ def main():
             'exchange': 'NSE'
         }
     
-    # Initialize other session states if they don't exist
     if 'matching_stocks' not in st.session_state:
         st.session_state.matching_stocks = []
     if 'stocks_with_issues' not in st.session_state:
@@ -62,7 +63,6 @@ def main():
         st.session_state.stop_scan = True
         st.session_state.scanning = False
 
-    # Replace new_search function with this:
     def trigger_reset():
         st.session_state.should_reset = True
 
@@ -193,6 +193,11 @@ def main():
             stocks_processed = 0
             initial_progress = 0
 
+        if not progress_data or st.session_state.should_reset:
+            st.session_state.total_stocks = len(tickers)
+        else:
+            st.session_state.total_stocks = progress_data['total_stocks']
+
         start_time = datetime.now()
         
         try:
@@ -203,7 +208,7 @@ def main():
 
                 processed_stocks.add(ticker)
                 current_total_processed = stocks_processed + i + 1
-                progress = current_total_processed / total_stocks
+                progress = current_total_processed / st.session_state.total_stocks 
                 
                 if i % 10 == 0 or st.session_state.stop_scan:
                     cache_manager.save_progress_to_cache(
@@ -230,11 +235,11 @@ def main():
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-label">Progress</div>
-                            <div class="stat-value">{progress*100:.1f}%</div>
+                            <div class="stat-value">{min(progress*100, 100):.1f}%</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">Stocks Scanned</div>
-                            <div class="stat-value">{current_total_processed}/{total_stocks}</div>
+                            <div class="stat-value">{current_total_processed}/{st.session_state.total_stocks}</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">Time Elapsed</div>
@@ -242,7 +247,7 @@ def main():
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">ETA</div>
-                            <div class="stat-value">{eta}s</div>
+                            <div class="stat-value">{max(0, eta)}s</div>
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
