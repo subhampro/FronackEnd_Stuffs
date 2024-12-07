@@ -68,21 +68,42 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             if 0.05 <= consolidation_range <= 0.25:  # Changed to check if range is between 5% and 25%
                 conditions_met["tight_consolidation"] = True
             
-            # 3. Check for higher lows
-            next_50_candles = last_126_candles.iloc[40:66]  # Looking at candles 40-66
-            lows = next_50_candles['Low'].values
-            min_points = []
+            # 3. Modified Higher Lows Check - After consolidation period
+            # Look at candles 5-50 after the consolidation period
+            check_start = 45 + 5  # Start 5 candles after consolidation
+            check_end = min(45 + 50, len(last_126_candles))  # Look up to 50 candles after consolidation
+            check_section = last_126_candles.iloc[check_start:check_end]
             
-            for i in range(2, len(lows)-2):
-                if (lows[i] < lows[i-1] and lows[i] < lows[i-2] and 
-                    lows[i] < lows[i+1] and lows[i] < lows[i+2]):
-                    min_points.append(lows[i])
-            
-            # Requires at least 3 higher lows in sequence
-            if len(min_points) >= 3:
-                higher_lows = all(min_points[i] > min_points[i-1] for i in range(1, len(min_points)))
-                if higher_lows:
-                    conditions_met["higher_lows"] = True
+            if len(check_section) >= 10:  # Ensure we have enough candles to analyze
+                # Find local minima using rolling window of 5 candles
+                lows = check_section['Low'].values
+                min_points = []
+                min_indices = []
+                
+                for i in range(2, len(lows)-2):
+                    if (lows[i] < lows[i-1] and lows[i] < lows[i-2] and 
+                        lows[i] < lows[i+1] and lows[i] < lows[i+2]):
+                        min_points.append(lows[i])
+                        min_indices.append(i)
+                
+                # Check if we found at least 3 minima and they're forming higher lows
+                if len(min_points) >= 3:
+                    # Verify higher lows with minimum price increase threshold
+                    is_higher_lows = True
+                    min_increase = 0.001  # 0.1% minimum increase between lows
+                    
+                    for i in range(1, len(min_points)):
+                        if min_points[i] <= min_points[i-1] or \
+                           (min_points[i] - min_points[i-1]) / min_points[i-1] < min_increase:
+                            is_higher_lows = False
+                            break
+                        
+                        # Verify the distance between minima is at least 3 candles
+                        if min_indices[i] - min_indices[i-1] < 3:
+                            is_higher_lows = False
+                            break
+                    
+                    conditions_met["higher_lows"] = is_higher_lows
             
             # 4. Check volatility and impulses (adjusted range)
             volatility_section = last_126_candles.iloc[76:96].copy()  # Adjusted range
