@@ -34,7 +34,7 @@ class CacheManager:
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         next_day = now + timedelta(days=1)
-        next_expiry = next_day.replace(hour=9, minute=15, second=0, microsecond=0)
+        next_expiry = next_day.replace(hour=16, minute=0, second=0, microsecond=0)  # Changed to 4 PM (16:00)
         return next_expiry
 
     def is_cache_valid(self, cache_data):
