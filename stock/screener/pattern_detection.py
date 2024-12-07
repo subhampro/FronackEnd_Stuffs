@@ -62,14 +62,14 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             # Calculate 20 EMA
             last_126_candles['EMA20'] = last_126_candles['Close'].ewm(span=20, adjust=False).mean()
             
-            # 2. Check first 30-40 candles for tight consolidation (changed from 50)
+            # 2. Check first 30-40 candles for tight consolidation - RELAXED
             first_40_candles = last_126_candles.head(40)  # Changed from 50 to 40
             consolidation_range = (first_40_candles['High'].max() - first_40_candles['Low'].min()) / first_40_candles['Close'].mean()
-            if consolidation_range <= 0.10:
+            if consolidation_range <= 0.15:  # Changed from 0.10 to 0.15 (15% range allowed)
                 conditions_met["tight_consolidation"] = True
             
-            # 3. Check for higher lows (adjusted ranges accordingly)
-            next_50_candles = last_126_candles.iloc[40:66]  # Changed start from 50 to 40
+            # 3. Check for higher lows
+            next_50_candles = last_126_candles.iloc[40:66]  # Looking at candles 40-66
             lows = next_50_candles['Low'].values
             min_points = []
             
@@ -78,6 +78,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
                     lows[i] < lows[i+1] and lows[i] < lows[i+2]):
                     min_points.append(lows[i])
             
+            # Requires at least 3 higher lows in sequence
             if len(min_points) >= 3:
                 higher_lows = all(min_points[i] > min_points[i-1] for i in range(1, len(min_points)))
                 if higher_lows:
@@ -98,23 +99,23 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             if any((move >= 0.15 and move <= 0.25) for move in price_moves):  # Changed from 0.02 to 0.15-0.25 range
                 conditions_met["volatility_impulse"] = True
             
-            # 5. Check low volume consolidation (adjusted range)
-            last_20_candles = last_126_candles.tail(20)  # Changed from 25 to 20
+            # 5. Check low volume consolidation - RELAXED
+            last_20_candles = last_126_candles.tail(20)
             avg_volume = last_126_candles['Volume'].mean()
             recent_volume = last_20_candles['Volume'].mean()
             recent_range = (last_20_candles['High'].max() - last_20_candles['Low'].min()) / last_20_candles['Close'].mean()
             
-            # Changed volume check to be between 50-80% of average
-            if (recent_volume >= (avg_volume * 0.5) and 
-                recent_volume <= (avg_volume * 0.8) and 
-                recent_range <= 0.04):
+            # Relaxed volume and range requirements
+            if (recent_volume >= (avg_volume * 0.3) and  # Changed from 0.5 to 0.3
+                recent_volume <= (avg_volume * 0.9) and  # Changed from 0.8 to 0.9
+                recent_range <= 0.06):  # Changed from 0.04 to 0.06 (6% range allowed)
                 conditions_met["low_volume_consolidation"] = True
             
-            # 6. Check EMA proximity (kept last 15 candles)
+            # 6. Check EMA proximity - RELAXED
             last_15_candles = last_126_candles.tail(15)
             ema_proximity = True
             for _, candle in last_15_candles.iterrows():
-                if abs(candle['Close'] - candle['EMA20']) / candle['Close'] > 0.03:
+                if abs(candle['Close'] - candle['EMA20']) / candle['Close'] > 0.05:  # Changed from 0.03 to 0.05 (5% deviation allowed)
                     ema_proximity = False
                     break
             if ema_proximity:
