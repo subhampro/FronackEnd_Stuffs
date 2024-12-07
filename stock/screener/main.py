@@ -145,7 +145,7 @@ def main():
 
     # Display all successfully fetched stocks
     if st.session_state.fetched_stocks:
-        st.header("All Rest Stocks Available Not Match The Filtered Pattern")
+        st.header("All Rest Matched Stocks Old Chart Data Not Available")
         for ticker, company_name, data in st.session_state.fetched_stocks:
             with st.expander(f"{company_name} ({ticker})", expanded=False):
                 col1, col2 = st.columns([4, 1])
