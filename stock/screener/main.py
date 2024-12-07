@@ -104,26 +104,29 @@ def main():
         interval = st.session_state.form_data['interval']
         exchange = st.session_state.form_data['exchange']
 
-        # Check cache first
-        cached_data = cache_manager.get_from_cache(pattern, interval, exchange)
-        if cached_data:
-            st.session_state.matching_stocks, st.session_state.stocks_with_issues = cached_data
-            st.session_state.scanning = False
-            st.rerun()
-        
-        # If no cache, proceed with scanning
-        st.session_state.matching_stocks = []
-        st.session_state.stocks_with_issues = []
-        st.session_state.stop_scan = False
-        
         tickers = fetch_all_tickers(exchange)
         if not tickers:
             st.error("Unable to fetch stock list. Please try again later.")
             return
+
+        progress_data = cache_manager.get_progress_from_cache(pattern, interval, exchange)
+        
+        if progress_data and not st.session_state.should_reset:
+            processed_stocks = progress_data['processed_stocks']
+            st.session_state.matching_stocks = progress_data['matching_stocks']
+            st.session_state.stocks_with_issues = progress_data['stocks_with_issues']
+            total_stocks = progress_data['total_stocks']
             
-        total_stocks = len(tickers)
+            tickers = [t for t in tickers if t not in processed_stocks]
+            
+            st.info(f"Resuming scan from {len(processed_stocks)} previously processed stocks")
+        else:
+            processed_stocks = set()
+            total_stocks = len(tickers)
+            st.session_state.matching_stocks = []
+            st.session_state.stocks_with_issues = []
+
         start_time = datetime.now()
-        stocks_processed = 0
         
         scan_container = st.container()
         with scan_container:
@@ -172,9 +175,22 @@ def main():
         try:
             for i, ticker in enumerate(tickers):
                 if st.session_state.stop_scan:
-                    st.warning(f"Scan stopped by user after processing {i} stocks")
+                    st.warning(f"Scan stopped by user after processing {len(processed_stocks)} stocks")
                     break
+
+                processed_stocks.add(ticker)
                 
+                if i % 10 == 0 or st.session_state.stop_scan:
+                    cache_manager.save_progress_to_cache(
+                        pattern,
+                        interval,
+                        exchange,
+                        processed_stocks,
+                        st.session_state.matching_stocks,
+                        st.session_state.stocks_with_issues,
+                        total_stocks
+                    )
+
                 progress = (i + 1) / total_stocks
                 elapsed_time = (datetime.now() - start_time).seconds
                 eta = int((elapsed_time / (i + 1)) * (total_stocks - i - 1)) if i > 0 else 0
@@ -234,17 +250,21 @@ def main():
                 
                 stocks_processed += 1
             
-            # Save to cache if scan completed successfully
             if not st.session_state.stop_scan:
-                cache_manager.save_to_cache(
+                cache_manager.clear_progress_cache(pattern, interval, exchange)
+                
+        finally:
+            if st.session_state.stop_scan:
+                cache_manager.save_progress_to_cache(
                     pattern,
                     interval,
                     exchange,
+                    processed_stocks,
                     st.session_state.matching_stocks,
-                    st.session_state.stocks_with_issues
+                    st.session_state.stocks_with_issues,
+                    total_stocks
                 )
-                
-        finally:
+
             progress_container.empty()
             stats_container.empty()
             stop_button_container.empty()
