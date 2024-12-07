@@ -72,7 +72,7 @@ def main():
             with col1:
                 pattern = st.selectbox(
                     "Select the chart Pattern",
-                    ["Volatility Contraction", "Lucifer Custom Filter"]
+                    ["Volatility Contraction", "Low Volume Stock Selection"]
                 )
             with col2:
                 interval = st.selectbox(

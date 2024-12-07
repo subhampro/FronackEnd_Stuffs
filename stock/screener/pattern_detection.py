@@ -66,7 +66,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
         
         return atr_decrease > atr_threshold
     
-    elif pattern_type.lower() == "lucifer custom filter":
+    elif pattern_type.lower() == "low volume stock selection":
         try:
             conditions_met = {
                 "sample_size": False,
