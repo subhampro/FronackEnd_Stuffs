@@ -105,8 +105,8 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
                     
                     conditions_met["higher_lows"] = is_higher_lows
             
-            # 4. Check volatility and impulses (adjusted range)
-            volatility_section = last_126_candles.iloc[76:96].copy()  # Adjusted range
+            # 4. Check volatility and impulses (adjusted range - MORE RELAXED)
+            volatility_section = last_126_candles.iloc[76:96].copy()
             volatility_section['TR'] = np.maximum(
                 volatility_section['High'] - volatility_section['Low'],
                 np.maximum(
@@ -116,20 +116,20 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             )
             volatility_section['ATR'] = volatility_section['TR'].rolling(window=5).mean()
             price_moves = volatility_section['Close'].pct_change()
-            # Changed impulse threshold to 15-25% range
-            if any((move >= 0.15 and move <= 0.25) for move in price_moves):  # Changed from 0.02 to 0.15-0.25 range
+            # CHANGED: Relaxed impulse threshold to 8-25% range (from 15-25%)
+            if any((move >= 0.08 and move <= 0.25) for move in price_moves):
                 conditions_met["volatility_impulse"] = True
             
-            # 5. Check low volume consolidation - RELAXED
+            # 5. Check low volume consolidation (MORE RELAXED)
             last_20_candles = last_126_candles.tail(20)
             avg_volume = last_126_candles['Volume'].mean()
             recent_volume = last_20_candles['Volume'].mean()
             recent_range = (last_20_candles['High'].max() - last_20_candles['Low'].min()) / last_20_candles['Close'].mean()
             
-            # Relaxed volume and range requirements
-            if (recent_volume >= (avg_volume * 0.3) and  # Changed from 0.5 to 0.3
-                recent_volume <= (avg_volume * 0.9) and  # Changed from 0.8 to 0.9
-                recent_range <= 0.06):  # Changed from 0.04 to 0.06 (6% range allowed)
+            # CHANGED: Further relaxed volume and range requirements
+            if (recent_volume >= (avg_volume * 0.2) and  # Changed from 0.3 to 0.2
+                recent_volume <= (avg_volume * 1.1) and  # Changed from 0.9 to 1.1
+                recent_range <= 0.08):  # Changed from 0.06 to 0.08 (8% range allowed)
                 conditions_met["low_volume_consolidation"] = True
             
             # 6. Check EMA proximity - RELAXED
