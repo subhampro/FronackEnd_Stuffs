@@ -3,7 +3,12 @@ import numpy as np
 from datetime import datetime
 import os
 
+# Add new global variable at top of file
+TOTAL_STOCKS_SCANNED = 0
+
 def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions=None):
+    global TOTAL_STOCKS_SCANNED
+    TOTAL_STOCKS_SCANNED += 1
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_dir = "pattern_logs"
     if not os.path.exists(log_dir):
@@ -185,42 +190,60 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
     return False
 
 def generate_summary_report():
+    global TOTAL_STOCKS_SCANNED
     log_dir = "pattern_logs"
     if not os.path.exists(log_dir):
         return
         
-    latest_log = max([os.path.join(log_dir, f) for f in os.listdir(log_dir)], key=os.path.getctime)
+    # Get all log files created in the last hour
+    current_time = datetime.now()
+    log_files = []
+    for file in os.listdir(log_dir):
+        if file.startswith('pattern_scan_') and file.endswith('.log'):
+            file_path = os.path.join(log_dir, file)
+            file_time = datetime.fromtimestamp(os.path.getctime(file_path))
+            if (current_time - file_time).total_seconds() < 3600:  # Within last hour
+                log_files.append(file_path)
+    
+    if not log_files:
+        return
     
     stocks_by_conditions = {i: [] for i in range(2, 7)}
-    total_stocks = 0
+    matching_stocks = 0
+    processed_tickers = set()  # To avoid duplicates
     
-    with open(latest_log, 'r', encoding='utf-8') as f:
-        current_ticker = None
-        current_conditions = 0
-        
-        for line in f:
-            if line.startswith("Ticker:"):
-                current_ticker = line.split(":")[1].strip()
-            elif line.startswith("Conditions Met:"):
-                conditions = int(line.split(":")[1].split()[0])
-                if current_ticker and conditions >= 2:
-                    stocks_by_conditions[conditions].append(current_ticker)
-                    total_stocks += 1
+    for log_file in log_files:
+        with open(log_file, 'r', encoding='utf-8') as f:
+            current_ticker = None
+            for line in f:
+                line = line.strip()
+                if line.startswith("Ticker:"):
+                    current_ticker = line.split(":")[1].strip()
+                elif line.startswith("Conditions Met:") and current_ticker:
+                    conditions = int(line.split(":")[1].split()[0])
+                    if conditions >= 2 and current_ticker not in processed_tickers:
+                        stocks_by_conditions[conditions].append(current_ticker)
+                        processed_tickers.add(current_ticker)
+                        matching_stocks += 1
     
     summary_file = os.path.join(log_dir, "pattern_summary.txt")
-    # Just create the file but don't return it
     with open(summary_file, 'w', encoding='utf-8') as f:
         f.write(f"Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"{'='*50}\n\n")
-        f.write(f"Total Stocks Analyzed: {total_stocks}\n\n")
+        f.write(f"Total Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
+        f.write(f"Stocks Meeting 2+ Conditions: {matching_stocks}\n\n")
         
         for conditions in range(6, 1, -1):
-            stocks = stocks_by_conditions[conditions]
-            f.write(f"\n{conditions} Conditions Met ({len(stocks)} stocks):\n")
-            f.write("-" * 30 + "\n")
-            for stock in stocks:
-                f.write(f"- {stock}\n")
+            stocks = sorted(stocks_by_conditions[conditions])  # Sort alphabetically
+            if stocks:  # Only write sections that have stocks
+                f.write(f"\n{conditions} Conditions Met ({len(stocks)} stocks):\n")
+                f.write("-" * 30 + "\n")
+                for stock in stocks:
+                    f.write(f"- {stock}\n")
         
-        f.write(f"\nLog file: {latest_log}\n")
+        f.write(f"\nLog Sources:\n")
+        f.write("-" * 30 + "\n")
+        for log_file in log_files:
+            f.write(f"- {os.path.basename(log_file)}\n")
     
-    return
+    TOTAL_STOCKS_SCANNED = 0
