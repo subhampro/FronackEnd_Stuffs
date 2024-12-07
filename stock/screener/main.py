@@ -200,6 +200,16 @@ def main():
 
         start_time = datetime.now()
         
+        # Check for final results first
+        final_results = None if st.session_state.should_reset else cache_manager.get_final_results(pattern, interval, exchange)
+        if final_results:
+            st.session_state.matching_stocks = final_results['matching_stocks']
+            st.session_state.stocks_with_issues = final_results['stocks_with_issues']
+            st.session_state.total_stocks = final_results['total_stocks']
+            st.session_state.scanning = False
+            display_results()
+            return
+
         try:
             for i, ticker in enumerate(tickers):
                 if st.session_state.stop_scan:
@@ -281,6 +291,15 @@ def main():
                 stocks_processed += 1
             
             if not st.session_state.stop_scan:
+                # Save final results when scan completes
+                cache_manager.save_final_results(
+                    pattern,
+                    interval,
+                    exchange,
+                    st.session_state.matching_stocks,
+                    st.session_state.stocks_with_issues,
+                    st.session_state.total_stocks
+                )
                 cache_manager.clear_progress_cache(pattern, interval, exchange)
                 
         finally:
@@ -307,45 +326,47 @@ def main():
             else:
                 st.success(f"Scan completed in {total_time} seconds!")
 
-    if len(st.session_state.stocks_with_issues) > 0:
-        st.header("All Rest Matched Stocks Old Chart Data Not Available")
-        st.info(f"Found {len(st.session_state.stocks_with_issues)} stocks with data availability issues")
+    def display_results():
+        # Move results display logic here
+        if len(st.session_state.stocks_with_issues) > 0:
+            st.header("All Rest Matched Stocks Old Chart Data Not Available")
+            st.info(f"Found {len(st.session_state.stocks_with_issues)} stocks with data availability issues")
+            
+            for ticker, company_name, data in st.session_state.stocks_with_issues:
+                with st.expander(f"{company_name} ({ticker}) - Limited Data", expanded=False):
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.write(data.tail())
+                    with col2:
+                        st.markdown(
+                            f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
+                            '📊 TradingView</a>',
+                            unsafe_allow_html=True
+                        )
+                    plot_candlestick(data, ticker, company_name)
+                    st.image('chart.png')
         
-        for ticker, company_name, data in st.session_state.stocks_with_issues:
-            with st.expander(f"{company_name} ({ticker}) - Limited Data", expanded=False):
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    st.write(data.tail())
-                with col2:
-                    st.markdown(
-                        f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
-                        '📊 TradingView</a>',
-                        unsafe_allow_html=True
-                    )
-                plot_candlestick(data, ticker, company_name)
-                st.image('chart.png')
-    
-    if st.session_state.matching_stocks:
-        st.header("Stocks Matching Pattern")
-        for ticker, company_name, data in st.session_state.matching_stocks:
-            with st.expander(f"{company_name} ({ticker})"):
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    st.write(data.tail())
-                with col2:
-                    st.markdown(
-                        f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
-                        '📊 TradingView</a>',
-                        unsafe_allow_html=True
-                    )
-                plot_candlestick(data, ticker, company_name)
-                st.image('chart.png')
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.button("🔄 New Search", key="new_search_button", 
-                     help="Start a new stock scan", on_click=trigger_reset)
-    elif st.session_state.stop_scan:
-        st.warning("No matching stocks found before scan was stopped")
+        if st.session_state.matching_stocks:
+            st.header("Stocks Matching Pattern")
+            for ticker, company_name, data in st.session_state.matching_stocks:
+                with st.expander(f"{company_name} ({ticker})"):
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.write(data.tail())
+                    with col2:
+                        st.markdown(
+                            f'<a href="{get_tradingview_url(ticker)}" target="_blank" class="tradingview-button">'
+                            '📊 TradingView</a>',
+                            unsafe_allow_html=True
+                        )
+                    plot_candlestick(data, ticker, company_name)
+                    st.image('chart.png')
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.button("🔄 New Search", key="new_search_button", 
+                         help="Start a new stock scan", on_click=trigger_reset)
+        elif st.session_state.stop_scan:
+            st.warning("No matching stocks found before scan was stopped")
 
 if __name__ == "__main__":
     main()
