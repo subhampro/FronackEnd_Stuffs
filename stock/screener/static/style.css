@@ -166,6 +166,7 @@ img:hover {
     margin: 4px 0;
     position: relative;
     overflow: hidden;
+    text-decoration: none !important; /* Remove underline */
 }
 
 .tradingview-button:before {
@@ -188,6 +189,7 @@ img:hover {
     background: linear-gradient(135deg, #1E40AF, #1E3A8A);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(41, 98, 255, 0.25);
+    text-decoration: none !important; /* Remove underline on hover */
 }
 
 .tradingview-button:hover:before {
@@ -214,6 +216,9 @@ img:hover {
     align-items: center;
     gap: 1rem;
     margin-bottom: 1rem;
+    background: rgba(31, 111, 235, 0.05);
+    padding: 1rem;
+    border-radius: 8px;
 }
 
 .scan-status h3 {
@@ -223,6 +228,20 @@ img:hover {
     background-clip: text;
     -webkit-text-fill-color: transparent;
     font-size: 1.5rem;
+}
+
+.scan-settings {
+    display: flex;
+    gap: 1.5rem;
+    margin-left: 2rem;
+}
+
+.scan-settings span {
+    padding: 0.5rem 1rem;
+    background: rgba(31, 111, 235, 0.1);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #e6edf3;
 }
 
 .stats-grid {
