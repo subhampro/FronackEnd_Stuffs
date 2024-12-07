@@ -97,4 +97,62 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             print(f"Success: Pattern found with ATR decrease of {atr_decrease:.2%}")
             return True
     
+    if pattern_type == "Faraz Custom Filter":
+        return detect_faraz_pattern(data)
+    
     return False
+
+def detect_faraz_pattern(df):
+    try:
+        # Calculate 20 EMA
+        df['EMA20'] = df['Close'].ewm(span=20, adjust=False).mean()
+        
+        # Condition 1: Check for uptrend in last 120 days
+        last_120_days = df.tail(120)
+        min_price = last_120_days['Low'].min()
+        max_price = last_120_days['High'].max()
+        price_range = max_price - min_price
+        has_uptrend = False
+        
+        for i in range(len(last_120_days) - 10):
+            window = last_120_days.iloc[i:i+10]
+            if (window['High'].iloc[-1] - window['Low'].iloc[0]) / price_range > 0.3:  # 30% of total range
+                has_uptrend = True
+                break
+        
+        if not has_uptrend:
+            return False
+
+        # Condition 2: Check for rebalancing after impulse in last 30 candles
+        last_30_candles = df.tail(30)
+        has_rebalancing = False
+        
+        for i in range(len(last_30_candles) - 5):
+            window = last_30_candles.iloc[i:i+5]
+            # Check for impulse (strong movement)
+            impulse_move = abs(window['Close'].iloc[-1] - window['Close'].iloc[0]) / window['Close'].iloc[0]
+            
+            if impulse_move > 0.02:  # 2% move
+                # Check for rebalancing after impulse
+                next_candles = last_30_candles.iloc[i+5:i+10]
+                if len(next_candles) >= 3:
+                    rebalancing_range = abs(next_candles['High'].max() - next_candles['Low'].min()) / window['Close'].iloc[-1]
+                    if rebalancing_range < impulse_move:
+                        has_rebalancing = True
+                        break
+        
+        if not has_rebalancing:
+            return False
+
+        # Condition 3: Last candle must close above 20 EMA
+        last_close = df['Close'].iloc[-1]
+        last_ema = df['EMA20'].iloc[-1]
+        
+        if last_close <= last_ema:
+            return False
+
+        return True
+
+    except Exception as e:
+        print(f"Error in Faraz pattern detection: {str(e)}")
+        return False
