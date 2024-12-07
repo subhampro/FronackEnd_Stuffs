@@ -41,7 +41,13 @@ def main():
         st.session_state.stop_scan = True
         st.session_state.scanning = False
 
-    # Only show input form if not scanning
+    def new_search():
+        st.session_state.scanning = False
+        st.session_state.stop_scan = False
+        st.session_state.matching_stocks = []
+        st.session_state.stocks_with_issues = []
+        st.rerun()
+
     if not st.session_state.scanning:
         with st.form(key='scan_form'):
             st.title("Indian Stock Market Screener")
@@ -75,7 +81,6 @@ def main():
                 st.session_state.scanning = True
                 st.rerun()
 
-    # Scanning logic
     if st.session_state.scanning:
         pattern = st.session_state.form_data['pattern']
         interval = st.session_state.form_data['interval']
@@ -92,9 +97,8 @@ def main():
             
         total_stocks = len(tickers)
         start_time = datetime.now()
-        stocks_processed = 0  # Initialize stocks_processed here
+        stocks_processed = 0
         
-        # Create scan container with status display
         scan_container = st.container()
         with scan_container:
             st.markdown("""
@@ -104,27 +108,32 @@ def main():
                     </div>
                     """, unsafe_allow_html=True)
             
-            # Scan header and status
             st.markdown(f'''
                 <div class="scan-status">
-                    <h3>🔍 Stock Scanner</h3>
-                    <div class="scan-settings">
-                        <span class="scan-option">Pattern: {pattern}</span>
-                        <span class="scan-option">Interval: {interval}</span>
-                        <span class="scan-option">Exchange: {exchange}</span>
+                    <div class="scan-status-left">
+                        <h2>🔍 Stock Scanner</h2>
+                        <div class="scan-settings">
+                            <span class="scan-option">Pattern: {pattern}</span>
+                            <span class="scan-option">Interval: {interval}</span>
+                            <span class="scan-option">Exchange: {exchange}</span>
+                        </div>
+                    </div>
+                    <div class="scan-status-right">
+                        <button class="new-search-button" onclick="window.location.href=window.location.pathname">
+                            <span class="button-icon">🔄</span>
+                            <span class="button-text">New Search</span>
+                        </button>
                     </div>
                 </div>
             ''', unsafe_allow_html=True)
             
-            # Progress and stats containers
             progress_container = st.empty()
             stats_container = st.empty()
-            stop_button_container = st.empty()  # Container for stop button
+            stop_button_container = st.empty()
             results_container = st.container()
             results_header = st.empty()
             fetched_header = st.empty()
             
-            # Stop button in its container
             stop_button_container.button(
                 "🛑 Stop Scan",
                 key="stop_scan_button",
@@ -144,7 +153,6 @@ def main():
                 elapsed_time = (datetime.now() - start_time).seconds
                 eta = int((elapsed_time / (i + 1)) * (total_stocks - i - 1)) if i > 0 else 0
                 
-                # Update progress and stats
                 progress_container.markdown(f"""
                     <div class="scan-progress">
                         <div style="width: {progress*100}%"></div>
@@ -172,7 +180,6 @@ def main():
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Process stock data
                 data, has_period_issues = fetch_stock_data(ticker, interval)
                 if not data.empty:
                     company_name = get_company_name(ticker)
@@ -185,7 +192,6 @@ def main():
                         st.session_state.matching_stocks.append((ticker, company_name, data))
                         results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
                         
-                        # Display matched stock
                         with results_container:
                             with st.expander(f"{company_name} ({ticker}) - Pattern Match", expanded=True):
                                 col1, col2 = st.columns([4, 1])
@@ -203,22 +209,19 @@ def main():
                 stocks_processed += 1
                 
         finally:
-            # Clear the scanning interface
             progress_container.empty()
             stats_container.empty()
             stop_button_container.empty()
             fetched_header.empty()
             scan_container.empty()
             
-            # Show completion message
             total_time = (datetime.now() - start_time).seconds
             if st.session_state.stop_scan:
                 st.info(f"Scan stopped after {total_time} seconds. Showing all results...")
             else:
                 st.success(f"Scan completed in {total_time} seconds!")
 
-    # Display stocks with period-related issues FIRST
-    if len(st.session_state.stocks_with_issues) > 0:  # Changed condition
+    if len(st.session_state.stocks_with_issues) > 0:
         st.header("All Rest Matched Stocks Old Chart Data Not Available")
         st.info(f"Found {len(st.session_state.stocks_with_issues)} stocks with data availability issues")
         
@@ -236,7 +239,6 @@ def main():
                 plot_candlestick(data, ticker, company_name)
                 st.image('chart.png')
     
-    # Display pattern matching stocks
     if st.session_state.matching_stocks:
         st.header("Stocks Matching Pattern")
         for ticker, company_name, data in st.session_state.matching_stocks:
@@ -252,6 +254,11 @@ def main():
                     )
                 plot_candlestick(data, ticker, company_name)
                 st.image('chart.png')
+        st.markdown("""
+            <div class="new-search-container">
+                <button class="new-search-button" onclick="window.location.href=window.location.pathname">🔄 New Search</button>
+            </div>
+        """, unsafe_allow_html=True)
     elif st.session_state.stop_scan:
         st.warning("No matching stocks found before scan was stopped")
 

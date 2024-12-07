@@ -93,7 +93,7 @@ def fetch_all_tickers(exchange_filter="NSE"):
             
             if exchange_filter.upper() == "NSE":
                 stocks = [q['symbol'] for q in quotes if '.NS' in q['symbol'] and not any(x in q['symbol'] for x in ['NIFTY', 'SENSEX', 'BANKNIFTY'])]
-            else:  # ALL
+            else:
                 stocks = [q['symbol'] for q in quotes if '.NS' in q['symbol'] or '.BO' in q['symbol']]
 
         if len(stocks) < 100 and exchange_filter.upper() == "NSE":

@@ -211,15 +211,27 @@ img:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* Update scan status to include new search button */
 .scan-status {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 1rem;
     margin-bottom: 1rem;
     background: rgba(31, 111, 235, 0.05);
     padding: 1.5rem;
     border-radius: 8px;
     border: 1px solid rgba(31, 111, 235, 0.1);
+}
+
+.scan-status-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.scan-status-right {
+    min-width: max-content;
 }
 
 .scan-status h3 {
@@ -329,7 +341,7 @@ img:hover {
 .tradingview-button, 
 .tradingview-button:hover, 
 .tradingview-button:visited, 
-.tradingview-button:active {
+tradingview-button:active {
     text-decoration: none !important;
     color: #ffffff !important;
 }
@@ -484,5 +496,132 @@ button[data-testid="baseButton-secondary"]::before {
 
 .stButton > button[type="submit"]:hover::before,
 button[data-testid="baseButton-secondary"]:hover::before {
+    left: 100%;
+}
+
+.new-search-button {
+    position: relative;
+    background: linear-gradient(135deg, #238636, #1f6feb);
+    color: white;
+    font-weight: bold;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(31, 111, 235, 0.2);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+    text-decoration: none !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+.new-search-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: 0.5s;
+    z-index: 1;
+}
+
+.button-icon, .button-text {
+    position: relative;
+    z-index: 2;
+    color: white !important;
+}
+
+.new-search-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(31, 111, 235, 0.3);
+    background: linear-gradient(135deg, #1f6feb, #238636);
+}
+
+.new-search-button:hover::before {
+    left: 100%;
+}
+
+.new-search-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(31, 111, 235, 0.2);
+}
+
+.new-search-wrapper {
+    display: none;
+}
+
+.new-search-container {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0;
+    padding: 1rem;
+}
+
+.new-search-wrapper {
+    margin-top: 1rem;
+}
+
+.new-search-container {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0;
+    padding: 1rem;
+}
+
+.new-search-button {
+    background: linear-gradient(135deg, #238636, #1f6feb) !important;
+    color: white !important;
+    font-weight: bold !important;
+    padding: 0.75rem 2rem !important;
+    font-size: 1.1rem !important;
+    border: none !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 12px rgba(31, 111, 235, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.new-search-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(31, 111, 235, 0.3);
+    background: linear-gradient(135deg, #1f6feb, #238636) !important;
+}
+
+.new-search-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(31, 111, 235, 0.2);
+}
+
+.new-search-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.new-search-button:hover::before {
     left: 100%;
 }
