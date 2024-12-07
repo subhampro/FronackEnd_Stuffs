@@ -123,25 +123,37 @@ def detect_faraz_pattern(df):
         if not has_uptrend:
             return False
 
-        # Condition 2: Check for rebalancing after impulse in last 30 candles
+        # Condition 2: New Change of Character + Impulse + Rebalancing check
         last_30_candles = df.tail(30)
-        has_rebalancing = False
+        has_pattern = False
         
-        for i in range(len(last_30_candles) - 5):
-            window = last_30_candles.iloc[i:i+5]
-            # Check for impulse (strong movement)
-            impulse_move = abs(window['Close'].iloc[-1] - window['Close'].iloc[0]) / window['Close'].iloc[0]
+        # First identify change of character (a period of sideways or downward movement followed by a breakout)
+        for i in range(5, len(last_30_candles) - 10):
+            # Look for change of character: a consolidation period followed by a breakout
+            consolidation_period = last_30_candles.iloc[i-5:i]
+            consolidation_range = abs(consolidation_period['High'].max() - consolidation_period['Low'].min())
+            avg_consolidation_range = consolidation_range / consolidation_period['Close'].mean()
             
-            if impulse_move > 0.02:  # 2% move
-                # Check for rebalancing after impulse
-                next_candles = last_30_candles.iloc[i+5:i+10]
-                if len(next_candles) >= 3:
-                    rebalancing_range = abs(next_candles['High'].max() - next_candles['Low'].min()) / window['Close'].iloc[-1]
-                    if rebalancing_range < impulse_move:
-                        has_rebalancing = True
-                        break
-        
-        if not has_rebalancing:
+            # Check if it's a tight consolidation (range less than 2%)
+            if avg_consolidation_range < 0.02:
+                # Look for impulse move after consolidation
+                potential_impulse = last_30_candles.iloc[i:i+3]
+                impulse_move = (potential_impulse['Close'].iloc[-1] - potential_impulse['Close'].iloc[0]) / potential_impulse['Close'].iloc[0]
+                
+                # Check for strong impulse move (>2% up move)
+                if impulse_move > 0.02:
+                    # Check for rebalancing after impulse
+                    rebalancing_period = last_30_candles.iloc[i+3:i+8]
+                    if len(rebalancing_period) >= 3:
+                        rebalancing_range = abs(rebalancing_period['High'].max() - rebalancing_period['Low'].min())
+                        avg_rebalancing_range = rebalancing_range / rebalancing_period['Close'].mean()
+                        
+                        # Rebalancing should be tight (<50% of impulse move)
+                        if avg_rebalancing_range < (impulse_move * 0.5):
+                            has_pattern = True
+                            break
+
+        if not has_pattern:
             return False
 
         # Condition 3: Last candle must close above 20 EMA
