@@ -217,17 +217,41 @@ img:hover {
     gap: 1rem;
     margin-bottom: 1rem;
     background: rgba(31, 111, 235, 0.05);
-    padding: 1rem;
+    padding: 1.5rem;
     border-radius: 8px;
+    border: 1px solid rgba(31, 111, 235, 0.1);
 }
 
 .scan-status h3 {
     margin: 0;
+    font-size: 1.5rem;
     background: linear-gradient(45deg, #1f6feb, #238636);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-size: 1.5rem;
+    min-width: fit-content;
+}
+
+.scan-settings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-left: 1rem;
+}
+
+.scan-option {
+    padding: 0.5rem 1rem;
+    background: rgba(31, 111, 235, 0.1);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #e6edf3;
+    border: 1px solid rgba(31, 111, 235, 0.2);
+    transition: all 0.3s ease;
+}
+
+.scan-option:hover {
+    background: rgba(31, 111, 235, 0.2);
+    transform: translateY(-1px);
 }
 
 .scan-settings {
@@ -299,4 +323,13 @@ img:hover {
 
 .stop-button button:hover {
     background: linear-gradient(45deg, #bb2d3b, #bc2602) !important;
+}
+
+/* Update TradingView Button to remove underline */
+.tradingview-button, 
+.tradingview-button:hover, 
+.tradingview-button:visited, 
+.tradingview-button:active {
+    text-decoration: none !important;
+    color: #ffffff !important;
 }

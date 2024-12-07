@@ -73,14 +73,16 @@ def main():
             st.markdown('<div class="scan-container">', unsafe_allow_html=True)
             
             # Scan header and status
-            st.markdown('<div class="scan-status">'
-                       '<h3>🔍 Stock Scanner</h3>'
-                       f'<div class="scan-settings">'
-                       f'<span>Pattern: {pattern}</span>'
-                       f'<span>Interval: {interval}</span>'
-                       f'<span>Exchange: {exchange}</span>'
-                       '</div>'
-                       '</div>', unsafe_allow_html=True)
+            st.markdown(f'''
+                <div class="scan-status">
+                    <h3>🔍 Stock Scanner</h3>
+                    <div class="scan-settings">
+                        <span class="scan-option">Pattern: {pattern}</span>
+                        <span class="scan-option">Interval: {interval}</span>
+                        <span class="scan-option">Exchange: {exchange}</span>
+                    </div>
+                </div>
+            ''', unsafe_allow_html=True)
             
             # Progress and stats containers
             progress_container = st.empty()
