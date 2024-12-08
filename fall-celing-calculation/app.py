@@ -13,6 +13,17 @@ def convert_to_feet(value, unit):
     }
     return value * conversion_factors[unit]
 
+def convert_from_feet(value, unit):
+    conversion_factors = {
+        'cm': 30.48,
+        'mm': 304.8,
+        'inches': 12,
+        'ft': 1,
+        'm': 0.3048,
+        'yd': 0.333333
+    }
+    return value * conversion_factors[unit]
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -26,23 +37,25 @@ def calculate():
         width2 = float(request.form['width2'])
         unit = request.form['unit']
 
-        # Convert all dimensions to feet
-        length1 = convert_to_feet(length1, unit)
-        length2 = convert_to_feet(length2, unit)
-        width1 = convert_to_feet(width1, unit)
-        width2 = convert_to_feet(width2, unit)
+        length1_in_feet = convert_to_feet(length1, unit)
+        length2_in_feet = convert_to_feet(length2, unit)
+        width1_in_feet = convert_to_feet(width1, unit)
+        width2_in_feet = convert_to_feet(width2, unit)
 
-        # Calculate the number of rods and their lengths
-        horizontal_rods = max(length1, length2)
-        vertical_rods = max(width1, width2)
+        horizontal_rods = max(length1_in_feet, length2_in_feet)
+        vertical_rods = max(width1_in_feet, width2_in_feet)
         num_horizontal_rods = int(horizontal_rods / 2) + 1
         num_vertical_rods = int(vertical_rods / 2) + 1
+
+        horizontal_rods = convert_from_feet(horizontal_rods, unit)
+        vertical_rods = convert_from_feet(vertical_rods, unit)
 
         return render_template('result.html', 
                                num_horizontal_rods=num_horizontal_rods, 
                                num_vertical_rods=num_vertical_rods, 
                                horizontal_rods=horizontal_rods, 
-                               vertical_rods=vertical_rods)
+                               vertical_rods=vertical_rods,
+                               unit=unit)
     except KeyError:
         return "Invalid input. Please ensure all fields are filled out correctly."
     except ValueError:
