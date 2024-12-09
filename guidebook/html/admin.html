@@ -46,6 +46,14 @@
 
         <div class="admin-section" v-if="isAdmin">
             <h2>Experimental Features</h2>
-    <script src="js/main.js"></script>
+            <div class="feature-toggle">
+                <label>
+                    <input type="checkbox" v-model="config.IFrameInsertIntoPage">
+                    Enable Website Embedding
+                </label>
+            </div>
+        </div>
+    </div>
+    <script src="js/adminPanel.js"></script>
 </body>
 </html>
