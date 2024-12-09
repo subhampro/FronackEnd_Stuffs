@@ -7,9 +7,8 @@ TOTAL_STOCKS_SCANNED = 0
 
 def get_scan_folder_name(pattern_type, interval, exchange):
     """Generate a unique folder name for each scan variation"""
-    timestamp = datetime.now().strftime("%Y%m%d")
     sanitized_pattern = pattern_type.lower().replace(" ", "_")
-    folder_name = f"{timestamp}_{sanitized_pattern}_{interval}_{exchange}"
+    folder_name = f"{sanitized_pattern}_{interval}_{exchange}"
     return folder_name
 
 def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions=None, pattern_type=None, interval=None, exchange=None):
@@ -27,7 +26,6 @@ def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions
     if not os.path.exists(scan_dir):
         os.makedirs(scan_dir)
     
-    # Use scan-specific log files
     log_file = os.path.join(scan_dir, "pattern_scan.log")
     summary_file = os.path.join(scan_dir, "pattern_summary.txt")
     
