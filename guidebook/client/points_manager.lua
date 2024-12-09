@@ -1,4 +1,3 @@
-
 local PointManager = {}
 
 function PointManager:Initialize()
@@ -35,19 +34,36 @@ function CreateHelpPoint(data)
         canNavigate = data.can_navigate,
         pageKey = data.page_key,
         permissions = json.decode(data.permissions or '[]'),
-        blip = nil
     }
-    
+
     if point.type == 'blip' then
-        point.blip = AddBlipForCoord(point.coords.x, point.coords.y, point.coords.z)
-        SetBlipSprite(point.blip, point.blipSprite)
-        SetBlipColour(point.blip, point.blipColor)
-        SetBlipScale(point.blip, point.blipScale)
-        SetBlipAsShortRange(point.blip, true)
+        CreateBlip(point)
+    elseif point.type == '3dtext' then
+        Draw3DText(point.coords.x, point.coords.y, point.coords.z, point.name)
+    elseif point.type == 'marker' then
+        DrawMarker(1, point.coords.x, point.coords.y, point.coords.z - 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 255, 255, 255, 100)
     end
-    
-    activePoints[point.id] = point
-    return point
 end
 
-return PointManager
+function CreateBlip(point)
+    local blip = AddBlipForCoord(point.coords.x, point.coords.y, point.coords.z)
+    SetBlipSprite(blip, point.blipSprite or 1)
+    SetBlipColour(blip, point.blipColor or 0)
+    SetBlipScale(blip, point.blipScale or 1.0)
+    SetBlipAsShortRange(blip, true)
+    BeginTextCommandSetBlipName("STRING")
+    AddTextComponentString(point.name)
+    EndTextCommandSetBlipName(blip)
+    
+    blips[point.id] = blip
+    return blip
+end
+
+function RemoveBlip(pointId)
+    if blips[pointId] then
+        RemoveBlip(blips[pointId])
+        blips[pointId] = nil
+    end
+end
+
+PointManager:Initialize()

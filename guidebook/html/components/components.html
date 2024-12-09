@@ -1,14 +1,23 @@
-
 <!-- Permission Editor Component -->
 <template id="permission-editor">
     <div class="permission-editor">
-        // ...existing permission-editor.html code...
+        <!-- ...existing permission-editor.html code... -->
     </div>
 </template>
 
 <!-- Point Editor Component -->
 <template id="point-editor">
     <div class="point-editor">
-        // ...existing point-editor.html code...
+        <!-- ...existing point-editor.html code... -->
+    </div>
+</template>
+
+<!-- Search Component -->
+<template id="search-component">
+    <div class="search-component">
+        <input type="text" v-model="query" placeholder="Search...">
+        <ul>
+            <li v-for="result in results" :key="result.id">{{ result.title }}</li>
+        </ul>
     </div>
 </template>
