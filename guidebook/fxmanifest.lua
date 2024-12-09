@@ -20,7 +20,14 @@ client_scripts {
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'sconfig.lua',
-    'server/*.lua'
+    'server/utils.lua',       -- Load utilities first
+    'server/database.lua',    -- Then database functions
+    'server/categories.lua',  -- Load feature modules
+    'server/pages.lua',
+    'server/points.lua',
+    'server/commands.lua',    
+    'server/admin.lua',       
+    'server/main.lua'         -- Load main script last
 }
 
 ui_page 'html/index.html'
@@ -35,6 +42,5 @@ files {
 }
 
 dependencies {
-    'oxmysql',
-    'es_extended'
+    'oxmysql'
 }
