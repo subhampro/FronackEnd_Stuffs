@@ -5,7 +5,7 @@ import os
 
 TOTAL_STOCKS_SCANNED = 0
 
-def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions=None):
+def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions=None, pattern_type=None):
     global TOTAL_STOCKS_SCANNED
     TOTAL_STOCKS_SCANNED += 1
     
@@ -36,9 +36,9 @@ def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions
                 f.write(f"✗ {cond.replace('_', ' ').title()}\n")
     
     # Update summary after each stock scan
-    update_summary_report(summary_file, ticker, len(met_conditions))
+    update_summary_report(summary_file, ticker, len(met_conditions), pattern_type)
 
-def update_summary_report(summary_file, ticker, conditions_met_count):
+def update_summary_report(summary_file, ticker, conditions_met_count, pattern_type=None):
     # Read existing summary if it exists
     summary_data = {2: [], 3: [], 4: [], 5: [], 6: []}
     
@@ -61,15 +61,43 @@ def update_summary_report(summary_file, ticker, conditions_met_count):
         # Add to appropriate list
         summary_data[conditions_met_count].append(ticker)
     
-    # Write updated summary
+    # Add tracking for condition failures
+    condition_stats = {}
+    pattern_conditions = get_pattern_conditions(pattern_type) if pattern_type else {}
+    
+    for condition in pattern_conditions.keys():
+        condition_stats[condition] = {
+            'success': 0,
+            'failed': 0
+        }
+
+    # Write updated summary with detailed analysis
     with open(summary_file, 'w', encoding='utf-8') as f:
         f.write(f"Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("="*50 + "\n\n")
-        f.write(f"Total Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
         
-        matching_stocks = sum(len(stocks) for stocks in summary_data.values())
-        f.write(f"Stocks Meeting 2+ Conditions: {matching_stocks}\n\n")
+        if pattern_type:
+            f.write(f"Pattern Type: {pattern_type.title()}\n")
+            f.write("-"*30 + "\n\n")
+            
+            f.write("Detailed Condition Analysis:\n")
+            f.write("-"*30 + "\n")
+            
+            for idx, (condition, description) in enumerate(pattern_conditions.items(), 1):
+                stats = condition_stats.get(condition, {'success': 0, 'failed': 0})
+                total = stats['success'] + stats['failed']
+                success_pct = (stats['success'] / total * 100) if total > 0 else 0
+                failure_pct = (stats['failed'] / total * 100) if total > 0 else 0
+                
+                f.write(f"Condition {idx}: {description}\n")
+                f.write(f"✓ Success Rate: {success_pct:.1f}%\n")
+                f.write(f"✗ Failed: {stats['failed']} stocks ({failure_pct:.1f}%)\n")
+                f.write("-"*30 + "\n")
         
+        f.write(f"\nTotal Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
+        f.write(f"Stocks Meeting 2+ Conditions: {sum(len(stocks) for stocks in summary_data.values())}\n\n")
+        
+        # Write stocks by conditions met
         for count in reversed(range(2, 7)):
             stocks = sorted(summary_data[count])
             if stocks:
@@ -178,7 +206,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             if conditions_count >= 2:
                 met_conditions = [cond for cond, met in conditions_met.items() if met]
                 failed_conditions = [cond for cond, met in conditions_met.items() if not met]
-                log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions)
+                log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions, pattern_type)
             
             return all(conditions_met.values())
             
@@ -261,7 +289,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             if conditions_count >= 2:
                 met_conditions = [cond for cond, met in conditions_met.items() if met]
                 failed_conditions = [cond for cond, met in conditions_met.items() if not met]
-                log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions)
+                log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions, pattern_type)
             
             return all(conditions_met.values())
             
@@ -270,6 +298,32 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             return False
 
     return False
+
+def get_pattern_conditions(pattern_type):
+    """Returns a dictionary of conditions and their descriptions for each pattern"""
+    if pattern_type.lower() == "volatility contraction":
+        return {
+            "atr_decrease": "ATR Decrease Over Period",
+            "atr_threshold": "ATR Threshold Check"
+        }
+    elif pattern_type.lower() == "low volume stock selection":
+        return {
+            "sample_size": "Minimum 120 Candles Available",
+            "tight_consolidation": "Price Range within 5-25% of Mean",
+            "volatility_impulse": "Price Move between 3-30%",
+            "low_volume_consolidation": "Volume 10-150% of Average & Range ≤15%",
+            "ema_proximity": "Price within 5% of EMA20"
+        }
+    elif pattern_type.lower() == "15% reversal":
+        return {
+            "sample_size": "Minimum 120 Candles Available",
+            "tight_consolidation": "Price Range within 5-25% of Mean",
+            "volatility_impulse": "Price Move between 3-30%",
+            "low_volume_consolidation": "Volume 10-150% of Average & Range ≤15%",
+            "ema_proximity": "Price within 5% of EMA20",
+            "reversal_level": "Price Above 15% Reversal Level"
+        }
+    return {}
 
 def generate_summary_report():
     global TOTAL_STOCKS_SCANNED
@@ -330,9 +384,41 @@ def generate_summary_report():
     
     summary_file = os.path.join(log_dir, "pattern_summary.txt")
     with open(summary_file, 'w', encoding='utf-8') as f:
-        f.write(f"Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"{'='*50}\n\n")
-        f.write(f"Total Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
+        f.write(f"Detailed Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write("="*50 + "\n\n")
+        
+        # Add pattern type detection from logs
+        pattern_type = None
+        for log_file in log_files:
+            with open(log_file, 'r', encoding='utf-8') as log:
+                content = log.read()
+                if "Volatility Contraction" in content:
+                    pattern_type = "volatility contraction"
+                elif "Low Volume Stock Selection" in content:
+                    pattern_type = "low volume stock selection"
+                elif "15% Reversal" in content:
+                    pattern_type = "15% reversal"
+                break
+        
+        if pattern_type:
+            conditions = get_pattern_conditions(pattern_type)
+            f.write(f"Pattern Type: {pattern_type.title()}\n")
+            f.write("-"*30 + "\n\n")
+            
+            f.write("Detailed Condition Analysis:\n")
+            f.write("-"*30 + "\n")
+            
+            for idx, (condition, description) in enumerate(conditions.items(), 1):
+                failures = condition_failures.get(condition, 0)
+                failure_pct = (failures / TOTAL_STOCKS_SCANNED * 100) if TOTAL_STOCKS_SCANNED > 0 else 0
+                success_pct = 100 - failure_pct
+                
+                f.write(f"Condition {idx}: {description}\n")
+                f.write(f"✓ Success Rate: {success_pct:.1f}%\n")
+                f.write(f"✗ Failed: {failures} stocks ({failure_pct:.1f}%)\n")
+                f.write("-"*30 + "\n")
+        
+        f.write(f"\nTotal Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
         f.write(f"Stocks Meeting 2+ Conditions: {matching_stocks}\n\n")
         
         f.write("Condition Failure Analysis:\n")
