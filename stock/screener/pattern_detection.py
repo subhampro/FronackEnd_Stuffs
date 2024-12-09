@@ -59,10 +59,67 @@ def update_summary_report(summary_file, ticker, conditions_met_count, pattern_ty
                 summary_data[count].remove(ticker)
         summary_data[conditions_met_count].append(ticker)
     
-    # Write updated summary but skip condition analysis - it will be done in generate_summary_report
+    # Read the log file for condition analysis
+    log_dir = "pattern_logs"
+    timestamp = datetime.now().strftime("%Y%m%d")
+    log_file = os.path.join(log_dir, f"pattern_scan_{timestamp}.log")
+    
+    condition_stats = {
+        "sample_size": {'success': 0, 'failed': 0},
+        "tight_consolidation": {'success': 0, 'failed': 0},
+        "volatility_impulse": {'success': 0, 'failed': 0},
+        "low_volume_consolidation": {'success': 0, 'failed': 0},
+        "ema_proximity": {'success': 0, 'failed': 0},
+        "reversal_level": {'success': 0, 'failed': 0}
+    }
+    
+    # Analyze all logs for condition statistics
+    if os.path.exists(log_file):
+        with open(log_file, 'r', encoding='utf-8') as f:
+            reading_success = False
+            reading_failed = False
+            
+            for line in f:
+                line = line.strip()
+                if line.startswith("Successful Conditions:"):
+                    reading_success = True
+                    reading_failed = False
+                elif line.startswith("Failed Conditions:"):
+                    reading_success = False
+                    reading_failed = True
+                elif reading_success and line.startswith("✓"):
+                    condition = line[2:].lower().replace(" ", "_")
+                    if condition in condition_stats:
+                        condition_stats[condition]['success'] += 1
+                elif reading_failed and line.startswith("✗"):
+                    condition = line[2:].lower().replace(" ", "_")
+                    if condition in condition_stats:
+                        condition_stats[condition]['failed'] += 1
+
+    # Write updated summary with full analysis
     with open(summary_file, 'w', encoding='utf-8') as f:
         f.write(f"Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("="*50 + "\n\n")
+        
+        if pattern_type:
+            f.write(f"Pattern Type: {pattern_type.title()}\n")
+            f.write("-"*30 + "\n\n")
+            
+            f.write("Detailed Condition Analysis:\n")
+            f.write("-"*30 + "\n")
+            
+            conditions = get_pattern_conditions(pattern_type)
+            for idx, (condition, description) in enumerate(conditions.items(), 1):
+                stats = condition_stats.get(condition, {'success': 0, 'failed': 0})
+                total = stats['success'] + stats['failed']
+                if total > 0:
+                    success_pct = (stats['success'] / total) * 100
+                    failure_pct = (stats['failed'] / total) * 100
+                    
+                    f.write(f"Condition {idx}: {description}\n")
+                    f.write(f"✓ Success Rate: {success_pct:.1f}% ({stats['success']} stocks)\n")
+                    f.write(f"✗ Failed: {stats['failed']} stocks ({failure_pct:.1f}%)\n")
+                    f.write("-"*30 + "\n")
         
         f.write(f"\nTotal Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
         f.write(f"Stocks Meeting 2+ Conditions: {sum(len(stocks) for stocks in summary_data.values())}\n\n")
