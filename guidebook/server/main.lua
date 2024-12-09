@@ -1,4 +1,5 @@
 local Framework = nil
+local MySQL = require('mysql-async')
 
 -- Framework Detection
 CreateThread(function()
@@ -44,4 +45,14 @@ AddEventHandler('guidebook:sendHelp', function(targetId, pageKey)
     local source = source
     if not HasAdminPermission(source) then return end
     TriggerClientEvent('guidebook:openGuidebook', targetId, pageKey)
+end)
+
+RegisterServerEvent('guidebook:saveCategory')
+AddEventHandler('guidebook:saveCategory', function(category)
+    MySQL.Async.execute('INSERT INTO guidebook_categories (name, description, `order`, permissions) VALUES (@name, @description, @order, @permissions)', {
+        ['@name'] = category.name,
+        ['@description'] = category.description,
+        ['@order'] = category.order,
+        ['@permissions'] = json.encode(category.permissions)
+    })
 end)

@@ -1,4 +1,3 @@
-
 local GuideBuilder = {}
 
 function GuideBuilder:CreateCategory(data)

@@ -29,35 +29,6 @@ const GuideConfig = {
             border: '#23272a',
             inputBackground: '#36393f',
             accent: '#7289da',
-            error: '#dc3545',
-            success: '#43b581'
-        },
-        cyber: {
-            background: '#000000',
-            text: '#00ff00',
-            border: '#008000',
-            inputBackground: '#002200',
-            accent: '#00ff00',
-            error: '#ff0000',
-            success: '#00ff00'
-        },
-        neon: {
-            background: '#0a0a0a',
-            text: '#ff00ff',
-            border: '#ff00ff',
-            inputBackground: '#1a1a1a',
-            accent: '#00ffff',
-            error: '#ff0000',
-            success: '#00ff00'
-        },
-        azure: {
-            background: '#f0f8ff',
-            text: '#000080',
-            border: '#87ceeb',
-            inputBackground: '#e6f3ff',
-            accent: '#1e90ff',
-            error: '#dc143c',
-            success: '#32cd32'
         }
     }
 };

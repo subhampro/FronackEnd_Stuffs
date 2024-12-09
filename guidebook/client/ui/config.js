@@ -1,10 +1,9 @@
-
 const config = {
     activeTheme: 'dark',
     themes: {
         dark: {
-            background: '#1a1a1a',
-            text: '#ffffff', 
+            background: '#1e1e1e',
+            text: '#ffffff',
             border: '#333333',
             inputBackground: '#2a2a2a',
             accent: '#4a90e2',
@@ -20,8 +19,9 @@ const config = {
             error: '#f44336',
             success: '#4caf50'
         }
-        // ...next themes...
-    }
+        // ...other themes...
+    },
+    // ...other UI settings...
 };
 
 export default config;

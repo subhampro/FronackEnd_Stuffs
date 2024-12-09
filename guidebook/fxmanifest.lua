@@ -28,7 +28,7 @@ ui_page 'html/index.html'
 files {
     'html/index.html',
     'html/css/*.css',
-    'html/components.html', -- Updated path
+    'html/components.html',
     'html/js/*.js',
     'html/img/*.png'
 }
