@@ -54,45 +54,15 @@ def update_summary_report(summary_file, ticker, conditions_met_count, pattern_ty
     
     # Update with new ticker
     if conditions_met_count >= 2:
-        # Remove ticker from all lists first to avoid duplicates
         for count in summary_data:
             if ticker in summary_data[count]:
                 summary_data[count].remove(ticker)
-        # Add to appropriate list
         summary_data[conditions_met_count].append(ticker)
     
-    # Add tracking for condition failures
-    condition_stats = {}
-    pattern_conditions = get_pattern_conditions(pattern_type) if pattern_type else {}
-    
-    for condition in pattern_conditions.keys():
-        condition_stats[condition] = {
-            'success': 0,
-            'failed': 0
-        }
-
-    # Write updated summary with detailed analysis
+    # Write updated summary but skip condition analysis - it will be done in generate_summary_report
     with open(summary_file, 'w', encoding='utf-8') as f:
         f.write(f"Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("="*50 + "\n\n")
-        
-        if pattern_type:
-            f.write(f"Pattern Type: {pattern_type.title()}\n")
-            f.write("-"*30 + "\n\n")
-            
-            f.write("Detailed Condition Analysis:\n")
-            f.write("-"*30 + "\n")
-            
-            for idx, (condition, description) in enumerate(pattern_conditions.items(), 1):
-                stats = condition_stats.get(condition, {'success': 0, 'failed': 0})
-                total = stats['success'] + stats['failed']
-                success_pct = (stats['success'] / total * 100) if total > 0 else 0
-                failure_pct = (stats['failed'] / total * 100) if total > 0 else 0
-                
-                f.write(f"Condition {idx}: {description}\n")
-                f.write(f"✓ Success Rate: {success_pct:.1f}%\n")
-                f.write(f"✗ Failed: {stats['failed']} stocks ({failure_pct:.1f}%)\n")
-                f.write("-"*30 + "\n")
         
         f.write(f"\nTotal Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
         f.write(f"Stocks Meeting 2+ Conditions: {sum(len(stocks) for stocks in summary_data.values())}\n\n")
@@ -348,12 +318,12 @@ def generate_summary_report():
     processed_tickers = set()
     
     condition_stats = {
-        "sample_size": {'success': 0, 'total': 0},
-        "tight_consolidation": {'success': 0, 'total': 0},
-        "volatility_impulse": {'success': 0, 'total': 0},
-        "low_volume_consolidation": {'success': 0, 'total': 0},
-        "ema_proximity": {'success': 0, 'total': 0},
-        "reversal_level": {'success': 0, 'total': 0}
+        "sample_size": {'success': 0, 'failed': 0},
+        "tight_consolidation": {'success': 0, 'failed': 0},
+        "volatility_impulse": {'success': 0, 'failed': 0},
+        "low_volume_consolidation": {'success': 0, 'failed': 0},
+        "ema_proximity": {'success': 0, 'failed': 0},
+        "reversal_level": {'success': 0, 'failed': 0}
     }
     
     for log_file in log_files:
@@ -384,8 +354,10 @@ def generate_summary_report():
                         condition_stats[condition]['failed'] += 1
 
     summary_file = os.path.join(log_dir, "pattern_summary.txt")
-    with open(summary_file, 'w', encoding='utf-8') as f:
-        f.write(f"Detailed Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    with open(summary_file, 'r+', encoding='utf-8') as f:
+        content = f.read()
+        f.seek(0)
+        f.write(f"Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("="*50 + "\n\n")
         
         # Add pattern type detection from logs
@@ -410,7 +382,7 @@ def generate_summary_report():
             f.write("-"*30 + "\n")
             
             for idx, (condition, description) in enumerate(conditions.items(), 1):
-                stats = condition_stats.get(condition, {'success': 0, 'total': 0})
+                stats = condition_stats.get(condition, {'success': 0, 'failed': 0})
                 total = stats['success'] + stats['failed']
                 if total > 0:
                     success_pct = (stats['success'] / total) * 100
@@ -421,31 +393,7 @@ def generate_summary_report():
                     f.write(f"✗ Failed: {stats['failed']} stocks ({failure_pct:.1f}%)\n")
                     f.write("-"*30 + "\n")
 
-        f.write(f"\nTotal Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
-        f.write(f"Stocks Meeting 2+ Conditions: {matching_stocks}\n\n")
-        
-        f.write("Condition Failure Analysis:\n")
-        f.write("-" * 30 + "\n")
-        for condition, stats in condition_stats.items():
-            readable_condition = condition.replace("_", " ").title()
-            failures = stats['failed']
-            percentage = (failures / TOTAL_STOCKS_SCANNED) * 100 if TOTAL_STOCKS_SCANNED > 0 else 0
-            f.write(f"{readable_condition}:\n")
-            f.write(f"Not fulfilled by {failures} stocks out of {TOTAL_STOCKS_SCANNED} stocks ({percentage:.1f}%)\n\n")
-        
-        f.write("\nStocks by Conditions Met:\n")
-        f.write("-" * 30 + "\n")
-        for conditions in range(6, 1, -1):
-            stocks = sorted(stocks_by_conditions[conditions])
-            if stocks:
-                f.write(f"\n{conditions} Conditions Met ({len(stocks)} stocks):\n")
-                f.write("-" * 30 + "\n")
-                for stock in stocks:
-                    f.write(f"- {stock}\n")
-        
-        f.write(f"\nLog Sources:\n")
-        f.write("-" * 30 + "\n")
-        for log_file in log_files:
-            f.write(f"- {os.path.basename(log_file)}\n")
-    
+        f.write(content[content.find("\nTotal Stocks Scanned:"):])
+        f.truncate()
+
     TOTAL_STOCKS_SCANNED = 0

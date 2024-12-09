@@ -14,7 +14,7 @@ pytz>=2023.3
 
 # On Windows Create Environment!
 # python -m venv screenerenv 
-# stockenv\Scripts\activate
+# screenerenv\Scripts\activate
 
 # 2. Install requirements using pip
 # pip install -r requirements.txt
