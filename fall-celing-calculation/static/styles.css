@@ -1,0 +1,8 @@
+.input-group label[for="linter_spacing"] {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.input-group input#linter_spacing {
+    border: 2px solid #3498db;
+}
