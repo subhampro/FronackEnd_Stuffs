@@ -28,3 +28,8 @@ local function GetPlayer(source)
     end
     return nil
 end
+
+local function HasAdminPermission(source)
+    local player = GetPlayer(source)
+    return IsPlayerAdmin(player)
+end
