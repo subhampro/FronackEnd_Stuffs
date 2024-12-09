@@ -1,4 +1,3 @@
-
 RegisterServerEvent('guidebook:openForPlayer')
 AddEventHandler('guidebook:openForPlayer', function(playerId, pageKey)
     TriggerClientEvent('guidebook:open', playerId, pageKey)

@@ -1,4 +1,3 @@
-
 local function IsPlayerAdmin(player)
     if not player then return false end
     
