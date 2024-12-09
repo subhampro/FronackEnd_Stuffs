@@ -3,7 +3,7 @@ game 'gta5'
 
 name 'Guidebook Script'
 description 'Interactive server guidebook system'
-author 'Your Name'
+author 'SubhaM'
 version '1.0.0'
 
 shared_scripts {
@@ -27,8 +27,9 @@ ui_page 'html/index.html'
 
 files {
     'html/index.html',
+    'html/admin.html',
     'html/css/*.css',
-    'html/components.html',
+    'html/components/components.html',
     'html/js/*.js',
     'html/img/*.png'
 }

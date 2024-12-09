@@ -1,4 +1,3 @@
-
 local function HasAdminPermission(source)
     local player = GetPlayer(source)
     return IsPlayerAdmin(player)
