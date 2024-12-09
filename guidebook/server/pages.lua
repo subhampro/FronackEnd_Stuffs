@@ -1,4 +1,3 @@
-
 local Pages = {}
 
 local function LoadPages()
