@@ -9,20 +9,28 @@
         <div class="admin-section">
             <h2>Categories</h2>
             <div class="admin-controls">
-                <button class="button" @click="newCategory">Add Category</button>
+                <button class="button" @click="saveCategory">Add Category</button>
             </div>
             <div class="categories-list">
-                <!-- Category items -->
+                <div v-for="category in categories" :key="category.id">
+                    <h3>{{ category.name }}</h3>
+                    <p>{{ category.description }}</p>
+                    <button @click="deleteCategory(category.id)">Delete</button>
+                </div>
             </div>
         </div>
 
         <div class="admin-section">
             <h2>Pages</h2>
             <div class="admin-controls">
-                <button class="button" @click="newPage">Add Page</button>
+                <button class="button" @click="savePage">Add Page</button>
             </div>
             <div class="pages-list">
-                <!-- Page items -->
+                <div v-for="page in pages" :key="page.id">
+                    <h3>{{ page.title }}</h3>
+                    <p>{{ page.content }}</p>
+                    <button @click="deletePage(page.id)">Delete</button>
+                </div>
             </div>
         </div>
 
@@ -38,14 +46,6 @@
 
         <div class="admin-section" v-if="isAdmin">
             <h2>Experimental Features</h2>
-            <div class="feature-toggle">
-                <label>
-                    <input type="checkbox" v-model="config.IFrameInsertIntoPage">
-                    Enable Website Embedding
-                </label>
-            </div>
-        </div>
-    </div>
     <script src="js/main.js"></script>
 </body>
 </html>

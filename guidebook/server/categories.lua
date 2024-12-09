@@ -25,3 +25,23 @@ AddEventHandler('guidebook:createCategory', function(data)
     
     TriggerClientEvent('guidebook:updateCategories', -1)
 end)
+
+RegisterNetEvent('guidebook:editCategory')
+AddEventHandler('guidebook:editCategory', function(data)
+    local source = source
+    if not HasAdminPermission(source) then return end
+    
+    MySQL.Async.execute('UPDATE guidebook_categories SET name = ?, description = ?, `order` = ?, permissions = ? WHERE id = ?',
+        {data.name, data.description, data.order, json.encode(data.permissions), data.id})
+    
+    TriggerClientEvent('guidebook:updateCategories', -1)
+end)
+
+RegisterNetEvent('guidebook:deleteCategory')
+AddEventHandler('guidebook:deleteCategory', function(categoryId)
+    local source = source
+    if not HasAdminPermission(source) then return end
+    
+    MySQL.Async.execute('DELETE FROM guidebook_categories WHERE id = ?', {categoryId})
+    TriggerClientEvent('guidebook:updateCategories', -1)
+end)
