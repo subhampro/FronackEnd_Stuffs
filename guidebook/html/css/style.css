@@ -232,3 +232,61 @@
 .editor-footer button:hover {
     opacity: 0.9;
 }
+
+/* Editor Specific Styles */
+.editor-toolbar {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: var(--input-background);
+    border-bottom: 1px solid var(--border);
+}
+
+.editor-content {
+    min-height: 300px;
+    padding: 20px;
+    background: var(--background);
+    color: var(--text);
+}
+
+.toolbar-button {
+    padding: 5px 10px;
+    background: var(--accent);
+    color: var(--text);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.toolbar-button:hover {
+    opacity: 0.9;
+}
+
+.toolbar-button.active {
+    background: var(--text);
+    color: var(--background);
+}
+
+.editor-wrapper {
+    position: relative;
+    height: 100%;
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    margin: 15px 0;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
