@@ -272,73 +272,65 @@ const AdminPanelComponent = {
     data() {
         return {
             categories: [],
-            pages: [],
-            newCategory: {
-                name: '',
-                description: '',
-                order: 0,
-                permissions: []
-            },
-            newPage: {
-                category_id: null,
-                title: '',
-                content: '',
-                key: '',
-                order: 0,
-                permissions: []
-            }
+            pages: []
         }
     },
     methods: {
         async fetchCategories() {
             const response = await fetch(`https://${GetParentResourceName()}/fetchCategories`);
             if (response.ok) {
-                this.categories = await response.json();
+                const data = await response.json();
+                this.categories = data.categories;
             }
         },
         async fetchPages() {
             const response = await fetch(`https://${GetParentResourceName()}/fetchPages`);
             if (response.ok) {
-                this.pages = await response.json();
+                const data = await response.json();
+                this.pages = data.pages;
             }
         },
         async saveCategory() {
-            const response = await fetch(`https://${GetParentResourceName()}/saveCategory`, {
+            const category = {
+                name: this.newCategoryName,
+                description: this.newCategoryDescription,
+                order: this.newCategoryOrder,
+                permissions: this.newCategoryPermissions
+            };
+            await fetch(`https://${GetParentResourceName()}/createCategory`, {
                 method: 'POST',
-                body: JSON.stringify(this.newCategory)
+                body: JSON.stringify(category)
             });
-            if (response.ok) {
-                this.newCategory = { name: '', description: '', order: 0, permissions: [] };
-                this.fetchCategories();
-            }
+            this.fetchCategories();
         },
         async savePage() {
-            const response = await fetch(`https://${GetParentResourceName()}/savePage`, {
+            const page = {
+                category_id: this.newPageCategoryId,
+                title: this.newPageTitle,
+                content: this.newPageContent,
+                key: this.newPageKey,
+                order: this.newPageOrder,
+                permissions: this.newPagePermissions
+            };
+            await fetch(`https://${GetParentResourceName()}/createPage`, {
                 method: 'POST',
-                body: JSON.stringify(this.newPage)
+                body: JSON.stringify(page)
             });
-            if (response.ok) {
-                this.newPage = { category_id: null, title: '', content: '', key: '', order: 0, permissions: [] };
-                this.fetchPages();
-            }
+            this.fetchPages();
         },
         async deleteCategory(categoryId) {
-            const response = await fetch(`https://${GetParentResourceName()}/deleteCategory`, {
+            await fetch(`https://${GetParentResourceName()}/deleteCategory`, {
                 method: 'POST',
                 body: JSON.stringify({ id: categoryId })
             });
-            if (response.ok) {
-                this.fetchCategories();
-            }
+            this.fetchCategories();
         },
         async deletePage(pageId) {
-            const response = await fetch(`https://${GetParentResourceName()}/deletePage`, {
+            await fetch(`https://${GetParentResourceName()}/deletePage`, {
                 method: 'POST',
                 body: JSON.stringify({ id: pageId })
             });
-            if (response.ok) {
-                this.fetchPages();
-            }
+            this.fetchPages();
         }
     },
     mounted() {
@@ -346,6 +338,14 @@ const AdminPanelComponent = {
         this.fetchPages();
     }
 };
+
+document.addEventListener('DOMContentLoaded', () => {
+    const vueApp = Vue.createApp({});
+
+    vueApp.component('admin-panel', AdminPanelComponent);
+
+    vueApp.mount('#admin-panel');
+});
 
 // Initialize all components in a single place
 document.addEventListener('DOMContentLoaded', () => {

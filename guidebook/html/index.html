@@ -5,6 +5,94 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- Component Templates -->
+    <template id="permission-editor">
+        <div class="permission-editor">
+            <div class="permission-header">
+                <h4>Access Permissions</h4>
+            </div>
+            <div class="permission-body">
+                <div class="permission-controls">
+                    <select v-model="selectedJob">
+                        <option value="">Select Job</option>
+                        <option v-for="job in jobs" :value="job.name">{{job.label}}</option>
+                    </select>
+                    <select v-model="selectedGrade" :disabled="!selectedJob">
+                        <option value="">Select Grade</option>
+                        <option v-for="grade in grades[selectedJob]" :value="grade.level">
+                            {{grade.label}}
+                        </option>
+                    </select>
+                    <button @click="addPermission" :disabled="!selectedJob || !selectedGrade">
+                        Add Permission
+                    </button>
+                </div>
+                <div class="permission-list">
+                    <div v-for="(permission, index) in permissions" :key="index">
+                        <span>{{ permission.job }} - {{ permission.grade }}</span>
+                        <button @click="removePermission(index)">Remove</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="point-editor">
+        <div class="point-editor">
+            <div class="editor-header">
+                <h3>Help Point Editor</h3>
+            </div>
+            <div class="editor-body">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" v-model="point.name">
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select v-model="point.type">
+                        <option value="marker">Marker</option>
+                        <option value="3dtext">3D Text</option>
+                        <option value="blip">Blip</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Blip Settings</label>
+                    <div class="blip-settings" v-if="point.type === 'blip'">
+                        <select v-model="point.blipSprite">
+                            <option value="1">Default</option>
+                            <option value="66">Help</option>
+                            <option value="280">Information</option>
+                        </select>
+                        <input type="number" v-model="point.blipColor" placeholder="Blip Color">
+                        <input type="number" v-model="point.blipScale" placeholder="Blip Scale">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Can Navigate</label>
+                    <input type="checkbox" v-model="point.canNavigate">
+                </div>
+                <div class="form-group">
+                    <label>Linked Page</label>
+                    <select v-model="point.pageKey">
+                        <option v-for="page in pages" :value="page.key">{{page.title}}</option>
+                    </select>
+                </div>
+                <div class="permission-section">
+                    <h4>Permissions</h4>
+                    <div class="permission-list">
+                        <!-- Permission items -->
+                    </div>
+                    <button @click="addPermission">Add Permission</button>
+                </div>
+            </div>
+            <div class="editor-footer">
+                <button @click="savePoint">Save Point</button>
+                <button @click="cancel">Cancel</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Main Application -->
     <div id="guidebook" v-show="visible">
         <div class="guidebook-header">
             <div class="search-bar">
@@ -18,6 +106,70 @@
         </div>
         <div class="guidebook-content">
             <!-- Categories and Pages -->
+        </div>
+
+        <!-- Page Editor -->
+        <div id="page-editor" class="editor-container" v-if="isEditing">
+            <div class="editor-toolbar">
+                <button v-for="tool in tools" @click="applyFormat(tool)">{{ tool }}</button>
+                <button @click="insertList">List</button>
+                <button @click="insertHeader">Header</button>
+                <button @click="insertImage">Image</button>
+                <button @click="insertVideo">Video</button>
+                <button @click="insertLink">Link</button>
+            </div>
+            <div ref="editable" class="editor-content" contenteditable="true"></div>
+        </div>
+
+        <!-- Admin Panel -->
+        <div id="admin-panel" class="admin-container" v-if="isAdmin">
+            <div class="admin-section">
+                <h2>Categories</h2>
+                <div class="admin-controls">
+                    <button class="button" @click="saveCategory">Add Category</button>
+                </div>
+                <div class="categories-list">
+                    <div v-for="category in categories" :key="category.id">
+                        <h3>{{ category.name }}</h3>
+                        <p>{{ category.description }}</p>
+                        <button @click="deleteCategory(category.id)">Delete</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h2>Pages</h2>
+                <div class="admin-controls">
+                    <button class="button" @click="savePage">Add Page</button>
+                </div>
+                <div class="pages-list">
+                    <div v-for="page in pages" :key="page.id">
+                        <h3>{{ page.title }}</h3>
+                        <p>{{ page.content }}</p>
+                        <button @click="deletePage(page.id)">Delete</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h2>Help Points</h2>
+                <div class="admin-controls">
+                    <button class="button" @click="newPoint">Add Point</button>
+                </div>
+                <div class="points-list">
+                    <!-- Point items -->
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h2>Experimental Features</h2>
+                <div class="feature-toggle">
+                    <label>
+                        <input type="checkbox" v-model="config.IFrameInsertIntoPage">
+                        Enable Website Embedding
+                    </label>
+                </div>
+            </div>
         </div>
     </div>
     <script src="js/main.js"></script>

@@ -1,4 +1,3 @@
-
 local Categories = {}
 local Pages = {}
 

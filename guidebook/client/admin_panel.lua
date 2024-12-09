@@ -1,12 +1,26 @@
-
 local isAdminPanelOpen = false
+local Categories = {}
+local Pages = {}
+
+-- Fetch categories from the server
+RegisterNetEvent('guidebook:receiveCategories')
+AddEventHandler('guidebook:receiveCategories', function(categories)
+    Categories = categories
+end)
+
+-- Fetch pages from the server
+RegisterNetEvent('guidebook:receivePages')
+AddEventHandler('guidebook:receivePages', function(pages)
+    Pages = pages
+end)
 
 -- Open the admin panel
 function OpenAdminPanel()
     isAdminPanelOpen = true
-    SendNUIMessage({
+    local data = {
         type = 'openAdminPanel'
-    })
+    }
+    SendNUIMessage(data)
     SetNuiFocus(true, true)
 end
 
