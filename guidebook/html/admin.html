@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div id="admin-panel" class="admin-container">
+        <div class="admin-section">
+            <h2>Categories</h2>
+            <div class="admin-controls">
+                <button class="button" @click="newCategory">Add Category</button>
+            </div>
+            <div class="categories-list">
+                <!-- Category items -->
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h2>Pages</h2>
+            <div class="admin-controls">
+                <button class="button" @click="newPage">Add Page</button>
+            </div>
+            <div class="pages-list">
+                <!-- Page items -->
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h2>Help Points</h2>
+            <div class="admin-controls">
+                <button class="button" @click="newPoint">Add Point</button>
+            </div>
+            <div class="points-list">
+                <!-- Point items -->
+            </div>
+        </div>
+
+        <div class="admin-section" v-if="isAdmin">
+            <h2>Experimental Features</h2>
+            <div class="feature-toggle">
+                <label>
+                    <input type="checkbox" v-model="config.IFrameInsertIntoPage">
+                    Enable Website Embedding
+                </label>
+            </div>
+        </div>
+    </div>
+    <script src="js/admin.js"></script>
+</body>
+</html>

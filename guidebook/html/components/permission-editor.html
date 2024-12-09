@@ -1,0 +1,29 @@
+
+<div class="permission-editor">
+    <div class="permission-header">
+        <h4>Access Permissions</h4>
+    </div>
+    <div class="permission-body">
+        <div class="permission-controls">
+            <select v-model="selectedJob">
+                <option value="">Select Job</option>
+                <option v-for="job in jobs" :value="job.name">{{job.label}}</option>
+            </select>
+            <select v-model="selectedGrade" :disabled="!selectedJob">
+                <option value="">Select Grade</option>
+                <option v-for="grade in grades[selectedJob]" :value="grade.level">
+                    {{grade.label}}
+                </option>
+            </select>
+            <button @click="addPermission" :disabled="!selectedJob || !selectedGrade">
+                Add Permission
+            </button>
+        </div>
+        <div class="permission-list">
+            <div v-for="(perm, index) in permissions" class="permission-item">
+                <span>{{perm.job}} - Grade {{perm.grade}}</span>
+                <button @click="removePermission(index)" class="remove-btn">×</button>
+            </div>
+        </div>
+    </div>
+</div>

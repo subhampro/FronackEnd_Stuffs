@@ -1,0 +1,38 @@
+
+.guidebook {
+    position: absolute;
+    width: 80vw;
+    height: 80vh;
+    top: 10vh;
+    left: 10vw;
+    background: var(--background);
+    border-radius: 8px;
+    color: var(--text);
+}
+
+.guidebook-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 8px;
+    background: var(--input-background);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.admin-panel {
+    display: flex;
+    gap: 20px;
+}
+
+.help-point {
+    background: var(--point-background);
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+/* Additional styles for editor, categories, pages */

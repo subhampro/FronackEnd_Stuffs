@@ -1,0 +1,36 @@
+
+.editor-container {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.editor-toolbar {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: var(--input-background);
+    border-bottom: 1px solid var(--border);
+}
+
+.editor-tool {
+    padding: 5px 10px;
+    background: var(--accent);
+    color: var(--text);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.editor-content {
+    min-height: 200px;
+    padding: 15px;
+    background: var(--background);
+    color: var(--text);
+}
+
+[contenteditable=true]:empty:before {
+    content: attr(placeholder);
+    color: var(--border);
+    opacity: 0.6;
+}

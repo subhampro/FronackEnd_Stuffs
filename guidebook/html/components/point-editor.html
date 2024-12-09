@@ -1,0 +1,52 @@
+<div class="point-editor">
+    <div class="editor-header">
+        <h3>Help Point Editor</h3>
+    </div>
+    <div class="editor-body">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" v-model="point.name">
+        </div>
+        <div class="form-group">
+            <label>Type</label>
+            <select v-model="point.type">
+                <option value="marker">Marker</option>
+                <option value="3dtext">3D Text</option>
+                <option value="blip">Blip</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Blip Settings</label>
+            <div class="blip-settings" v-if="point.type === 'blip'">
+                <select v-model="point.blipSprite">
+                    <option value="1">Default</option>
+                    <option value="66">Help</option>
+                    <option value="280">Information</option>
+                </select>
+                <input type="number" v-model="point.blipColor" placeholder="Blip Color">
+                <input type="number" v-model="point.blipScale" placeholder="Blip Scale">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Can Navigate</label>
+            <input type="checkbox" v-model="point.canNavigate">
+        </div>
+        <div class="form-group">
+            <label>Linked Page</label>
+            <select v-model="point.pageKey">
+                <option v-for="page in pages" :value="page.key">{{page.title}}</option>
+            </select>
+        </div>
+        <div class="permission-section">
+            <h4>Permissions</h4>
+            <div class="permission-list">
+                <!-- Permission items -->
+            </div>
+            <button @click="addPermission">Add Permission</button>
+        </div>
+    </div>
+    <div class="editor-footer">
+        <button @click="savePoint">Save Point</button>
+        <button @click="cancel">Cancel</button>
+    </div>
+</div>
