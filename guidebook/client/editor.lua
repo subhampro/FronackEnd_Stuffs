@@ -1,4 +1,3 @@
-
 local isEditing = false
 
 -- Open the editor
