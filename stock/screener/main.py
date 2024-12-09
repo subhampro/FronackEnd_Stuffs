@@ -335,7 +335,7 @@ def main():
                     if has_period_issues:
                         st.session_state.stocks_with_issues.append((ticker, company_name, data))
                     
-                    if detect_pattern(data, pattern, ticker):
+                    if detect_pattern(data, pattern_type=pattern, ticker=ticker, interval=interval, exchange=exchange):
                         st.session_state.matching_stocks.append((ticker, company_name, data))
                         results_header.success(f"Found {len(st.session_state.matching_stocks)} stocks matching the {pattern} pattern")
                         

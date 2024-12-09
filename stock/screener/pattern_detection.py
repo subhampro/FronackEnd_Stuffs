@@ -5,20 +5,31 @@ import os
 
 TOTAL_STOCKS_SCANNED = 0
 
-def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions=None, pattern_type=None):
+def get_scan_folder_name(pattern_type, interval, exchange):
+    """Generate a unique folder name for each scan variation"""
+    timestamp = datetime.now().strftime("%Y%m%d")
+    sanitized_pattern = pattern_type.lower().replace(" ", "_")
+    folder_name = f"{timestamp}_{sanitized_pattern}_{interval}_{exchange}"
+    return folder_name
+
+def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions=None, pattern_type=None, interval=None, exchange=None):
     global TOTAL_STOCKS_SCANNED
     TOTAL_STOCKS_SCANNED += 1
     
-    # Create a timestamp for the current day
-    timestamp = datetime.now().strftime("%Y%m%d")
+    # Create base log directory
     log_dir = "pattern_logs"
-    
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     
-    # Use a single log file per day instead of per stock
-    log_file = os.path.join(log_dir, f"pattern_scan_{timestamp}.log")
-    summary_file = os.path.join(log_dir, f"pattern_summary_{timestamp}.txt")
+    # Create unique scan folder
+    scan_folder = get_scan_folder_name(pattern_type, interval, exchange)
+    scan_dir = os.path.join(log_dir, scan_folder)
+    if not os.path.exists(scan_dir):
+        os.makedirs(scan_dir)
+    
+    # Use scan-specific log files
+    log_file = os.path.join(scan_dir, "pattern_scan.log")
+    summary_file = os.path.join(scan_dir, "pattern_summary.txt")
     
     # Append to daily log file
     with open(log_file, "a", encoding='utf-8') as f:
@@ -36,9 +47,9 @@ def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions
                 f.write(f"✗ {cond.replace('_', ' ').title()}\n")
     
     # Update summary after each stock scan
-    update_summary_report(summary_file, ticker, len(met_conditions), pattern_type)
+    update_summary_report(summary_file, ticker, len(met_conditions), pattern_type, interval, exchange)
 
-def update_summary_report(summary_file, ticker, conditions_met_count, pattern_type=None):
+def update_summary_report(summary_file, ticker, conditions_met_count, pattern_type=None, interval=None, exchange=None):
     # Read existing summary if it exists
     summary_data = {2: [], 3: [], 4: [], 5: [], 6: []}
     
@@ -133,7 +144,7 @@ def update_summary_report(summary_file, ticker, conditions_met_count, pattern_ty
                 for stock in stocks:
                     f.write(f"- {stock}\n")
 
-def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"):
+def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown", interval="1h", exchange="NSE"):
     if data.empty or len(data) < 60:
         return False
     
@@ -233,7 +244,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             if conditions_count >= 2:
                 met_conditions = [cond for cond, met in conditions_met.items() if met]
                 failed_conditions = [cond for cond, met in conditions_met.items() if not met]
-                log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions, pattern_type)
+                log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions, pattern_type, interval, exchange)
             
             return all(conditions_met.values())
             
@@ -316,7 +327,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             if conditions_count >= 2:
                 met_conditions = [cond for cond, met in conditions_met.items() if met]
                 failed_conditions = [cond for cond, met in conditions_met.items() if not met]
-                log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions, pattern_type)
+                log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions, pattern_type, interval, exchange)
             
             return all(conditions_met.values())
             
@@ -359,16 +370,23 @@ def generate_summary_report():
         return
         
     current_time = datetime.now()
-    log_files = []
-    for file in os.listdir(log_dir):
-        if file.startswith('pattern_scan_') and file.endswith('.log'):
-            file_path = os.path.join(log_dir, file)
-            file_time = datetime.fromtimestamp(os.path.getctime(file_path))
-            if (current_time - file_time).total_seconds() < 3600:
-                log_files.append(file_path)
     
-    if not log_files:
+    # Find the most recent scan folder
+    scan_folders = []
+    for folder in os.listdir(log_dir):
+        folder_path = os.path.join(log_dir, folder)
+        if os.path.isdir(folder_path):
+            folder_time = datetime.fromtimestamp(os.path.getctime(folder_path))
+            if (current_time - folder_time).total_seconds() < 3600:
+                scan_folders.append(folder_path)
+    
+    if not scan_folders:
         return
+    
+    # Use the most recent scan folder
+    latest_scan_dir = max(scan_folders, key=os.path.getctime)
+    log_file = os.path.join(latest_scan_dir, "pattern_scan.log")
+    summary_file = os.path.join(latest_scan_dir, "pattern_summary.txt")
     
     stocks_by_conditions = {i: [] for i in range(2, 7)}
     matching_stocks = 0
