@@ -347,41 +347,42 @@ def generate_summary_report():
     matching_stocks = 0
     processed_tickers = set()
     
-    condition_failures = {
-        "sample_size": 0,
-        "tight_consolidation": 0,
-        "higher_lows": 0,
-        "volatility_impulse": 0,
-        "low_volume_consolidation": 0,
-        "ema_proximity": 0
+    condition_stats = {
+        "sample_size": {'success': 0, 'total': 0},
+        "tight_consolidation": {'success': 0, 'total': 0},
+        "volatility_impulse": {'success': 0, 'total': 0},
+        "low_volume_consolidation": {'success': 0, 'total': 0},
+        "ema_proximity": {'success': 0, 'total': 0},
+        "reversal_level": {'success': 0, 'total': 0}
     }
-    stocks_with_failures = 0
     
     for log_file in log_files:
         with open(log_file, 'r', encoding='utf-8') as f:
             current_ticker = None
+            reading_success = False
             reading_failed = False
             
             for line in f:
                 line = line.strip()
                 if line.startswith("Ticker:"):
                     current_ticker = line.split(":")[1].strip()
-                    if current_ticker not in processed_tickers:
-                        stocks_with_failures += 1
-                        processed_tickers.add(current_ticker)
+                    reading_success = False
+                    reading_failed = False
+                elif line.startswith("Successful Conditions:"):
+                    reading_success = True
+                    reading_failed = False
                 elif line.startswith("Failed Conditions:"):
+                    reading_success = False
                     reading_failed = True
+                elif reading_success and line.startswith("✓"):
+                    condition = line[2:].lower().replace(" ", "_")
+                    if condition in condition_stats:
+                        condition_stats[condition]['success'] += 1
                 elif reading_failed and line.startswith("✗"):
                     condition = line[2:].lower().replace(" ", "_")
-                    condition_failures[condition] += 1
-                elif line.startswith("Timestamp:"):
-                    reading_failed = False
-                elif line.startswith("Conditions Met:") and current_ticker:
-                    conditions = int(line.split(":")[1].split()[0])
-                    if conditions >= 2 and current_ticker not in processed_tickers:
-                        stocks_by_conditions[conditions].append(current_ticker)
-                        matching_stocks += 1
-    
+                    if condition in condition_stats:
+                        condition_stats[condition]['failed'] += 1
+
     summary_file = os.path.join(log_dir, "pattern_summary.txt")
     with open(summary_file, 'w', encoding='utf-8') as f:
         f.write(f"Detailed Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -409,22 +410,25 @@ def generate_summary_report():
             f.write("-"*30 + "\n")
             
             for idx, (condition, description) in enumerate(conditions.items(), 1):
-                failures = condition_failures.get(condition, 0)
-                failure_pct = (failures / TOTAL_STOCKS_SCANNED * 100) if TOTAL_STOCKS_SCANNED > 0 else 0
-                success_pct = 100 - failure_pct
-                
-                f.write(f"Condition {idx}: {description}\n")
-                f.write(f"✓ Success Rate: {success_pct:.1f}%\n")
-                f.write(f"✗ Failed: {failures} stocks ({failure_pct:.1f}%)\n")
-                f.write("-"*30 + "\n")
-        
+                stats = condition_stats.get(condition, {'success': 0, 'total': 0})
+                total = stats['success'] + stats['failed']
+                if total > 0:
+                    success_pct = (stats['success'] / total) * 100
+                    failure_pct = (stats['failed'] / total) * 100
+                    
+                    f.write(f"Condition {idx}: {description}\n")
+                    f.write(f"✓ Success Rate: {success_pct:.1f}% ({stats['success']} stocks)\n")
+                    f.write(f"✗ Failed: {stats['failed']} stocks ({failure_pct:.1f}%)\n")
+                    f.write("-"*30 + "\n")
+
         f.write(f"\nTotal Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
         f.write(f"Stocks Meeting 2+ Conditions: {matching_stocks}\n\n")
         
         f.write("Condition Failure Analysis:\n")
         f.write("-" * 30 + "\n")
-        for condition, failures in condition_failures.items():
+        for condition, stats in condition_stats.items():
             readable_condition = condition.replace("_", " ").title()
+            failures = stats['failed']
             percentage = (failures / TOTAL_STOCKS_SCANNED) * 100 if TOTAL_STOCKS_SCANNED > 0 else 0
             f.write(f"{readable_condition}:\n")
             f.write(f"Not fulfilled by {failures} stocks out of {TOTAL_STOCKS_SCANNED} stocks ({percentage:.1f}%)\n\n")
