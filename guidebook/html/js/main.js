@@ -34,7 +34,7 @@ const GuideConfig = {
 };
 
 // Search Component
-const search = {
+const SearchComponent = {
     data() {
         return {
             query: '',
@@ -152,7 +152,7 @@ const permissionManager = {
 };
 
 // Editor Component
-const editor = {
+const EditorComponent = {
     data() {
         return {
             content: '',
@@ -162,42 +162,36 @@ const editor = {
     },
     methods: {
         applyFormat(tool) {
-            switch(tool) {
-                case 'bold':
-                    document.execCommand('bold', false, null);
-                    break;
-                case 'italic':
-                    document.execCommand('italic', false, null);
-                    break;
-                case 'image':
-                    const imageUrl = prompt('Enter image URL:');
-                    if (imageUrl) {
-                        document.execCommand('insertImage', false, imageUrl);
-                    }
-                    break;
-            }
+            document.execCommand(tool, false, null);
         },
-        
         insertList() {
             document.execCommand('insertUnorderedList', false, null);
         },
-        
         insertHeader() {
-            document.execCommand('formatBlock', false, '<h2>');
+            document.execCommand('formatBlock', false, 'h1');
         },
-        
-        insertVideo() {
-            const videoUrl = prompt('Enter video URL:');
-            if (videoUrl) {
-                const videoEmbed = `<div class="video-container"><iframe src="${videoUrl}" frameborder="0" allowfullscreen></iframe></div>`;
-                document.execCommand('insertHTML', false, videoEmbed);
+        insertImage() {
+            const url = prompt('Enter image URL');
+            if (url) {
+                document.execCommand('insertImage', false, url);
             }
         },
-        
+        insertVideo() {
+            const url = prompt('Enter video URL');
+            if (url) {
+                const video = `<iframe src="${url}" frameborder="0" allowfullscreen></iframe>`;
+                document.execCommand('insertHTML', false, video);
+            }
+        },
+        insertLink() {
+            const url = prompt('Enter link URL');
+            if (url) {
+                document.execCommand('createLink', false, url);
+            }
+        },
         getContent() {
             return this.$refs.editable.innerHTML;
         },
-
         setContent(html) {
             this.$refs.editable.innerHTML = html;
         }
@@ -274,70 +268,98 @@ const app = {
 Vue.createApp(app).mount('#guidebook');
 
 // Admin Panel Component
-const adminPanel = {
+const AdminPanelComponent = {
     data() {
         return {
             categories: [],
             pages: [],
-            points: [],
-            editing: {
-                category: null,
-                page: null,
-                point: null
+            newCategory: {
+                name: '',
+                description: '',
+                order: 0,
+                permissions: []
             },
-            jobs: [],
-            selectedPermissions: []
+            newPage: {
+                category_id: null,
+                title: '',
+                content: '',
+                key: '',
+                order: 0,
+                permissions: []
+            }
         }
     },
     methods: {
-        async saveCategory(category) {
+        async fetchCategories() {
+            const response = await fetch(`https://${GetParentResourceName()}/fetchCategories`);
+            if (response.ok) {
+                this.categories = await response.json();
+            }
+        },
+        async fetchPages() {
+            const response = await fetch(`https://${GetParentResourceName()}/fetchPages`);
+            if (response.ok) {
+                this.pages = await response.json();
+            }
+        },
+        async saveCategory() {
             const response = await fetch(`https://${GetParentResourceName()}/saveCategory`, {
                 method: 'POST',
-                body: JSON.stringify(category)
+                body: JSON.stringify(this.newCategory)
             });
             if (response.ok) {
-                this.editing.category = null;
+                this.newCategory = { name: '', description: '', order: 0, permissions: [] };
                 this.fetchCategories();
             }
         },
-        async savePage(page) {
+        async savePage() {
             const response = await fetch(`https://${GetParentResourceName()}/savePage`, {
                 method: 'POST',
-                body: JSON.stringify(page)
+                body: JSON.stringify(this.newPage)
             });
             if (response.ok) {
-                this.editing.page = null;
+                this.newPage = { category_id: null, title: '', content: '', key: '', order: 0, permissions: [] };
                 this.fetchPages();
             }
         },
-        async savePoint(point) {
-            const response = await fetch(`https://${GetParentResourceName()}/savePoint`, {
+        async deleteCategory(categoryId) {
+            const response = await fetch(`https://${GetParentResourceName()}/deleteCategory`, {
                 method: 'POST',
-                body: JSON.stringify(point)
+                body: JSON.stringify({ id: categoryId })
             });
             if (response.ok) {
-                this.editing.point = null;
-                this.fetchPoints();
+                this.fetchCategories();
+            }
+        },
+        async deletePage(pageId) {
+            const response = await fetch(`https://${GetParentResourceName()}/deletePage`, {
+                method: 'POST',
+                body: JSON.stringify({ id: pageId })
+            });
+            if (response.ok) {
+                this.fetchPages();
             }
         }
+    },
+    mounted() {
+        this.fetchCategories();
+        this.fetchPages();
     }
 };
 
 // Initialize all components in a single place
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize main app
-    Vue.createApp(app).mount('#guidebook');
-    
-    // Initialize admin components
-    Vue.createApp(adminPanel).mount('#admin-panel');
-    Vue.createApp(permissionManager).mount('#permission-manager');
-    Vue.createApp(pointManager).mount('#point-manager');
-    
-    // Initialize editor
-    Vue.createApp(editor).mount('#page-editor');
-    
-    // Initialize search
-    Vue.createApp(search).mount('#search-component');
+    const vueApp = Vue.createApp({});
+
+    // Register components globally
+    vueApp.component('search-component', SearchComponent);
+    vueApp.component('editor-component', EditorComponent);
+    vueApp.component('admin-panel', AdminPanelComponent);
+    vueApp.component('point-manager', pointManager);
+    vueApp.component('permission-manager', permissionManager);
+
+    // Mount main app
+    vueApp.mount('#guidebook');
 });
 
 // Export config for modules that need it
