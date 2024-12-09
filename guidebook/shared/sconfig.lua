@@ -1,3 +1,4 @@
+
 SConfig = {}
 
 SConfig.LogWebhook = '' -- Discord webhook URL for logging

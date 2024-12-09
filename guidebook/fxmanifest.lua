@@ -9,7 +9,8 @@ version '1.0.0'
 shared_scripts {
     '@es_extended/imports.lua',
     '@qb-core/shared/locale.lua',
-    'config.lua',
+    'shared/config.lua',
+    'shared/sconfig.lua',
     'locales/*.lua'
 }
 
@@ -19,7 +20,7 @@ client_scripts {
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
-    'sconfig.lua',
+    'shared/sconfig.lua',
     'server/utils.lua',       -- Load utilities first
     'server/database.lua',    -- Then database functions
     'server/categories.lua',  -- Load feature modules
