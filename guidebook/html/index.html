@@ -5,7 +5,17 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Component Templates -->
+    <!-- Merged component templates -->
+    <template id="search-component">
+        <div class="search-component">
+            <input type="text" v-model="query" placeholder="Search...">
+            <ul>
+                <li v-for="result in results" :key="result.id">{{ result.title }}</li>
+            </ul>
+        </div>
+    </template>
+
+    <!-- Existing templates -->
     <template id="permission-editor">
         <div class="permission-editor">
             <div class="permission-header">

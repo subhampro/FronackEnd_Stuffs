@@ -32,25 +32,42 @@ local themes = {
         text = '#ffffff',
         border = '#333333',
         inputBackground = '#2a2a2a',
-        accent = '#4a90e2',
-        error = '#ff4444',
-        success = '#4caf50'
+        accent = '#4a90e2'
     },
     light = {
         background = '#ffffff',
         text = '#000000',
         border = '#dddddd',
         inputBackground = '#f5f5f5',
-        accent = '#2196f3',
-        error = '#f44336',
-        success = '#4caf50'
+        accent = '#2196f3'
     },
     twilight = {
         background = '#2c2f33',
         text = '#99aab5',
         border = '#23272a',
         inputBackground = '#36393f',
-        accent = '#7289da',
+        accent = '#7289da'
+    },
+    cyber = {
+        background = '#0a192f',
+        text = '#64ffda',
+        border = '#112240',
+        inputBackground = '#0a192f',
+        accent = '#64ffda'
+    },
+    neon = {
+        background = '#000000',
+        text = '#ff00ff',
+        border = '#00ff00',
+        inputBackground = '#1a1a1a',
+        accent = '#00ffff'
+    },
+    azure = {
+        background = '#f0f8ff',
+        text = '#000080',
+        border = '#b0c4de',
+        inputBackground = '#e6f3ff',
+        accent = '#4169e1'
     }
 }
 
@@ -61,6 +78,7 @@ function SetTheme(themeName)
             type = 'setTheme',
             theme = theme
         })
+        SetResourceKvp('guidebook_theme', themeName)
     end
 end
 
@@ -177,8 +195,11 @@ end
 
 -- Search Functions
 function SearchContent(query)
-    if not query then return end
-    TriggerServerEvent('guidebook:searchContent', query)
+    if #query < 2 then 
+        searchResults = {}
+        return
+    end
+    TriggerServerEvent('guidebook:search', query)
 end
 
 -- Blip Functions
@@ -248,6 +269,15 @@ AddEventHandler('guidebook:openAdmin', function()
     OpenEditor()
 end)
 
+RegisterNetEvent('guidebook:searchResults')
+AddEventHandler('guidebook:searchResults', function(results)
+    searchResults = results
+    SendNUIMessage({
+        type = 'updateSearchResults',
+        results = results
+    })
+end)
+
 -- Register All Commands
 RegisterCommand('openwebsite', function(source, args)
     local url = args[1]
@@ -313,6 +343,16 @@ RegisterNUICallback('closeAdminPanel', function(data, cb)
     cb('ok')
 end)
 
+RegisterNUICallback('search', function(data, cb)
+    SearchContent(data.query)
+    cb('ok')
+end)
+
+RegisterNUICallback('setTheme', function(data, cb)
+    SetTheme(data.theme)
+    cb('ok')
+end)
+
 -- Main Thread
 CreateThread(function()
     while true do
@@ -334,6 +374,12 @@ CreateThread(function()
     elseif Config.Framework == 2 or (Config.Framework == 0 and GetResourceState('qb-core') == 'started') then
         Framework = exports['qb-core']:GetCoreObject()
         PlayerData = Framework.Functions.GetPlayerData()
+    end
+
+    -- Load saved theme
+    local savedTheme = GetResourceKvpString('guidebook_theme')
+    if savedTheme then
+        SetTheme(savedTheme)
     end
 end)
 

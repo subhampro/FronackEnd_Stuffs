@@ -1,39 +1,13 @@
-// Import Vue (make sure this is at the top)
 import Vue from 'vue';
 
-// Configuration
+// Simplified config without theme definitions (moved to CSS)
 const GuideConfig = {
-    activeTheme: 'dark',
-    themes: {
-        dark: {
-            background: '#1a1a1a',
-            text: '#ffffff',
-            border: '#333333',
-            inputBackground: '#2a2a2a',
-            accent: '#4a90e2',
-            error: '#ff4444',
-            success: '#4caf50'
-        },
-        light: {
-            background: '#ffffff',
-            text: '#000000',
-            border: '#dddddd',
-            inputBackground: '#f5f5f5',
-            accent: '#2196f3',
-            error: '#f44336',
-            success: '#4caf50'
-        },
-        twilight: {
-            background: '#2c2f33',
-            text: '#99aab5',
-            border: '#23272a',
-            inputBackground: '#36393f',
-            accent: '#7289da',
-        }
-    }
+    // Only keep non-theme related settings
+    IFrameInsertIntoPage: false,
+    // ...other UI settings...
 };
 
-// Search Component
+// Component definitions
 const SearchComponent = {
     data() {
         return {
@@ -339,28 +313,24 @@ const AdminPanelComponent = {
     }
 };
 
+// Single Vue app initialization
 document.addEventListener('DOMContentLoaded', () => {
     const vueApp = Vue.createApp({});
+    
+    // Register all components once
+    const components = {
+        'search-component': SearchComponent,
+        'editor-component': EditorComponent,
+        'admin-panel': AdminPanelComponent,
+        'point-manager': pointManager,
+        'permission-manager': permissionManager
+    };
 
-    vueApp.component('admin-panel', AdminPanelComponent);
+    Object.entries(components).forEach(([name, component]) => {
+        vueApp.component(name, component);
+    });
 
-    vueApp.mount('#admin-panel');
-});
-
-// Initialize all components in a single place
-document.addEventListener('DOMContentLoaded', () => {
-    const vueApp = Vue.createApp({});
-
-    // Register components globally
-    vueApp.component('search-component', SearchComponent);
-    vueApp.component('editor-component', EditorComponent);
-    vueApp.component('admin-panel', AdminPanelComponent);
-    vueApp.component('point-manager', pointManager);
-    vueApp.component('permission-manager', permissionManager);
-
-    // Mount main app
     vueApp.mount('#guidebook');
 });
 
-// Export config for modules that need it
 export { GuideConfig as default };

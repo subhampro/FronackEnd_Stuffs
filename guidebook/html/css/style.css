@@ -59,6 +59,16 @@
     --success: #32cd32;
 }
 
+:root[data-theme="system"] {
+    --background: #1e1e1e;
+    --text: #ffffff;
+    --border: #333333;
+    --input-background: #2a2a2a;
+    --accent: #4a90e2;
+    --error: #ff4444;
+    --success: #4caf50;
+}
+
 /* Main Guidebook Styles */
 .guidebook {
     position: absolute;
