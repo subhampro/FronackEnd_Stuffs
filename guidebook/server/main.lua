@@ -1,4 +1,3 @@
-
 local Framework = nil
 
 -- Framework Detection
@@ -38,4 +37,11 @@ AddEventHandler('guidebook:fetchData', function()
     local source = source
     local xPlayer = GetPlayer(source)
     FetchPlayerData(source, xPlayer)
+end)
+
+RegisterNetEvent('guidebook:sendHelp')
+AddEventHandler('guidebook:sendHelp', function(targetId, pageKey)
+    local source = source
+    if not HasAdminPermission(source) then return end
+    TriggerClientEvent('guidebook:openGuidebook', targetId, pageKey)
 end)

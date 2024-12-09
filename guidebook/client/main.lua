@@ -40,84 +40,6 @@ RegisterNUICallback('close', function(data, cb)
     cb('ok')
 end)
 
--- Point Functions
-local function DrawHelpPoint(point)
-    local coords = json.decode(point.coords)
-    
-    if point.type == 'blip' then
-        if not point.blip then
-            point.blip = AddBlipForCoord(coords.x, coords.y, coords.z)
-            SetBlipSprite(point.blip, point.blipSprite or 1)
-            SetBlipColour(point.blip, point.blipColor or 0)
-            SetBlipScale(point.blip, point.blipScale or 1.0)
-            SetBlipAsShortRange(point.blip, true)
-            BeginTextCommandSetBlipName("STRING")
-            AddTextComponentString(point.name)
-            EndTextCommandSetBlipName(point.blip)
-        end
-        return
-    end
-    
-    local distance = #(GetEntityCoords(PlayerPedId()) - vector3(coords.x, coords.y, coords.z))
-    
-    if distance < Config.DrawDistance then
-        if point.type == 'marker' then
-            DrawMarker(1, coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-                1.0, 1.0, 1.0, 255, 255, 255, 100, false, true, 2, false, nil, nil, false)
-        elseif point.type == '3dtext' then
-            Draw3DText(coords.x, coords.y, coords.z, point.name)
-        end
-
-        if distance < 2.0 then
-            ShowHelpNotification(Locales[Config.Locale]['press_to_open'])
-            if IsControlJustReleased(0, 38) then
-                OpenGuidebook(point.page_key)
-            end
-        end
-    end
-end
-
--- Commands
-RegisterCommand(Config.Commands.Help, function()
-    TriggerEvent('guidebook:open')
-end)
-
-RegisterCommand(Config.Commands.Admin, function()
-    if IsPlayerAdmin() then
-        TriggerEvent('guidebook:openAdmin') 
-    else
-        ShowNotification(Locales[Config.Locale]['no_permission'])
-    end
-end)
-
-RegisterCommand(Config.Commands.Navigate, function(source, args)
-    if #args < 1 then return end
-    local pointKey = args[1]
-    TriggerEvent('guidebook:navigateToPoint', pointKey)
-end)
-
-RegisterCommand(Config.Commands.SendHelp, function(source, args)
-    if not IsPlayerAdmin() then return end
-    
-    local targetId = tonumber(args[1])
-    local pageKey = args[2]
-    
-    if not targetId then return end
-    TriggerServerEvent('guidebook:sendHelp', targetId, pageKey)
-end)
-
--- Events
-RegisterNetEvent('guidebook:updateHelpPoints')
-AddEventHandler('guidebook:updateHelpPoints', function(points)
-    helpPoints = points
-    CreateHelpPointBlips()
-end)
-
-RegisterNetEvent('guidebook:showUI')
-AddEventHandler('guidebook:showUI', function(data)
-    ShowUI(data)
-end)
-
 -- Main Thread
 CreateThread(function()
     while true do
@@ -181,3 +103,44 @@ function ShowNotification(message)
         DrawNotification(false, false)
     end
 end
+
+-- Commands
+RegisterCommand(Config.Commands.Help, function()
+    TriggerEvent('guidebook:open')
+end)
+
+RegisterCommand(Config.Commands.Admin, function()
+    if IsPlayerAdmin() then
+        TriggerEvent('guidebook:openAdmin')
+    else
+        ShowNotification(Locales[Config.Locale]['no_permission'])
+    end
+end)
+
+RegisterCommand(Config.Commands.Navigate, function(source, args)
+    if #args < 1 then return end
+    local pointKey = args[1]
+    TriggerEvent('guidebook:navigateToPoint', pointKey)
+end)
+
+RegisterCommand(Config.Commands.SendHelp, function(source, args)
+    if not IsPlayerAdmin() then return end
+    
+    local targetId = tonumber(args[1])
+    local pageKey = args[2]
+    
+    if not targetId then return end
+    TriggerServerEvent('guidebook:sendHelp', targetId, pageKey)
+end)
+
+-- Events
+RegisterNetEvent('guidebook:updateHelpPoints')
+AddEventHandler('guidebook:updateHelpPoints', function(points)
+    helpPoints = points
+    CreateHelpPointBlips()
+end)
+
+RegisterNetEvent('guidebook:showUI')
+AddEventHandler('guidebook:showUI', function(data)
+    ShowUI(data)
+end)
