@@ -8,16 +8,23 @@ TOTAL_STOCKS_SCANNED = 0
 def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions=None):
     global TOTAL_STOCKS_SCANNED
     TOTAL_STOCKS_SCANNED += 1
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Create a timestamp for the current day
+    timestamp = datetime.now().strftime("%Y%m%d")
     log_dir = "pattern_logs"
+    
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-        
-    log_file = os.path.join(log_dir, f"pattern_scan_{timestamp}.log")
     
+    # Use a single log file per day instead of per stock
+    log_file = os.path.join(log_dir, f"pattern_scan_{timestamp}.log")
+    summary_file = os.path.join(log_dir, f"pattern_summary_{timestamp}.txt")
+    
+    # Append to daily log file
     with open(log_file, "a", encoding='utf-8') as f:
         f.write(f"\n{'='*50}\n")
         f.write(f"Ticker: {ticker}\n")
+        f.write(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Conditions Met: {len(met_conditions)} of 6\n")
         f.write("\nSuccessful Conditions:\n")
         for cond in met_conditions:
@@ -27,7 +34,49 @@ def log_pattern_result(ticker, conditions_met, met_conditions, failed_conditions
             f.write("\nFailed Conditions:\n")
             for cond in failed_conditions:
                 f.write(f"✗ {cond.replace('_', ' ').title()}\n")
-        f.write(f"\nTimestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    
+    # Update summary after each stock scan
+    update_summary_report(summary_file, ticker, len(met_conditions))
+
+def update_summary_report(summary_file, ticker, conditions_met_count):
+    # Read existing summary if it exists
+    summary_data = {2: [], 3: [], 4: [], 5: [], 6: []}
+    
+    if os.path.exists(summary_file):
+        with open(summary_file, 'r', encoding='utf-8') as f:
+            current_section = None
+            for line in f:
+                if "Conditions Met (" in line:
+                    current_section = int(line.split()[0])
+                elif line.startswith("- ") and current_section:
+                    ticker_name = line.strip("- \n")
+                    summary_data[current_section].append(ticker_name)
+    
+    # Update with new ticker
+    if conditions_met_count >= 2:
+        # Remove ticker from all lists first to avoid duplicates
+        for count in summary_data:
+            if ticker in summary_data[count]:
+                summary_data[count].remove(ticker)
+        # Add to appropriate list
+        summary_data[conditions_met_count].append(ticker)
+    
+    # Write updated summary
+    with open(summary_file, 'w', encoding='utf-8') as f:
+        f.write(f"Pattern Scan Summary Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write("="*50 + "\n\n")
+        f.write(f"Total Stocks Scanned: {TOTAL_STOCKS_SCANNED}\n")
+        
+        matching_stocks = sum(len(stocks) for stocks in summary_data.values())
+        f.write(f"Stocks Meeting 2+ Conditions: {matching_stocks}\n\n")
+        
+        for count in reversed(range(2, 7)):
+            stocks = sorted(summary_data[count])
+            if stocks:
+                f.write(f"\n{count} Conditions Met ({len(stocks)} stocks):\n")
+                f.write("-" * 30 + "\n")
+                for stock in stocks:
+                    f.write(f"- {stock}\n")
 
 def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"):
     if data.empty or len(data) < 60:
@@ -76,21 +125,22 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
                 "ema_proximity": False
             }
             
-            last_126_candles = data.tail(126).copy()
-            if len(last_126_candles) >= 126:
+            last_120_candles = data.tail(120).copy()  # Changed from 126 to 120
+            if len(last_120_candles) >= 120:  # Changed from 126 to 120
                 conditions_met["sample_size"] = True
             else:
-                print(f"{ticker}: Failed - Insufficient candles ({len(last_126_candles)})")
+                print(f"{ticker}: Failed - Insufficient candles ({len(last_120_candles)})")
                 return False
             
-            last_126_candles['EMA20'] = last_126_candles['Close'].ewm(span=20, adjust=False).mean()
+            last_120_candles['EMA20'] = last_120_candles['Close'].ewm(span=20, adjust=False).mean()
             
-            first_45_candles = last_126_candles.head(45)
+            # Update all references from last_126_candles to last_120_candles
+            first_45_candles = last_120_candles.head(45)
             consolidation_range = (first_45_candles['High'].max() - first_45_candles['Low'].min()) / first_45_candles['Close'].mean()
             if 0.05 <= consolidation_range <= 0.25:
                 conditions_met["tight_consolidation"] = True
             
-            volatility_section = last_126_candles.iloc[60:100].copy()
+            volatility_section = last_120_candles.iloc[60:100].copy()
             volatility_section['TR'] = np.maximum(
                 volatility_section['High'] - data['Low'],
                 np.maximum(
@@ -104,8 +154,8 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             if any((move >= 0.03 and move <= 0.30) for move in price_moves):
                 conditions_met["volatility_impulse"] = True
             
-            last_20_candles = last_126_candles.tail(20)
-            avg_volume = last_126_candles['Volume'].mean()
+            last_20_candles = last_120_candles.tail(20)
+            avg_volume = last_120_candles['Volume'].mean()
             recent_volume = last_20_candles['Volume'].mean()
             recent_range = (last_20_candles['High'].max() - last_20_candles['Low'].min()) / last_20_candles['Close'].mean()
             
@@ -114,7 +164,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
                 recent_range <= 0.15):
                 conditions_met["low_volume_consolidation"] = True
             
-            last_15_candles = last_126_candles.tail(15)
+            last_15_candles = last_120_candles.tail(15)
             ema_proximity = True
             for _, candle in last_15_candles.iterrows():
                 if abs(candle['Close'] - candle['EMA20']) / candle['Close'] > 0.05:
@@ -147,21 +197,22 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
                 "reversal_level": False
             }
             
-            last_126_candles = data.tail(126).copy()
-            if len(last_126_candles) >= 126:
+            last_120_candles = data.tail(120).copy()  # Changed from 126 to 120
+            if len(last_120_candles) >= 120:  # Changed from 126 to 120
                 conditions_met["sample_size"] = True
             else:
-                print(f"{ticker}: Failed - Insufficient candles ({len(last_126_candles)})")
+                print(f"{ticker}: Failed - Insufficient candles ({len(last_120_candles)})")
                 return False
             
-            last_126_candles['EMA20'] = last_126_candles['Close'].ewm(span=20, adjust=False).mean()
+            last_120_candles['EMA20'] = last_120_candles['Close'].ewm(span=20, adjust=False).mean()
             
-            first_45_candles = last_126_candles.head(45)
+            # Update all references from last_126_candles to last_120_candles
+            first_45_candles = last_120_candles.head(45)
             consolidation_range = (first_45_candles['High'].max() - first_45_candles['Low'].min()) / first_45_candles['Close'].mean()
             if 0.05 <= consolidation_range <= 0.25:
                 conditions_met["tight_consolidation"] = True
             
-            volatility_section = last_126_candles.iloc[60:100].copy()
+            volatility_section = last_120_candles.iloc[60:100].copy()
             volatility_section['TR'] = np.maximum(
                 volatility_section['High'] - data['Low'],
                 np.maximum(
@@ -175,8 +226,8 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             if any((move >= 0.03 and move <= 0.30) for move in price_moves):
                 conditions_met["volatility_impulse"] = True
             
-            last_20_candles = last_126_candles.tail(20)
-            avg_volume = last_126_candles['Volume'].mean()
+            last_20_candles = last_120_candles.tail(20)
+            avg_volume = last_120_candles['Volume'].mean()
             recent_volume = last_20_candles['Volume'].mean()
             recent_range = (last_20_candles['High'].max() - last_20_candles['Low'].min()) / last_20_candles['Close'].mean()
             
@@ -185,7 +236,7 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
                 recent_range <= 0.15):
                 conditions_met["low_volume_consolidation"] = True
             
-            last_15_candles = last_126_candles.tail(15)
+            last_15_candles = last_120_candles.tail(15)
             ema_proximity = True
             for _, candle in last_15_candles.iterrows():
                 if abs(candle['Close'] - candle['EMA20']) / candle['Close'] > 0.05:
@@ -194,13 +245,13 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
             if ema_proximity:
                 conditions_met["ema_proximity"] = True
                 
-            first_100_candles = last_126_candles.head(100)
+            first_100_candles = last_120_candles.head(100)
             top_high = first_100_candles['High'].max()
             
             reversal_percentage = 0.15  # Can be modified to any value between 0.15-0.20
             reversal_level = top_high * (1 - reversal_percentage)
             
-            last_30_candles = last_126_candles.tail(30)
+            last_30_candles = last_120_candles.tail(30)
             above_reversal_level = all(close > reversal_level for close in last_30_candles['Close'])
             
             if above_reversal_level:
