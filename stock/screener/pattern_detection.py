@@ -177,7 +177,10 @@ def detect_pattern(data, pattern_type="Volatility Contraction", ticker="Unknown"
         atr_decrease = (first_atr - last_atr) / first_atr
         atr_threshold = 0.15 if (data.index.freq == 'D' or len(data) >= 60) else 0.1
         
-        return atr_decrease > atr_threshold
+        if atr_decrease > atr_threshold:
+            log_pattern_result(ticker, conditions_met=True, met_conditions=["atr_decrease", "atr_threshold"], pattern_type=pattern_type, interval=interval, exchange=exchange)
+            return True
+        return False
     
     elif pattern_type.lower() == "low volume stock selection":
         try:
