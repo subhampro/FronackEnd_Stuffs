@@ -56,3 +56,43 @@ AddEventHandler('guidebook:saveCategory', function(category)
         ['@permissions'] = json.encode(category.permissions)
     })
 end)
+
+RegisterServerEvent('guidebook:savePage')
+AddEventHandler('guidebook:savePage', function(page)
+    MySQL.Async.execute('INSERT INTO guidebook_pages (category_id, title, content, `key`, `order`, permissions) VALUES (@category_id, @title, @content, @key, @order, @permissions)', {
+        ['@category_id'] = page.category_id,
+        ['@title'] = page.title,
+        ['@content'] = page.content,
+        ['@key'] = page.key,
+        ['@order'] = page.order,
+        ['@permissions'] = json.encode(page.permissions)
+    })
+end)
+
+RegisterServerEvent('guidebook:saveContent')
+AddEventHandler('guidebook:saveContent', function(data)
+    MySQL.Async.execute('UPDATE guidebook_pages SET content = @content WHERE id = @id', {
+        ['@content'] = data.content,
+        ['@id'] = data.id
+    })
+end)
+
+RegisterServerEvent('guidebook:createPoint')
+AddEventHandler('guidebook:createPoint', function(point)
+    MySQL.Async.execute('INSERT INTO guidebook_points (name, `key`, coords, type, page_key, can_navigate, permissions) VALUES (@name, @key, @coords, @type, @page_key, @can_navigate, @permissions)', {
+        ['@name'] = point.name,
+        ['@key'] = point.key,
+        ['@coords'] = json.encode(point.coords),
+        ['@type'] = point.type,
+        ['@page_key'] = point.page_key,
+        ['@can_navigate'] = point.can_navigate,
+        ['@permissions'] = json.encode(point.permissions)
+    })
+end)
+
+RegisterServerEvent('guidebook:deletePoint')
+AddEventHandler('guidebook:deletePoint', function(pointId)
+    MySQL.Async.execute('DELETE FROM guidebook_points WHERE id = @id', {
+        ['@id'] = pointId
+    })
+end)

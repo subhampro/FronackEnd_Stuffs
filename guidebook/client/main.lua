@@ -146,15 +146,43 @@ AddEventHandler('guidebook:pointUpdated', function(pointData)
     if blips[pointData.id] then
         RemoveBlip(pointData.id)
     end
-    if pointData.type == 'blip' then
-        CreateBlip(pointData)
+    CreateBlip(pointData)
+end)
+
+RegisterNetEvent('guidebook:receivePoints')
+AddEventHandler('guidebook:receivePoints', function(points)
+    for _, point in pairs(points) do
+        CreateHelpPoint(point)
     end
 end)
 
-RegisterNetEvent('guidebook:pointDeleted')
-AddEventHandler('guidebook:pointDeleted', function(pointId)
-    RemoveBlip(pointId)
-    helpPoints[pointId] = nil
+RegisterNetEvent('guidebook:openGuidebook')
+AddEventHandler('guidebook:openGuidebook', function(pageKey)
+    OpenGuidebook(pageKey)
+end)
+
+RegisterNetEvent('guidebook:openAdmin')
+AddEventHandler('guidebook:openAdmin', function()
+    OpenEditor()
+end)
+
+RegisterCommand(Config.Commands.Help, function()
+    OpenGuidebook()
+end)
+
+RegisterCommand(Config.Commands.Admin, function()
+    OpenEditor()
+end)
+
+RegisterCommand(Config.Commands.SendHelp, function(source, args)
+    local targetId = tonumber(args[1])
+    local pageKey = args[2]
+    TriggerServerEvent('guidebook:sendHelp', targetId, pageKey)
+end)
+
+RegisterCommand(Config.Commands.Navigate, function(source, args)
+    local pointKey = args[1]
+    TriggerServerEvent('guidebook:navigateToPoint', pointKey)
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)

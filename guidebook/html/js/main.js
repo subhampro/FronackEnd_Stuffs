@@ -247,14 +247,31 @@ const app = {
                 method: 'POST',
                 body: JSON.stringify({})
             });
-        }
-    },
-    watch: {
-        selectedTheme(newTheme) {
-            this.setTheme(newTheme);
+        },
+        async fetchCategories() {
+            const response = await fetch(`https://${GetParentResourceName()}/fetchCategories`);
+            if (response.ok) {
+                const data = await response.json();
+                this.categories = data.categories;
+            }
+        },
+        async fetchPages() {
+            const response = await fetch(`https://${GetParentResourceName()}/fetchPages`);
+            if (response.ok) {
+                const data = await response.json();
+                this.pages = data.pages;
+            }
+        },
+        openPage(pageKey) {
+            const page = this.pages.find(p => p.key === pageKey);
+            if (page) {
+                this.activePage = page;
+            }
         }
     }
 };
+
+Vue.createApp(app).mount('#guidebook');
 
 // Admin Panel Component
 const adminPanel = {
