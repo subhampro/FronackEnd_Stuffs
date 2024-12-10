@@ -1228,6 +1228,8 @@
         // Declare variables at the top
         let quill;
         let currentZoom = 100;
+        let pageFormMode = 'create';
+        let editingPageData = null;
 
         // Add this cleanup function before initializing editor
         function cleanupEditor() {
@@ -1497,48 +1499,63 @@
             const formContainer = document.getElementById('page-form-container');
             const submitBtn = document.getElementById('page-submit-btn');
             
-            // Reset form
+            // Clear form first
             document.getElementById('page-label').value = '';
             document.getElementById('page-key').value = '';
             document.getElementById('page-order').value = '1';
             document.getElementById('page-enabled').checked = true;
             
-            if (mode === 'edit' && pageData) {
-                submitBtn.textContent = 'Update Page';
-                // Fill form with existing data
-                setTimeout(() => {
+            formContainer.style.display = 'flex';
+            
+            // Initialize editor and forms
+            setTimeout(async () => {
+                await initializeEditor();
+                await initializeForms();
+                
+                if (mode === 'edit' && pageData) {
+                    submitBtn.textContent = 'Update Page';
+                    // Fill form with existing data
                     document.getElementById('category-select').value = pageData.categoryId;
                     document.getElementById('page-label').value = pageData.label;
                     document.getElementById('page-key').value = pageData.key;
                     document.getElementById('page-order').value = pageData.order;
                     document.getElementById('page-enabled').checked = pageData.enabled;
-                    quill.root.innerHTML = pageData.content;
-                }, 200);
-            } else {
-                submitBtn.textContent = 'Create Page';
-                // Clear editor
-                setTimeout(() => {
-                    quill.root.innerHTML = '';
-                }, 200);
-            }
-
-            formContainer.style.display = 'flex';
-            setTimeout(() => {
-                initializeEditor();
-                initializeForms();
+                    if (quill) {
+                        quill.root.innerHTML = pageData.content || '';
+                    }
+                } else {
+                    submitBtn.textContent = 'Create Page';
+                    if (quill) {
+                        quill.root.innerHTML = '';
+                    }
+                }
             }, 100);
         }
 
         async function handlePageSubmit() {
-            if (pageFormMode === 'edit' && editingPageData) {
-                await updatePage(editingPageData.categoryId, editingPageData.id);
-            } else {
-                await submitPage();
+            try {
+                if (!document.getElementById('category-select').value) {
+                    alert('Please select a category');
+                    return;
+                }
+
+                if (pageFormMode === 'edit' && editingPageData) {
+                    await updatePage(editingPageData.categoryId, editingPageData.id);
+                } else {
+                    await submitPage();
+                }
+                
+                // Reset form mode and hide form
+                pageFormMode = 'create';
+                editingPageData = null;
+                document.getElementById('page-form-container').style.display = 'none';
+                
+                // Reload pages list
+                loadPages();
+            } catch (error) {
+                console.error('Error handling page submit:', error);
+                alert('Error saving page');
             }
-            
-            // Reset form mode
-            pageFormMode = 'create';
-            editingPageData = null;
         }
 
         async function editPage(categoryId, pageId) {
@@ -1560,11 +1577,16 @@
         }
 
         async function updatePage(categoryId, pageId) {
-            const data = await loadFromJSON();
-            const category = data.categories.find(c => c.id === categoryId);
-            const pageIndex = category?.pages.findIndex(p => p.id === pageId);
-            
-            if (category && pageIndex !== -1) {
+            try {
+                const data = await loadFromJSON();
+                if (!data || !data.categories) return;
+
+                const category = data.categories.find(c => c.id === categoryId);
+                if (!category || !category.pages) return;
+
+                const pageIndex = category.pages.findIndex(p => p.id === pageId);
+                if (pageIndex === -1) return;
+
                 const updatedPage = {
                     id: pageId,
                     label: document.getElementById('page-label').value,
@@ -1572,22 +1594,28 @@
                     categoryId: document.getElementById('category-select').value,
                     order: document.getElementById('page-order').value,
                     enabled: document.getElementById('page-enabled').checked,
-                    content: quill.root.innerHTML
+                    content: quill ? quill.root.innerHTML : ''
                 };
                 
                 // Handle category change
                 if (categoryId !== updatedPage.categoryId) {
+                    // Remove from old category
                     category.pages.splice(pageIndex, 1);
+                    // Add to new category
                     const newCategory = data.categories.find(c => c.id === updatedPage.categoryId);
-                    newCategory.pages.push(updatedPage);
+                    if (newCategory) {
+                        newCategory.pages.push(updatedPage);
+                    }
                 } else {
+                    // Update in same category
                     category.pages[pageIndex] = updatedPage;
                 }
                 
                 await saveToJSON(data);
-                document.getElementById('page-form-container').style.display = 'none';
-                loadPages();
                 alert('Page updated successfully');
+            } catch (error) {
+                console.error('Error updating page:', error);
+                alert('Error updating page');
             }
         }
 
@@ -1868,5 +1896,5 @@
         loadSection('categories');
     </script>
 </body>
-</html>  
+</html>
 
