@@ -188,6 +188,8 @@ const app = window.Vue.createApp({
     data() {
         return {
             visible: false,
+            isEditing: false,
+            isAdmin: false,
             searchQuery: '',
             selectedTheme: 'dark',
             themes: [
@@ -342,9 +344,15 @@ const AdminPanelComponent = {
 
 // Single Vue app initialization
 document.addEventListener('DOMContentLoaded', () => {
-    const vueApp = window.Vue.createApp({});
+    if (window.vueApp) {
+        window.vueApp.unmount();
+    }
     
-    // Register all components once
+    const vueApp = window.Vue.createApp({
+        template: '<div></div>' // Empty template for base app
+    });
+    
+    // Register all components
     const components = {
         'search-component': SearchComponent,
         'editor-component': EditorComponent,
@@ -357,7 +365,8 @@ document.addEventListener('DOMContentLoaded', () => {
         vueApp.component(name, component);
     });
 
-    vueApp.mount('#guidebook');
+    window.vueApp = vueApp;
+    window.vueApp.mount('#guidebook');
 });
 
 window.GuideConfig = GuideConfig;

@@ -8,6 +8,42 @@ local Categories = {}
 local Pages = {}
 local searchResults = {}
 
+-- Move these function declarations to the top, right after variables
+local function OpenGuidebook(pageKey)
+    if not pageKey then
+        print('^1[Guidebook Error]^7: No page key provided')
+        return
+    end
+    
+    SafeNUIOperation(function()
+        ShowUI({pageKey = pageKey})
+        SendNUIMessage({
+            type = 'openGuidebook',
+            page = pageKey
+        })
+        SetNuiFocus(true, true)
+        print('^2[Guidebook]^7: Guidebook opened successfully')
+    end, function()
+        SetNuiFocus(false, false)
+    end)
+end
+
+local function ShowUI(data)
+    if not data then return end
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        type = "show",
+        data = data
+    })
+end
+
+local function HideUI()
+    SetNuiFocus(false, false)
+    SendNUIMessage({
+        type = "hide"
+    })
+end
+
 -- Debug Functions
 local function DebugLog(level, message)
     if not Config.Debug then return end
@@ -120,29 +156,6 @@ function PointManager:RegisterEvents()
 end
 
 -- UI Functions
-function ShowUI(data)
-    SetNuiFocus(true, true)
-    SendNUIMessage({
-        type = "show",
-        data = data
-    })
-end
-
-function HideUI()
-    SetNuiFocus(false, false)
-    SendNUIMessage({
-        type = "hide"
-    })
-end
-
-function OpenGuidebook(pageKey)
-    ShowUI({pageKey = pageKey})
-    SendNUIMessage({
-        type = 'openGuidebook',
-        page = pageKey
-    })
-    SetNuiFocus(true, true)
-end
 
 -- Editor Functions
 function OpenEditor(data)
@@ -288,6 +301,10 @@ end)
 
 RegisterNetEvent('guidebook:openGuidebook')
 AddEventHandler('guidebook:openGuidebook', function(pageKey)
+    if type(OpenGuidebook) ~= 'function' then
+        print('^1[Guidebook Error]^7: OpenGuidebook function not defined')
+        return
+    end
     OpenGuidebook(pageKey)
 end)
 

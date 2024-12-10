@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <link rel="stylesheet" href="css/style.css">
-    <script src="https://unpkg.com/vue@3"></script>  <!-- Add this line -->
+    <script src="https://unpkg.com/vue@3.2.31/dist/vue.global.prod.js"></script>
 </head>
 <body>
     <!-- Merged component templates -->
@@ -120,7 +120,7 @@
         </div>
 
         <!-- Page Editor -->
-        <div id="page-editor" class="editor-container" v-if="isEditing">
+        <div v-if="isEditing" class="editor-container">
             <div class="editor-toolbar">
                 <button v-for="tool in tools" @click="applyFormat(tool)">{{ tool }}</button>
                 <button @click="insertList">List</button>
@@ -133,7 +133,7 @@
         </div>
 
         <!-- Admin Panel -->
-        <div id="admin-panel" class="admin-container" v-if="isAdmin">
+        <div v-if="isAdmin" class="admin-container">
             <div class="admin-section">
                 <h2>Categories</h2>
                 <div class="admin-controls">

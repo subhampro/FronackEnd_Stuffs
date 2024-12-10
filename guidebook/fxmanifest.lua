@@ -7,7 +7,7 @@ author 'SubhaM'
 version '1.0.0'
 
 shared_scripts {
-    '@es_extended/imports.lua',
+    '@es_extended/imports.lua?conditional=true', -- Make es_extended optional
     '@qb-core/shared/locale.lua',
     'locales/*.lua',         -- Remove init.lua reference since we merged it
     'shared/config.lua',
