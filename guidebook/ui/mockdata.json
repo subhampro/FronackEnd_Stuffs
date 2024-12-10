@@ -14,6 +14,21 @@
                     "enabled": true
                 }
             ]
+        },
+        {
+            "id": "1733853091439",
+            "name": "Categories2 ",
+            "pages": [
+                {
+                    "id": "1733853118655",
+                    "label": "Page 2 ",
+                    "key": "page2",
+                    "categoryId": "1733853091439",
+                    "order": "1",
+                    "enabled": true,
+                    "content": "<p>Its a content of page 2</p>"
+                }
+            ]
         }
     ],
     "points": [
@@ -21,7 +36,7 @@
             "id": "point1",
             "label": "Spawn Point",
             "key": "spawn",
-            "textSize": 1.0,
+            "textSize": 1,
             "drawDistance": 50,
             "textColor": "#00f7ff",
             "font": 1,

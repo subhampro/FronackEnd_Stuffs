@@ -540,16 +540,13 @@
             }
         }
 
-        async function loadPage(pageId) {
+        async function loadPage(pageId, categoryId) {
             try {
                 const response = await fetch('http://localhost:3000/api/data');
                 const data = await response.json();
                 
-                let page;
-                for (const category of data.categories) {
-                    page = category.pages.find(p => p.id === pageId);
-                    if (page) break;
-                }
+                const category = data.categories.find(c => c.id === categoryId);
+                const page = category?.pages.find(p => p.id === pageId);
                 
                 if (page) {
                     const mainContent = document.getElementById('main');
@@ -619,7 +616,7 @@
                 const response = await fetch('http://localhost:3000/api/data');
                 const data = await response.json();
                 
-                if (!data) {
+                if (!data || !data.categories) {
                     console.error('No data found');
                     return;
                 }
@@ -633,7 +630,7 @@
                             <h2>📁 ${category.name} <span class="dropdown-arrow">▾</span></h2>
                             <div id="${category.id}Subcategories" class="subcategory">
                                 ${category.pages.filter(page => page.enabled).map(page => `
-                                    <div class="page" onclick="loadPage('${page.id}')">
+                                    <div class="page" onclick="loadPage('${page.id}', '${category.id}')">
                                         <h3>${page.label}</h3>
                                     </div>
                                 `).join('')}
@@ -647,7 +644,10 @@
         }
 
         // Initialize content on load
-        document.addEventListener('DOMContentLoaded', loadContent);
+        document.addEventListener('DOMContentLoaded', function() {
+            loadContent();
+            // ...any other initialization code...
+        });
     </script>
 </body>
 </html>
