@@ -806,6 +806,145 @@
             border-radius: 8px;
             border: 1px solid rgba(0, 247, 255, 0.2);
         }
+
+        /* Update/Add these responsive styles */
+        @media screen and (max-width: 1200px) {
+            .text-appearance-controls {
+                width: 90%;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .form-row .form-group {
+                width: 100%;
+            }
+
+            .page-form-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .page-form-header .form-group {
+                width: 100%;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .tablet-frame {
+                padding: 10px;
+            }
+
+            .tablet-container {
+                width: 100vw;
+                height: 100vh;
+            }
+
+            #sidebar {
+                position: fixed;
+                left: -100%;
+                top: 0;
+                width: 80%;
+                height: 100%;
+                z-index: 1000;
+                transition: left 0.3s ease;
+            }
+
+            #sidebar.active {
+                left: 0;
+            }
+
+            #main {
+                width: 100%;
+                padding: 15px;
+            }
+
+            .menu-toggle {
+                display: block;
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 1001;
+            }
+
+            .controls {
+                right: 10px;
+                top: 10px;
+            }
+
+            .text-appearance-controls {
+                width: 100%;
+                padding: 15px;
+            }
+
+            .header-actions {
+                padding: 10px;
+                margin-bottom: 20px;
+            }
+
+            .header-actions h2 {
+                font-size: 1.2em;
+            }
+
+            .color-preview-container {
+                flex-direction: column;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .tablet-frame::before,
+            .tablet-frame::after {
+                display: none;
+            }
+
+            .control-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 14px;
+            }
+
+            .form-container {
+                padding: 10px;
+            }
+
+            .text-appearance-controls {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.2em;
+            }
+
+            .admin-badge {
+                font-size: 0.5em;
+            }
+
+            .btn-primary {
+                padding: 8px 15px;
+                font-size: 0.9em;
+            }
+        }
+
+        /* Add backdrop for mobile menu */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        #sidebar.active + .sidebar-backdrop {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -830,6 +969,7 @@
                         <h2>📍 Points</h2>
                     </div>
                 </div>
+                <div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
                 <!-- Dynamic main content -->
                 <div id="main">
@@ -1180,6 +1320,9 @@
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('active');
+            
+            // Toggle body scroll
+            document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
         }
 
         function zoom(direction) {
@@ -1315,6 +1458,12 @@
             if (window.innerWidth > 768) {
                 sidebar.classList.remove('active');
             }
+        });
+
+        window.addEventListener('orientationchange', function() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.remove('active');
+            document.body.style.overflow = '';
         });
 
         loadSection('categories');
