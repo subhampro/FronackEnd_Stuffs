@@ -93,8 +93,9 @@
         }
 
         .category {
-            padding: 15px;
+            padding: 10px;  /* Reduced from 15px */
             position: relative;
+            margin-bottom: 5px;  /* Added for consistent spacing */
         }
 
         .category h2 {
@@ -102,7 +103,8 @@
             justify-content: space-between;
             align-items: center;
             margin: 0;
-            font-size: 0.95em;
+            font-size: 0.9em;  /* Slightly reduced from 0.95em */
+            line-height: 1.2;  /* Added for better vertical rhythm */
         }
 
         .dropdown-arrow {
@@ -145,7 +147,7 @@
         }
 
         .subcategory {
-            margin-top: 10px;
+            margin-top: 5px;  /* Reduced from 10px */
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -153,13 +155,13 @@
         }
 
         .subcategory.open {
-            max-height: 500px;
+            max-height: 300px;  /* Reduced from 500px if needed */
             opacity: 1;
         }
 
         .page {
-            margin: 5px 0;
-            padding: 10px;
+            margin: 3px 0;  /* Reduced from 5px */
+            padding: 8px 10px;  /* Reduced from 10px */
             border-left: 2px solid var(--primary-color);
             transform: translateY(-10px);
             opacity: 0;
@@ -192,12 +194,13 @@
 
         .page h3 {
             margin: 0;
-            font-size: 0.95em;
+            font-size: 0.85em;  /* Slightly reduced from 0.95em */
             font-weight: normal;
             position: relative;
             display: flex;
             align-items: center;
             transition: all 0.3s ease;
+            line-height: 1.2;  /* Added for better vertical rhythm */
         }
 
         .page:hover h3 {
