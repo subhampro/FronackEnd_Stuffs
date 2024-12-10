@@ -1,7 +1,4 @@
-// Remove import and use regular variable declaration
-const Vue = window.Vue;
 
-// Simplified config without theme definitions (moved to CSS)
 const GuideConfig = {
     // Only keep non-theme related settings
     IFrameInsertIntoPage: false,
@@ -174,7 +171,7 @@ const EditorComponent = {
 };
 
 // Main App Component
-const app = {
+const app = window.Vue.createApp({
     data() {
         return {
             visible: false,
@@ -238,9 +235,9 @@ const app = {
             }
         }
     }
-};
+});
 
-Vue.createApp(app).mount('#guidebook');
+app.mount('#guidebook');
 
 // Admin Panel Component
 const AdminPanelComponent = {
@@ -316,7 +313,7 @@ const AdminPanelComponent = {
 
 // Single Vue app initialization
 document.addEventListener('DOMContentLoaded', () => {
-    const vueApp = Vue.createApp({});
+    const vueApp = window.Vue.createApp({});
     
     // Register all components once
     const components = {
