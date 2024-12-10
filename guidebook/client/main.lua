@@ -8,6 +8,21 @@ local Categories = {}
 local Pages = {}
 local searchResults = {}
 
+-- UI Builder Functions (Merged from builder.lua)
+local GuideBuilder = {}
+
+function GuideBuilder:CreateCategory(data)
+    -- ...existing builder code...
+end
+
+function GuideBuilder:CreatePage(data)
+    -- ...existing builder code...
+end
+
+function GuideBuilder:CreateHelpPoint(data)
+    -- ...existing builder code...
+end
+
 -- Add SafeNUIOperation BEFORE OpenGuidebook
 local function SafeNUIOperation(operation, fallback)
     local success, error = pcall(operation)
