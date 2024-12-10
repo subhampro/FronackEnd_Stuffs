@@ -555,6 +555,61 @@
         .tablet-container * {
             transition: all 0.3s ease;
         }
+
+        /* Form layout improvements */
+        .form-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(10, 25, 41, 0.3);
+            border-radius: 5px;
+            border: 1px solid rgba(0, 247, 255, 0.1);
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-control {
+            width: calc(100% - 16px); /* Account for padding */
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--primary-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .range-slider {
+            width: calc(100% - 16px);
+        }
+
+        /* Editor specific adjustments */
+        .editor-wrapper {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+
+        #editor-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        /* Adjustments for mobile */
+        @media screen and (max-width: 768px) {
+            .form-container {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -637,7 +692,7 @@
                 <div class="header-actions">
                     <h2>Creating Page</h2>
                 </div>
-                <form id="page-form">
+                <form id="page-form" class="form-container">
                     <div class="form-group">
                         <label>Category</label>
                         <select class="form-control" id="category-select"></select>
@@ -654,12 +709,12 @@
                         <label>Order Number</label>
                         <input type="number" class="form-control" min="1" max="99" id="page-order">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group full-width">
                         <label>
                             <input type="checkbox" id="page-enabled"> Enabled
                         </label>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group full-width editor-wrapper">
                         <label>Content</label>
                         <p class="tip">Tip: You can right/left click image/video/(iframe , if enable) to show resizing tools!</p>
                         <div id="editor-container"></div>
@@ -678,7 +733,7 @@
                 </div>
                 <p class="tip">Create in-game markers Or 3D text with Custom content or directly open help page!</p>
                 <p class="tip">Tip: You can use right arrow / left arrow to change value in the range sliders with precision!</p>
-                <form id="point-form">
+                <form id="point-form" class="form-container">
                     <div class="form-group">
                         <label>Label</label>
                         <input type="text" class="form-control" id="point-label">
@@ -704,7 +759,7 @@
                         <select class="form-control" id="font-select"></select>
                         <div id="font-preview">Preview Text</div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group full-width editor-wrapper">
                         <label>Content</label>
                         <div id="editor-container"></div>
                     </div>
@@ -801,4 +856,4 @@
         });
     </script>
 </body>
-</html> 
+</html>
