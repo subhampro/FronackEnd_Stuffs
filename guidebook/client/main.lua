@@ -8,26 +8,19 @@ local Categories = {}
 local Pages = {}
 local searchResults = {}
 
--- Move these function declarations to the top, right after variables
-local function OpenGuidebook(pageKey)
-    if not pageKey then
-        print('^1[Guidebook Error]^7: No page key provided')
-        return
+-- Add SafeNUIOperation BEFORE OpenGuidebook
+local function SafeNUIOperation(operation, fallback)
+    local success, error = pcall(operation)
+    if not success then
+        print('^1[Guidebook Error]^7:', error)
+        SetNuiFocus(false, false) -- Reset NUI focus
+        if fallback then fallback() end
+        return false
     end
-    
-    SafeNUIOperation(function()
-        ShowUI({pageKey = pageKey})
-        SendNUIMessage({
-            type = 'openGuidebook',
-            page = pageKey
-        })
-        SetNuiFocus(true, true)
-        print('^2[Guidebook]^7: Guidebook opened successfully')
-    end, function()
-        SetNuiFocus(false, false)
-    end)
+    return true
 end
 
+-- Basic UI Functions first
 local function ShowUI(data)
     if not data then return end
     SetNuiFocus(true, true)
@@ -42,6 +35,21 @@ local function HideUI()
     SendNUIMessage({
         type = "hide"
     })
+end
+
+-- Then OpenGuidebook
+local function OpenGuidebook(pageKey)
+    SafeNUIOperation(function()
+        ShowUI({pageKey = pageKey or ''}) -- Provide empty string as fallback
+        SendNUIMessage({
+            type = 'openGuidebook',
+            page = pageKey or 'home' -- Use 'home' as default page
+        })
+        SetNuiFocus(true, true)
+        print('^2[Guidebook]^7: Guidebook opened successfully')
+    end, function()
+        SetNuiFocus(false, false)
+    end)
 end
 
 -- Debug Functions
@@ -59,18 +67,6 @@ end
 function DebugPoint(point)
     DebugLog('DEBUG', string.format('Point: %s, Type: %s, Coords: %s', 
         point.name, point.type, point.coords))
-end
-
--- Add after Debug Functions
-local function SafeNUIOperation(operation, fallback)
-    local success, error = pcall(operation)
-    if not success then
-        print('^1[Guidebook Error]^7:', error)
-        SetNuiFocus(false, false) -- Reset NUI focus
-        if fallback then fallback() end
-        return false
-    end
-    return true
 end
 
 -- Theme Management

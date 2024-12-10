@@ -244,6 +244,12 @@ const app = window.Vue.createApp({
             }
         },
         openPage(pageKey) {
+            if (!pageKey) {
+                // Handle case when no page key is provided
+                this.activePage = null;
+                return;
+            }
+            
             const page = this.pages.find(p => p.key === pageKey);
             if (page) {
                 this.activePage = page;
