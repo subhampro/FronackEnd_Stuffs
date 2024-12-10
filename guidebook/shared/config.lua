@@ -1,14 +1,13 @@
-
 Config = {}
 
-Config.Debug = false
+Config.Debug = true
 Config.DebugLevel = {
     'CRITICAL',
     'SUCCESS',
     'ERROR',
 }
 
-Config.Framework = 0 -- 0: Auto, 1: ESX, 2: QBCore, 3: Other
+Config.Framework = 2 -- 0: Auto, 1: ESX, 2: QBCore, 3: Other
 Config.Locale = 'en'
 
 Config.Commands = {
@@ -26,12 +25,14 @@ Config.Keys = {
 Config.RegisterOpenKey = 'F9'
 Config.DisablePageContentCopy = false
 Config.DisableDataPermissions = false
-Config.UseFrameworkNotify = false
+Config.UseFrameworkNotify = true
 
 Config.FrameworkTriggers = {
-    resourceName = '',
-    load = '',
-    notify = '',
+    resourceName = 'qb-core',
+    load = 'QBCore:GetObject',
+    notify = 'QBCore:Notify'
 }
 
 Config.IFrameInsertIntoPage = false
+
+return Config

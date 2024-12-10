@@ -417,15 +417,15 @@ end)
 
 -- Framework Init
 CreateThread(function()
-    if Config.Framework == 1 or (Config.Framework == 0 and GetResourceState('es_extended') == 'started') then
+    if Config.Framework == 2 or (Config.Framework == 0 and GetResourceState('qb-core') == 'started') then
+        Framework = exports['qb-core']:GetCoreObject()
+        PlayerData = Framework.Functions.GetPlayerData()
+    elseif Config.Framework == 1 or (Config.Framework == 0 and GetResourceState('es_extended') == 'started') then
         while Framework == nil do
             Framework = exports['es_extended']:getSharedObject()
             Wait(0)
         end
         PlayerData = Framework.GetPlayerData()
-    elseif Config.Framework == 2 or (Config.Framework == 0 and GetResourceState('qb-core') == 'started') then
-        Framework = exports['qb-core']:GetCoreObject()
-        PlayerData = Framework.Functions.GetPlayerData()
     end
 
     -- Load saved theme
