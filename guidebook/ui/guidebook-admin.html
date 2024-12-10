@@ -859,39 +859,45 @@
 
         // Initialize Quill editor
         function initializeEditor() {
+            // Wait for editor container to exist
+            const editorContainer = document.getElementById('editor-container');
+            if (!editorContainer) {
+                console.warn('Editor container not found');
+                return;
+            }
+
             // Clean up before initializing
             cleanupEditor();
             
             // Initialize new Quill instance
-            quill = new Quill('#editor-container', {
-                theme: 'snow',
-                modules: {
-                    toolbar: [
-                        [{ 'font': [] }, { 'size': [] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'color': [] }, { 'background': [] }],
-                        [{ 'script': 'super' }, { 'script': 'sub' }],
-                        [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
-                        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-                        ['link', 'image', 'video'],
-                        ['clean']
-                    ],
-                    history: {
-                        delay: 1000,
-                        maxStack: 500,
-                        userOnly: true
-                    }
-                },
-                placeholder: 'Start writing...',
-                readOnly: false,
-                strict: true
-            });
+            try {
+                quill = new Quill('#editor-container', {
+                    theme: 'snow',
+                    modules: {
+                        toolbar: [
+                            [{ 'font': [] }, { 'size': [] }],
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'color': [] }, { 'background': [] }],
+                            [{ 'script': 'super' }, { 'script': 'sub' }],
+                            [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+                            ['link', 'image', 'video'],
+                            ['clean']
+                        ]
+                    },
+                    placeholder: 'Start writing...'
+                });
 
-            quill.on('text-change', function(delta, oldDelta, source) {
-                if (source === 'user') {
-                    // Handle content changes here if needed
+                if (quill) {
+                    quill.on('text-change', function(delta, oldDelta, source) {
+                        if (source === 'user') {
+                            // Handle content changes here if needed
+                        }
+                    });
                 }
-            });
+            } catch (error) {
+                console.error('Error initializing Quill:', error);
+            }
         }
 
         // Section loading functions
@@ -1067,14 +1073,20 @@
         function showNewPageForm() {
             const formContainer = document.getElementById('page-form-container');
             formContainer.style.display = 'flex';
-            initializeEditor();
-            initializeForms();
+            // Wait for DOM update before initializing editor
+            setTimeout(() => {
+                initializeEditor();
+                initializeForms();
+            }, 100);
         }
 
         function showNewPointForm() {
             const formContainer = document.getElementById('point-form-container');
             formContainer.style.display = 'flex';
-            initializeEditor();
+            // Wait for DOM update before initializing editor
+            setTimeout(() => {
+                initializeEditor();
+            }, 100);
         }
 
         async function loadPages() {
@@ -1161,13 +1173,6 @@
                 case 'points':
                     loadPointsSection();
                     break;
-            }
-            
-            if (section === 'pages' || section === 'points') {
-                setTimeout(() => {
-                    initializeForms();
-                    initializeEditor();
-                }, 0);
             }
         }
 
