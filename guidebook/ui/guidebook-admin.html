@@ -763,6 +763,33 @@
         #font-select {
             margin-bottom: 10px;
         }
+
+        .page-form-header {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .page-form-header .form-group {
+            margin-bottom: 0;
+        }
+
+        .page-form-header .form-group:nth-child(1) { /* Category select */
+            flex: 2;
+        }
+
+        .page-form-header .form-group:nth-child(2) { /* Page Label */
+            flex: 2;
+        }
+
+        .page-form-header .form-group:nth-child(3) { /* Key */
+            flex: 2;
+        }
+
+        .page-form-header .form-group:nth-child(4) { /* Order */
+            flex: 0 0 80px;
+        }
     </style>
 </head>
 <body>
@@ -802,8 +829,24 @@
         let quill;
         let currentZoom = 100;
 
+        // Add this cleanup function before initializing editor
+        function cleanupEditor() {
+            // Remove any existing toolbar
+            const existingToolbars = document.querySelectorAll('.ql-toolbar');
+            existingToolbars.forEach(toolbar => toolbar.remove());
+            
+            // Destroy existing Quill instance if it exists
+            if (quill) {
+                quill = null;
+            }
+        }
+
         // Initialize Quill editor
         function initializeEditor() {
+            // Clean up before initializing
+            cleanupEditor();
+            
+            // Initialize new Quill instance
             quill = new Quill('#editor-container', {
                 theme: 'snow',
                 modules: {
@@ -864,18 +907,21 @@
             formContainer.style.display = 'flex';
         }
 
-        function submitCategory() {
+        async function submitCategory() {
             const categoryName = document.getElementById('category-name').value;
             if (categoryName.trim()) {
-                // Here you would typically save the category to your backend
-                console.log('New category:', categoryName);
-                alert('Category created: ' + categoryName);
+                const data = await loadFromJSON();
+                const newCategory = {
+                    id: Date.now().toString(),
+                    name: categoryName,
+                    pages: []
+                };
                 
-                // Clear and hide the form
+                data.categories.push(newCategory);
+                await saveToJSON(data);
+                
                 document.getElementById('category-name').value = '';
                 document.getElementById('category-form-container').style.display = 'none';
-                
-                // Reload categories list
                 loadCategories();
             } else {
                 alert('Please enter a category name');
@@ -888,7 +934,7 @@
                     <h2>Creating Page</h2>
                 </div>
                 <form id="page-form" class="form-container">
-                    <div class="form-row">
+                    <div class="page-form-header">
                         <div class="form-group">
                             <label>Category</label>
                             <select class="form-control" id="category-select">
@@ -903,19 +949,17 @@
                             <label>Key (Slug)</label>
                             <input type="text" class="form-control" id="page-key">
                         </div>
-                    </div>
-
-                    <div class="page-header-controls">
-                        <div class="form-group small">
+                        <div class="form-group">
                             <label>Order</label>
                             <input type="number" class="form-control" min="1" max="99" id="page-order" value="1">
                         </div>
-                        <label class="enable-toggle">
-                            <input type="checkbox" id="page-enabled" checked>
-                            <span class="toggle-slider"></span>
-                            Enable Page
-                        </label>
                     </div>
+
+                    <label class="enable-toggle" style="margin: 20px 0;">
+                        <input type="checkbox" id="page-enabled" checked>
+                        <span class="toggle-slider"></span>
+                        Enable Page
+                    </label>
 
                     <div class="form-group full-width editor-wrapper">
                         <label>Content</label>
@@ -992,14 +1036,26 @@
             setTimeout(() => initializeEditor(), 0);
         }
 
-        function loadCategories() {
+        async function loadCategories() {
             const categoriesList = document.getElementById('categories-list');
-            categoriesList.innerHTML = `
-                <div class="tip">Categories will be loaded here</div>
-            `;
+            const data = await loadFromJSON();
+            
+            if (data && data.categories) {
+                const categoriesHtml = data.categories.map(category => `
+                    <div class="category-item">
+                        <h3>${category.name}</h3>
+                        <p>Pages: ${category.pages.length}</p>
+                    </div>
+                `).join('');
+                
+                categoriesList.innerHTML = categoriesHtml || '<div class="tip">No categories yet</div>';
+            }
         }
 
+        // Update loadSection function to cleanup editor when switching sections
         function loadSection(section) {
+            cleanupEditor(); // Clean up before loading new section
+            
             const main = document.getElementById('main');
             switch(section) {
                 case 'categories':
@@ -1011,6 +1067,13 @@
                 case 'points':
                     loadPointsSection();
                     break;
+            }
+            
+            if (section === 'pages' || section === 'points') {
+                setTimeout(() => {
+                    initializeForms();
+                    initializeEditor();
+                }, 0);
             }
         }
 
@@ -1032,6 +1095,86 @@
         function closeGuidebook() {
             if (window.confirm('Close guidebook?')) {
                 window.close();
+            }
+        }
+
+        async function saveToJSON(data) {
+            try {
+                const response = await fetch('mockdata.json', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error saving data:', error);
+                alert('Error saving data');
+            }
+        }
+
+        async function loadFromJSON() {
+            try {
+                const response = await fetch('mockdata.json');
+                return await response.json();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                return null;
+            }
+        }
+
+        document.getElementById('page-form')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const pageData = {
+                id: Date.now().toString(),
+                label: document.getElementById('page-label').value,
+                key: document.getElementById('page-key').value,
+                categoryId: document.getElementById('category-select').value,
+                order: document.getElementById('page-order').value,
+                enabled: document.getElementById('page-enabled').checked,
+                content: quill.root.innerHTML
+            };
+            
+            const data = await loadFromJSON();
+            const category = data.categories.find(c => c.id === pageData.categoryId);
+            if (category) {
+                category.pages.push(pageData);
+                await saveToJSON(data);
+                alert('Page saved successfully');
+            }
+        });
+
+        document.getElementById('point-form')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const pointData = {
+                id: Date.now().toString(),
+                label: document.getElementById('point-label').value,
+                key: document.getElementById('point-key').value,
+                textSize: document.getElementById('text-size').value,
+                drawDistance: document.getElementById('draw-distance').value,
+                textColor: document.getElementById('text-color').value,
+                font: document.getElementById('font-select').value,
+                content: quill.root.innerHTML
+            };
+            
+            const data = await loadFromJSON();
+            data.points.push(pointData);
+            await saveToJSON(data);
+            alert('Point saved successfully');
+        });
+
+        async function initializeForms() {
+            const data = await loadFromJSON();
+            const categorySelect = document.getElementById('category-select');
+            
+            if (categorySelect && data.categories) {
+                categorySelect.innerHTML = `
+                    <option value="">Select Category</option>
+                    ${data.categories.map(cat => `
+                        <option value="${cat.id}">${cat.name}</option>
+                    `).join('')}
+                `;
             }
         }
 

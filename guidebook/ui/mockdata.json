@@ -1,5 +1,31 @@
-
 {
     "title": "Guidebook",
-    "content": "This is a mock guidebook content."
+    "categories": [
+        {
+            "id": "cat1",
+            "name": "Getting Started",
+            "pages": [
+                {
+                    "id": "page1",
+                    "label": "Welcome",
+                    "key": "welcome",
+                    "content": "Welcome to our server!",
+                    "order": 1,
+                    "enabled": true
+                }
+            ]
+        }
+    ],
+    "points": [
+        {
+            "id": "point1",
+            "label": "Spawn Point",
+            "key": "spawn",
+            "textSize": 1.0,
+            "drawDistance": 50,
+            "textColor": "#00f7ff",
+            "font": 1,
+            "content": "This is the spawn point"
+        }
+    ]
 }
