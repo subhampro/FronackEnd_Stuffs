@@ -790,6 +790,22 @@
         .page-form-header .form-group:nth-child(4) { /* Order */
             flex: 0 0 80px;
         }
+
+        .page-list, .points-list {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 247, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid var (--primary-color);
+        }
+
+        .page-item, .point-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(10, 25, 41, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 247, 255, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -931,56 +947,58 @@
         function loadPagesSection() {
             const content = `
                 <div class="header-actions">
-                    <h2>Creating Page</h2>
+                    <h2>Pages</h2>
+                    <button class="btn-primary" onclick="showNewPageForm()">+ New Page</button>
                 </div>
-                <form id="page-form" class="form-container">
-                    <div class="page-form-header">
-                        <div class="form-group">
-                            <label>Category</label>
-                            <select class="form-control" id="category-select">
-                                <option value="">Select Category</option>
-                            </select>
+                <div id="page-form-container" class="form-container" style="display: none;">
+                    <!-- Move your existing page form here -->
+                    <div class="text-appearance-controls">
+                        <div class="page-form-header">
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select class="form-control" id="category-select">
+                                    <option value="">Select Category</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Page Label</label>
+                                <input type="text" class="form-control" id="page-label">
+                            </div>
+                            <div class="form-group">
+                                <label>Key (Slug)</label>
+                                <input type="text" class="form-control" id="page-key">
+                            </div>
+                            <div class="form-group">
+                                <label>Order</label>
+                                <input type="number" class="form-control" min="1" max="99" id="page-order" value="1">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Page Label</label>
-                            <input type="text" class="form-control" id="page-label">
+                        <label class="enable-toggle" style="margin: 20px 0;">
+                            <input type="checkbox" id="page-enabled" checked>
+                            <span class="toggle-slider"></span>
+                            Enable Page
+                        </label>
+                        <div class="form-group full-width editor-wrapper">
+                            <label>Content</label>
+                            <div id="editor-container"></div>
                         </div>
-                        <div class="form-group">
-                            <label>Key (Slug)</label>
-                            <input type="text" class="form-control" id="page-key">
-                        </div>
-                        <div class="form-group">
-                            <label>Order</label>
-                            <input type="number" class="form-control" min="1" max="99" id="page-order" value="1">
-                        </div>
+                        <button class="btn-primary" onclick="submitPage()">Create Page</button>
                     </div>
-
-                    <label class="enable-toggle" style="margin: 20px 0;">
-                        <input type="checkbox" id="page-enabled" checked>
-                        <span class="toggle-slider"></span>
-                        Enable Page
-                    </label>
-
-                    <div class="form-group full-width editor-wrapper">
-                        <label>Content</label>
-                        <div id="editor-container"></div>
-                    </div>
-                    <button type="submit" class="btn-primary">Save Page</button>
-                </form>
+                </div>
+                <div id="pages-list" class="page-list"></div>
             `;
             document.getElementById('main').innerHTML = content;
-            
-            // Initialize editor after the container is added to DOM
-            setTimeout(() => initializeEditor(), 0);
+            loadPages();
         }
 
         function loadPointsSection() {
             const content = `
                 <div class="header-actions">
-                    <h2>Creating Point</h2>
+                    <h2>Points</h2>
+                    <button class="btn-primary" onclick="showNewPointForm()">+ New Point</button>
                 </div>
-                <p class="tip">Create in-game markers Or 3D text with Custom content or directly open help page!</p>
-                <form id="point-form" class="form-container">
+                <div id="point-form-container" class="form-container" style="display: none;">
+                    <!-- Move your existing point form here -->
                     <div class="text-appearance-controls">
                         <!-- Add Label and Key at the top of text-appearance-controls -->
                         <div class="form-row">
@@ -1022,18 +1040,11 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="form-group full-width editor-wrapper">
-                        <label>Content</label>
-                        <div id="editor-container"></div>
-                    </div>
-                    <button type="submit" class="btn-primary">Save Point</button>
-                </form>
+                </div>
+                <div id="points-list" class="points-list"></div>
             `;
             document.getElementById('main').innerHTML = content;
-            
-            // Initialize editor after the container is added to DOM
-            setTimeout(() => initializeEditor(), 0);
+            loadPoints();
         }
 
         async function loadCategories() {
@@ -1049,6 +1060,89 @@
                 `).join('');
                 
                 categoriesList.innerHTML = categoriesHtml || '<div class="tip">No categories yet</div>';
+            }
+        }
+
+        // Add these new functions
+        function showNewPageForm() {
+            const formContainer = document.getElementById('page-form-container');
+            formContainer.style.display = 'flex';
+            initializeEditor();
+            initializeForms();
+        }
+
+        function showNewPointForm() {
+            const formContainer = document.getElementById('point-form-container');
+            formContainer.style.display = 'flex';
+            initializeEditor();
+        }
+
+        async function loadPages() {
+            const pagesList = document.getElementById('pages-list');
+            const data = await loadFromJSON();
+            
+            if (data && data.categories) {
+                const pages = data.categories.flatMap(cat => 
+                    cat.pages.map(page => ({...page, categoryName: cat.name}))
+                );
+                
+                const pagesHtml = pages.map(page => `
+                    <div class="page-item">
+                        <h3>${page.label}</h3>
+                        <p>Category: ${page.categoryName}</p>
+                        <p>Order: ${page.order}</p>
+                        <p>Status: ${page.enabled ? 'Enabled' : 'Disabled'}</p>
+                    </div>
+                `).join('');
+                
+                pagesList.innerHTML = pagesHtml || '<div class="tip">No pages yet</div>';
+            }
+        }
+
+        async function loadPoints() {
+            const pointsList = document.getElementById('points-list');
+            const data = await loadFromJSON();
+            
+            if (data && data.points) {
+                const pointsHtml = data.points.map(point => `
+                    <div class="point-item">
+                        <h3>${point.label}</h3>
+                        <p>Size: ${point.textSize}</p>
+                        <p>Distance: ${point.drawDistance}</p>
+                        <p>Color: <span style="color: ${point.textColor}">${point.textColor}</span></p>
+                    </div>
+                `).join('');
+                
+                pointsList.innerHTML = pointsHtml || '<div class="tip">No points yet</div>';
+            }
+        }
+
+        async function submitPage() {
+            const pageData = {
+                id: Date.now().toString(),
+                label: document.getElementById('page-label').value,
+                key: document.getElementById('page-key').value,
+                categoryId: document.getElementById('category-select').value,
+                order: document.getElementById('page-order').value,
+                enabled: document.getElementById('page-enabled').checked,
+                content: quill.root.innerHTML
+            };
+            
+            const data = await loadFromJSON();
+            const category = data.categories.find(c => c.id === pageData.categoryId);
+            if (category) {
+                category.pages.push(pageData);
+                await saveToJSON(data);
+                
+                // Clear form and hide it
+                document.getElementById('page-form-container').style.display = 'none';
+                document.getElementById('page-label').value = '';
+                document.getElementById('page-key').value = '';
+                document.getElementById('page-order').value = '1';
+                
+                // Reload pages list
+                loadPages();
+                alert('Page saved successfully');
             }
         }
 
@@ -1100,29 +1194,51 @@
 
         async function saveToJSON(data) {
             try {
-                const response = await fetch('mockdata.json', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-                return await response.json();
+                // Save to localStorage instead of file
+                localStorage.setItem('guidebookData', JSON.stringify(data));
+                return data;
             } catch (error) {
                 console.error('Error saving data:', error);
                 alert('Error saving data');
+                return null;
             }
         }
 
         async function loadFromJSON() {
             try {
-                const response = await fetch('mockdata.json');
-                return await response.json();
+                // Load from localStorage or return default structure
+                const savedData = localStorage.getItem('guidebookData');
+                if (savedData) {
+                    return JSON.parse(savedData);
+                }
+                
+                // Return default data structure if nothing is saved
+                return {
+                    title: "Guidebook",
+                    categories: [],
+                    points: []
+                };
             } catch (error) {
                 console.error('Error loading data:', error);
                 return null;
             }
         }
+
+        // Add this function to initialize default data if needed
+        async function initializeDefaultData() {
+            const data = await loadFromJSON();
+            if (!data || !data.categories) {
+                const defaultData = {
+                    title: "Guidebook",
+                    categories: [],
+                    points: []
+                };
+                await saveToJSON(defaultData);
+            }
+        }
+
+        // Call this when the page loads
+        document.addEventListener('DOMContentLoaded', initializeDefaultData);
 
         document.getElementById('page-form')?.addEventListener('submit', async function(e) {
             e.preventDefault();

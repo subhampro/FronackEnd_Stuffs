@@ -542,9 +542,11 @@
 
         async function loadPage(pageId) {
             try {
-                const response = await fetch('mockdata.json');
-                const data = await response.json();
+                const savedData = localStorage.getItem('guidebookData');
+                const data = savedData ? JSON.parse(savedData) : null;
                 
+                if (!data) return;
+
                 let page;
                 for (const category of data.categories) {
                     page = category.pages.find(p => p.id === pageId);
@@ -616,9 +618,14 @@
 
         async function loadContent() {
             try {
-                const response = await fetch('mockdata.json');
-                const data = await response.json();
+                const savedData = localStorage.getItem('guidebookData');
+                const data = savedData ? JSON.parse(savedData) : null;
                 
+                if (!data) {
+                    console.error('No data found');
+                    return;
+                }
+
                 // Load categories into sidebar
                 const sidebar = document.getElementById('sidebar');
                 sidebar.innerHTML = `
@@ -645,4 +652,4 @@
         document.addEventListener('DOMContentLoaded', loadContent);
     </script>
 </body>
-</html> 
+</html>
