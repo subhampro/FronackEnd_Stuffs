@@ -1,196 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://unpkg.com/vue@3.2.31/dist/vue.global.prod.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiveM Guidebook</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/froala-editor@latest/css/froala_editor.pkgd.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/froala-editor@latest/js/froala_editor.pkgd.min.js"></script>
 </head>
 <body>
-    <!-- Merged component templates -->
-    <template id="search-component">
-        <div class="search-component">
-            <input type="text" v-model="query" placeholder="Search...">
-            <ul>
-                <li v-for="result in results" :key="result.id">{{ result.title }}</li>
-            </ul>
+    <div id="guidebook-container">
+        <div id="sidebar">
+            <div id="search-container">
+                <input type="text" id="search" placeholder="Search...">
+            </div>
+            <div id="categories"></div>
         </div>
-    </template>
-
-    <!-- Existing templates -->
-    <template id="permission-editor">
-        <div class="permission-editor">
-            <div class="permission-header">
-                <h4>Access Permissions</h4>
-            </div>
-            <div class="permission-body">
-                <div class="permission-controls">
-                    <select v-model="selectedJob">
-                        <option value="">Select Job</option>
-                        <option v-for="job in jobs" :value="job.name">{{job.label}}</option>
-                    </select>
-                    <select v-model="selectedGrade" :disabled="!selectedJob">
-                        <option value="">Select Grade</option>
-                        <option v-for="grade in grades[selectedJob]" :value="grade.level">
-                            {{grade.label}}
-                        </option>
-                    </select>
-                    <button @click="addPermission" :disabled="!selectedJob || !selectedGrade">
-                        Add Permission
-                    </button>
-                </div>
-                <div class="permission-list">
-                    <div v-for="(permission, index) in permissions" :key="index">
-                        <span>{{ permission.job }} - {{ permission.grade }}</span>
-                        <button @click="removePermission(index)">Remove</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </template>
-
-    <template id="point-editor">
-        <div class="point-editor">
-            <div class="editor-header">
-                <h3>Help Point Editor</h3>
-            </div>
-            <div class="editor-body">
-                <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" v-model="point.name">
-                </div>
-                <div class="form-group">
-                    <label>Type</label>
-                    <select v-model="point.type">
-                        <option value="marker">Marker</option>
-                        <option value="3dtext">3D Text</option>
-                        <option value="blip">Blip</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Blip Settings</label>
-                    <div class="blip-settings" v-if="point.type === 'blip'">
-                        <select v-model="point.blipSprite">
-                            <option value="1">Default</option>
-                            <option value="66">Help</option>
-                            <option value="280">Information</option>
-                        </select>
-                        <input type="number" v-model="point.blipColor" placeholder="Blip Color">
-                        <input type="number" v-model="point.blipScale" placeholder="Blip Scale">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Can Navigate</label>
-                    <input type="checkbox" v-model="point.canNavigate">
-                </div>
-                <div class="form-group">
-                    <label>Linked Page</label>
-                    <select v-model="point.pageKey">
-                        <option v-for="page in pages" :value="page.key">{{page.title}}</option>
-                    </select>
-                </div>
-                <div class="permission-section">
-                    <h4>Permissions</h4>
-                    <div class="permission-list">
-                        <!-- Permission items -->
-                    </div>
-                    <button @click="addPermission">Add Permission</button>
-                </div>
-            </div>
-            <div class="editor-footer">
-                <button @click="savePoint">Save Point</button>
-                <button @click="cancel">Cancel</button>
-            </div>
-        </div>
-    </template>
-
-    <!-- Main Application -->
-    <div id="guidebook" v-show="visible">
-        <div class="guidebook-header">
-            <div class="search-bar">
-                <input type="text" v-model="searchQuery" placeholder="Search...">
-            </div>
-            <div class="theme-selector">
-                <select v-model="selectedTheme">
-                    <option v-for="theme in themes" :value="theme.name">{{theme.label}}</option>
-                </select>
-            </div>
-        </div>
-        <div class="guidebook-content">
-            <!-- Categories and Pages -->
-        </div>
-
-        <!-- Page Editor -->
-        <div v-if="isEditing" class="editor-container">
-            <div class="editor-toolbar">
-                <button v-for="tool in tools" @click="applyFormat(tool)">{{ tool }}</button>
-                <button @click="insertList">List</button>
-                <button @click="insertHeader">Header</button>
-                <button @click="insertImage">Image</button>
-                <button @click="insertVideo">Video</button>
-                <button @click="insertLink">Link</button>
-            </div>
-            <div ref="editable" class="editor-content" contenteditable="true"></div>
-        </div>
-
-        <!-- Admin Panel -->
-        <div v-if="isAdmin" class="admin-container">
-            <div class="admin-section">
-                <h2>Categories</h2>
-                <div class="admin-controls">
-                    <button class="button" @click="saveCategory">Add Category</button>
-                </div>
-                <div class="categories-list">
-                    <div v-for="category in categories" :key="category.id">
-                        <h3>{{ category.name }}</h3>
-                        <p>{{ category.description }}</p>
-                        <button @click="deleteCategory(category.id)">Delete</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="admin-section">
-                <h2>Pages</h2>
-                <div class="admin-controls">
-                    <button class="button" @click="savePage">Add Page</button>
-                </div>
-                <div class="pages-list">
-                    <div v-for="page in pages" :key="page.id">
-                        <h3>{{ page.title }}</h3>
-                        <p>{{ page.content }}</p>
-                        <button @click="deletePage(page.id)">Delete</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="admin-section">
-                <h2>Help Points</h2>
-                <div class="admin-controls">
-                    <button class="button" @click="newPoint">Add Point</button>
-                </div>
-                <div class="points-list">
-                    <!-- Point items -->
-                </div>
-            </div>
-
-            <div class="admin-section">
-                <h2>Experimental Features</h2>
-                <div class="feature-toggle">
-                    <label>
-                        <input type="checkbox" v-model="config.IFrameInsertIntoPage">
-                        Enable Website Embedding
-                    </label>
-                </div>
+        <div id="content">
+            <div id="page-content"></div>
+            <div id="editor-container" class="hidden">
+                <div id="wysiwyg-editor"></div>
+                <button id="save-page">Save</button>
             </div>
         </div>
     </div>
-    <script src="js/main.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const app = Vue.createApp({
-                // ...existing Vue app code...
-            });
-            app.mount('#guidebook');
-        });
-    </script>
+
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="hidden">
+        <div class="tab-container">
+            <button class="tab-btn active" data-tab="categories">Categories</button>
+            <button class="tab-btn" data-tab="pages">Pages</button>
+            <button class="tab-btn" data-tab="help-points">Help Points</button>
+            <button class="tab-btn" data-tab="themes">Themes</button>
+        </div>
+        <div class="tab-content" id="categories-tab">
+            <button id="new-category">New Category</button>
+            <div id="categories-list"></div>
+        </div>
+        <div class="tab-content hidden" id="pages-tab">
+            <button id="new-page">New Page</button>
+            <div id="pages-list"></div>
+        </div>
+        <div class="tab-content hidden" id="help-points-tab">
+            <button id="new-help-point">New Help Point</button>
+            <div id="help-points-list"></div>
+        </div>
+        <div class="tab-content hidden" id="themes-tab">
+            <div class="theme-selector"></div>
+            <button id="new-theme">Create Custom Theme</button>
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    <div id="search-results" class="hidden"></div>
+
+    <script src="app.js"></script>
 </body>
 </html>
