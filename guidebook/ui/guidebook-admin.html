@@ -1152,6 +1152,25 @@
             background: #ff4747;
             color: var(--secondary-color);
         }
+
+        .page-status {
+            flex: 0 0 80px;
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .page-status.active {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+        }
+
+        .page-status.inactive {
+            background: rgba(255, 0, 0, 0.1);
+            color: #ff4747;
+        }
     </style>
 </head>
 <body>
@@ -1569,6 +1588,9 @@
                                 ${sortedPages.map(page => `
                                     <div class="page-item">
                                         <div class="page-name">${page.label}</div>
+                                        <div class="page-status ${page.enabled ? 'active' : 'inactive'}">
+                                            ${page.enabled ? '✓ Active' : '× Inactive'}
+                                        </div>
                                         <div class="page-slug">${page.key}</div>
                                         <div class="page-category">${category.name}</div>
                                         <div class="page-order">#${page.order}</div>
@@ -1828,5 +1850,5 @@
         loadSection('categories');
     </script>
 </body>
-</html> 
+</html>
 
