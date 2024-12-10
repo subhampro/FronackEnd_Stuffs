@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,17 +11,24 @@
             --secondary-color: #0a1929;
             --accent-color: #ff00f7;
             --text-color: #ffffff;
+            --sidebar-width: 15%;
+            --sidebar-width-tablet: 25%;
+            --sidebar-width-mobile: 75%;
             --admin-accent: #ffd700;
         }
 
-        /* Reuse existing guidebook styles */
+        /* Base styles from guidebook.html */
         body {
             background: linear-gradient(45deg, #000000, #1a1a1a);
             margin: 0;
             padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             min-height: 100vh;
             font-family: 'Segoe UI', sans-serif;
             color: var(--text-color);
+            overflow: hidden;
         }
 
         .tablet-frame {
@@ -31,6 +37,32 @@
             border-radius: 30px;
             box-shadow: 0 0 0 10px #1a1a1a, 0 20px 40px rgba(0, 0, 0, 0.8);
             position: relative;
+            animation: frameAppear 1s ease-out;
+        }
+
+        .tablet-frame::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 3px;
+            height: 80px;
+            background: #1a1a1a;
+            box-shadow: inset 0 0 5px rgba(0, 247, 255, 0.3);
+            border-radius: 3px;
+            transform: translateY(-50%);
+        }
+
+        .tablet-frame::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15px;
+            height: 15px;
+            background: #222;
+            border-radius: 50%;
         }
 
         .tablet-container {
@@ -43,9 +75,11 @@
             position: relative;
             overflow: hidden;
             border: 2px solid var(--primary-color);
+            animation: powerOn 1s ease-out;
+            backdrop-filter: blur(10px);
         }
 
-        /* Admin specific styles */
+        /* Admin-specific overrides and additions */
         .admin-badge {
             background: var(--admin-accent);
             color: var(--secondary-color);
@@ -58,88 +92,268 @@
         /* Form styles */
         .form-group {
             margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(10, 25, 41, 0.3);
+            border-radius: 5px;
+            border: 1px solid rgba(0, 247, 255, 0.1);
         }
 
         .form-group label {
             display: block;
             margin-bottom: 8px;
             color: var(--primary-color);
+            font-size: 0.9em;
         }
 
         .form-control {
             width: 100%;
             padding: 8px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--primary-color);
-            color: white;
+            color: var(--text-color);
             border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            background: rgba(0, 247, 255, 0.1);
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 247, 255, 0.2);
         }
 
         .btn-primary {
-            background: var(--primary-color);
-            color: var(--secondary-color);
+            background: rgba(0, 247, 255, 0.1);
+            color: var(--primary-color);
             padding: 10px 20px;
-            border: none;
+            border: 1px solid var(--primary-color);
             border-radius: 4px;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-color);
+            color: var(--secondary-color);
+            box-shadow: 0 0 15px var(--primary-color);
         }
 
         /* Editor container */
         #editor-container {
             height: 300px;
             margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+
+        .ql-toolbar {
+            background: rgba(10, 25, 41, 0.5);
+            border-color: var(--primary-color) !important;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .ql-container {
+            border-color: var(--primary-color) !important;
+            border-radius: 0 0 5px 5px;
+            background: rgba(10, 25, 41, 0.3);
         }
 
         /* Points specific styles */
         .range-slider {
             width: 100%;
             margin: 10px 0;
+            background: rgba(0, 247, 255, 0.1);
+            height: 4px;
+            -webkit-appearance: none;
+            border-radius: 2px;
+        }
+
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .range-slider::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 10px var(--primary-color);
         }
 
         .color-picker {
             width: 50px;
             height: 30px;
             padding: 0;
-            border: none;
+            border: 2px solid var(--primary-color);
+            border-radius: 4px;
             cursor: pointer;
+            background: transparent;
         }
 
-        /* Main content area */
-        #main {
-            padding: 30px;
-            overflow-y: auto;
-            width: 85%;
-        }
-
+        /* Header actions */
         .header-actions {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
+            padding: 15px;
+            background: rgba(0, 247, 255, 0.05);
+            border-radius: 5px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .tip {
+            color: var(--primary-color);
+            font-size: 0.85em;
+            opacity: 0.8;
+            margin: 5px 0;
+            padding-left: 10px;
+            border-left: 2px solid var(--primary-color);
+        }
+
+        #font-preview {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 247, 255, 0.05);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        #sidebar {
+            width: 15%;
+            background: rgba(10, 25, 41, 0.9);
+            padding: 20px;
+            border-right: 1px solid var(--primary-color);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .category {
+            padding: 10px;
+            position: relative;
+            margin-bottom: 5px;
+        }
+
+        .category h2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0;
+            font-size: 0.9em;
+            line-height: 1.2;
+        }
+
+        .dropdown-arrow {
+            color: var(--primary-color);
+            font-size: 0.8em;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.7;
+            border: none;
+            background: none;
+        }
+
+        .category.active {
+            background: rgba(0, 247, 255, 0.1);
+            margin-bottom: 10px;
+        }
+
+        .category.active .dropdown-arrow {
+            transform: rotate(180deg);
+            opacity: 1;
+        }
+
+        #main {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Add all animations from guidebook.html */
+        @keyframes powerOn {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes frameAppear {
+            0% { 
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            100% { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideDown {
+            0% {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Match scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 247, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 5px;
+        }
+
+        /* Add responsive styles */
+        @media screen and (max-width: 1200px) {
+            /* existing code */
+        }
+
+        @media screen and (max-width: 768px) {
+            /* existing code */
+        }
+
+        @media screen and (max-width: 480px) {
+            /* existing code */
         }
     </style>
 </head>
 <body>
-    <div class="tablet-frame">
-        <div class="tablet-container">
-            <!-- Reuse sidebar structure from guidebook.html -->
-            <div id="sidebar">
-                <h1>Guidebook <span class="admin-badge">ADMIN</span></h1>
-                <div class="category" onclick="loadSection('categories')">
-                    <h2>📁 Categories</h2>
+    <div class="zoom-wrapper">
+        <div class="tablet-frame">
+            <div class="tablet-container">
+                <!-- Reuse sidebar structure from guidebook.html -->
+                <div id="sidebar">
+                    <h1>Guidebook <span class="admin-badge">ADMIN</span></h1>
+                    <div class="category" onclick="toggleSubcategories('categoriesSubcategories', this)">
+                        <h2>📁 Categories <span class="dropdown-arrow">▾</span></h2>
+                        <div id="categoriesSubcategories" class="subcategory">
+                            <div class="page" onclick="loadSection('categories')">
+                                <h3>Manage Categories</h3>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
                 </div>
-                <div class="category" onclick="loadSection('pages')">
-                    <h2>📄 Pages</h2>
-                </div>
-                <div class="category" onclick="loadSection('points')">
-                    <h2>📍 Points</h2>
-                </div>
-            </div>
 
-            <!-- Dynamic main content -->
-            <div id="main">
-                <!-- Content will be loaded dynamically -->
+                <!-- Dynamic main content -->
+                <div id="main">
+                    <!-- Content will be loaded dynamically -->
+                </div>
             </div>
         </div>
     </div>
@@ -245,6 +459,7 @@
                         <input type="color" class="color-picker" id="text-color">
                     </div>
                     <div class="form-group">
+                        [{ 'script': 'super' }, { 'script': 'sub' }],
                         <label>Text Font</label>
                         <select class="form-control" id="font-select"></select>
                         <div id="font-preview">Preview Text</div>
@@ -276,6 +491,33 @@
                     ]
                 }
             });
+        }
+
+        // Load initial section
+        loadSection('categories');
+    </script>
+</body>
+</html>
+                        [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+                        ['link', 'image', 'video'],
+                        ['clean']
+                    ]
+                }
+            });
+        }
+
+        function toggleSubcategories(id, element) {
+            const subcategories = document.getElementById(id);
+            element.classList.toggle('active');
+            
+            if (subcategories.classList.contains('open')) {
+                subcategories.classList.remove('open');
+                element.querySelector('.dropdown-arrow').style.transform = 'rotate(0deg)';
+            } else {
+                subcategories.classList.add('open');
+                element.querySelector('.dropdown-arrow').style.transform = 'rotate(180deg)';
+            }
         }
 
         // Load initial section
