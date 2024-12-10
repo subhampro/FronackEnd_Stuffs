@@ -17,7 +17,6 @@
             --admin-accent: #ffd700;
         }
 
-        /* Base styles from guidebook.html */
         body {
             background: linear-gradient(45deg, #000000, #1a1a1a);
             margin: 0;
@@ -182,7 +181,6 @@
             background: rgba(10, 25, 41, 0.3);
         }
 
-        /* Points specific styles */
         .range-slider {
             width: 100%;
             margin: 10px 0;
@@ -216,7 +214,6 @@
             background: transparent;
         }
 
-        /* Header actions */
         .header-actions {
             display: flex;
             justify-content: space-between;
@@ -285,7 +282,6 @@
             box-sizing: border-box; /* Include padding in width calculation */
         }
 
-        /* Add these category styles to match guidebook.html */
         .category {
             padding: 10px;
             position: relative;
@@ -347,7 +343,6 @@
             font-size: 0.9em;
         }
 
-        /* Add responsive styles */
         @media screen and (max-width: 1200px) {
             .tablet-container {
                 width: 98vw;
@@ -408,7 +403,6 @@
             cursor: pointer;
         }
 
-        /* Add all animations from guidebook.html */
         @keyframes powerOn {
             0% { opacity: 0; transform: scale(0.9); }
             100% { opacity: 1; transform: scale(1); }
@@ -446,7 +440,6 @@
             }
         }
 
-        /* Match scrollbar styles */
         ::-webkit-scrollbar {
             width: 5px;
         }
@@ -460,20 +453,15 @@
             border-radius: 5px;
         }
 
-        /* Add responsive styles */
         @media screen and (max-width: 1200px) {
-            /* existing code */
         }
 
         @media screen and (max-width: 768px) {
-            /* existing code */
         }
 
         @media screen and (max-width: 480px) {
-            /* existing code */
         }
 
-        /* Add control buttons styling */
         .controls {
             position: absolute;
             top: 15px;
@@ -526,7 +514,6 @@
             }
         }
 
-        /* Remove or comment out these styles */
         .dropdown-arrow,
         .category.active .dropdown-arrow,
         .subcategory,
@@ -534,7 +521,6 @@
             display: none;
         }
 
-        /* Update category hover effect */
         .category:hover {
             background: rgba(0, 247, 255, 0.2);
             transform: translateX(5px);
@@ -692,8 +678,6 @@
             align-items: center;
             gap: 20px;
         }
-
-        /* Add these new styles in your <style> section */
 
         .text-appearance-controls {
             background: rgba(0, 247, 255, 0.05);
@@ -858,10 +842,44 @@
                     <h2>Categories</h2>
                     <button class="btn-primary" onclick="showNewCategoryForm()">+ New Category</button>
                 </div>
+                <div id="category-form-container" class="form-container" style="display: none;">
+                    <div class="text-appearance-controls">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Category Name</label>
+                                <input type="text" class="form-control" id="category-name" placeholder="Enter category name">
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="submitCategory()">Create Category</button>
+                    </div>
+                </div>
                 <div id="categories-list"></div>
             `;
             document.getElementById('main').innerHTML = content;
             loadCategories();
+        }
+
+        function showNewCategoryForm() {
+            const formContainer = document.getElementById('category-form-container');
+            formContainer.style.display = 'flex';
+        }
+
+        function submitCategory() {
+            const categoryName = document.getElementById('category-name').value;
+            if (categoryName.trim()) {
+                // Here you would typically save the category to your backend
+                console.log('New category:', categoryName);
+                alert('Category created: ' + categoryName);
+                
+                // Clear and hide the form
+                document.getElementById('category-name').value = '';
+                document.getElementById('category-form-container').style.display = 'none';
+                
+                // Reload categories list
+                loadCategories();
+            } else {
+                alert('Please enter a category name');
+            }
         }
 
         function loadPagesSection() {
@@ -1037,8 +1055,7 @@
             }
         });
 
-        // Initialize the application
         loadSection('categories');
     </script>
 </body>
-</html>  
+</html>
