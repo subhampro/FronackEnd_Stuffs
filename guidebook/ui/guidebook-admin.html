@@ -1301,10 +1301,9 @@
             const content = `
                 <div class="header-actions">
                     <h2>Pages</h2>
-                    <button class="btn-primary" onclick="showNewPageForm()">+ New Page</button>
+                    <button class="btn-primary" onclick="showNewPageForm('create')">+ New Page</button>
                 </div>
                 <div id="page-form-container" class="form-container" style="display: none;">
-                    <!-- Move your existing page form here -->
                     <div class="text-appearance-controls">
                         <div class="page-form-header">
                             <div class="form-group">
@@ -1335,7 +1334,9 @@
                             <label>Content</label>
                             <div id="editor-container"></div>
                         </div>
-                        <button class="btn-primary" onclick="submitPage()">Create Page</button>
+                        <div id="page-form-buttons">
+                            <button class="btn-primary" id="page-submit-btn" onclick="handlePageSubmit()">Create Page</button>
+                        </div>
                     </div>
                 </div>
                 <div id="pages-list" class="page-list"></div>
@@ -1452,23 +1453,105 @@
         }
 
         // Add these new functions
-        function showNewPageForm() {
+        function showNewPageForm(mode, pageData = null) {
+            pageFormMode = mode;
+            editingPageData = pageData;
+            
             const formContainer = document.getElementById('page-form-container');
+            const submitBtn = document.getElementById('page-submit-btn');
+            
+            // Reset form
+            document.getElementById('page-label').value = '';
+            document.getElementById('page-key').value = '';
+            document.getElementById('page-order').value = '1';
+            document.getElementById('page-enabled').checked = true;
+            
+            if (mode === 'edit' && pageData) {
+                submitBtn.textContent = 'Update Page';
+                // Fill form with existing data
+                setTimeout(() => {
+                    document.getElementById('category-select').value = pageData.categoryId;
+                    document.getElementById('page-label').value = pageData.label;
+                    document.getElementById('page-key').value = pageData.key;
+                    document.getElementById('page-order').value = pageData.order;
+                    document.getElementById('page-enabled').checked = pageData.enabled;
+                    quill.root.innerHTML = pageData.content;
+                }, 200);
+            } else {
+                submitBtn.textContent = 'Create Page';
+                // Clear editor
+                setTimeout(() => {
+                    quill.root.innerHTML = '';
+                }, 200);
+            }
+
             formContainer.style.display = 'flex';
-            // Wait for DOM update before initializing editor
             setTimeout(() => {
                 initializeEditor();
                 initializeForms();
             }, 100);
         }
 
-        function showNewPointForm() {
-            const formContainer = document.getElementById('point-form-container');
-            formContainer.style.display = 'flex';
-            // Wait for DOM update before initializing editor
-            setTimeout(() => {
-                initializeEditor();
-            }, 100);
+        async function handlePageSubmit() {
+            if (pageFormMode === 'edit' && editingPageData) {
+                await updatePage(editingPageData.categoryId, editingPageData.id);
+            } else {
+                await submitPage();
+            }
+            
+            // Reset form mode
+            pageFormMode = 'create';
+            editingPageData = null;
+        }
+
+        async function editPage(categoryId, pageId) {
+            const data = await loadFromJSON();
+            const category = data.categories.find(c => c.id === categoryId);
+            const page = category?.pages.find(p => p.id === pageId);
+            
+            if (page) {
+                showNewPageForm('edit', {
+                    id: pageId,
+                    categoryId: categoryId,
+                    label: page.label,
+                    key: page.key,
+                    order: page.order,
+                    enabled: page.enabled,
+                    content: page.content
+                });
+            }
+        }
+
+        async function updatePage(categoryId, pageId) {
+            const data = await loadFromJSON();
+            const category = data.categories.find(c => c.id === categoryId);
+            const pageIndex = category?.pages.findIndex(p => p.id === pageId);
+            
+            if (category && pageIndex !== -1) {
+                const updatedPage = {
+                    id: pageId,
+                    label: document.getElementById('page-label').value,
+                    key: document.getElementById('page-key').value,
+                    categoryId: document.getElementById('category-select').value,
+                    order: document.getElementById('page-order').value,
+                    enabled: document.getElementById('page-enabled').checked,
+                    content: quill.root.innerHTML
+                };
+                
+                // Handle category change
+                if (categoryId !== updatedPage.categoryId) {
+                    category.pages.splice(pageIndex, 1);
+                    const newCategory = data.categories.find(c => c.id === updatedPage.categoryId);
+                    newCategory.pages.push(updatedPage);
+                } else {
+                    category.pages[pageIndex] = updatedPage;
+                }
+                
+                await saveToJSON(data);
+                document.getElementById('page-form-container').style.display = 'none';
+                loadPages();
+                alert('Page updated successfully');
+            }
         }
 
         async function loadPages() {
@@ -1548,66 +1631,6 @@
                 // Reload pages list
                 loadPages();
                 alert('Page saved successfully');
-            }
-        }
-
-        async function editPage(categoryId, pageId) {
-            const data = await loadFromJSON();
-            const category = data.categories.find(c => c.id === categoryId);
-            const page = category?.pages.find(p => p.id === pageId);
-            
-            if (page) {
-                // Show form with existing data
-                showNewPageForm();
-                
-                // Wait for form to initialize
-                setTimeout(() => {
-                    document.getElementById('category-select').value = categoryId;
-                    document.getElementById('page-label').value = page.label;
-                    document.getElementById('page-key').value = page.key;
-                    document.getElementById('page-order').value = page.order;
-                    document.getElementById('page-enabled').checked = page.enabled;
-                    quill.root.innerHTML = page.content;
-                    
-                    // Update form to handle edit instead of create
-                    const submitBtn = document.querySelector('#page-form-container .btn-primary');
-                    submitBtn.textContent = 'Update Page';
-                    submitBtn.onclick = () => updatePage(categoryId, pageId);
-                }, 200);
-            }
-        }
-
-        async function updatePage(categoryId, pageId) {
-            const data = await loadFromJSON();
-            const category = data.categories.find(c => c.id === categoryId);
-            const pageIndex = category?.pages.findIndex(p => p.id === pageId);
-            
-            if (category && pageIndex !== -1) {
-                const updatedPage = {
-                    id: pageId,
-                    label: document.getElementById('page-label').value,
-                    key: document.getElementById('page-key').value,
-                    categoryId: document.getElementById('category-select').value,
-                    order: document.getElementById('page-order').value,
-                    enabled: document.getElementById('page-enabled').checked,
-                    content: quill.root.innerHTML
-                };
-                
-                // Handle category change
-                if (categoryId !== updatedPage.categoryId) {
-                    // Remove from old category
-                    category.pages.splice(pageIndex, 1);
-                    // Add to new category
-                    const newCategory = data.categories.find(c => c.id === updatedPage.categoryId);
-                    newCategory.pages.push(updatedPage);
-                } else {
-                    // Update in same category
-                    category.pages[pageIndex] = updatedPage;
-                }
-                
-                await saveToJSON(data);
-                document.getElementById('page-form-container').style.display = 'none';
-                loadPages();
             }
         }
 
@@ -1805,4 +1828,5 @@
         loadSection('categories');
     </script>
 </body>
-</html>  
+</html> 
+

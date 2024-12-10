@@ -10,9 +10,18 @@
                     "label": "Page 2 ",
                     "key": "page2",
                     "categoryId": "cat1",
-                    "order": "1",
+                    "order": "2",
                     "enabled": true,
                     "content": "<p>Its a content of page 2</p>"
+                },
+                {
+                    "id": "page1",
+                    "label": "Tesa",
+                    "key": "asassa",
+                    "categoryId": "cat1",
+                    "order": "1",
+                    "enabled": false,
+                    "content": "<p>Welcome to our server!</p>"
                 }
             ]
         },
@@ -21,13 +30,13 @@
             "name": "Test Karo BC",
             "pages": [
                 {
-                    "id": "page1",
-                    "label": "Tesa",
-                    "key": "asassa",
+                    "id": "1733856127303",
+                    "label": "Page 2 ",
+                    "key": "page2",
                     "categoryId": "1733853091439",
                     "order": "1",
                     "enabled": true,
-                    "content": "<p>Welcome to our server!</p>"
+                    "content": "<p><span style=\"background-color: rgba(10, 25, 41, 0.5); color: rgb(0, 247, 255);\">Order</span></p>"
                 }
             ]
         }
