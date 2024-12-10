@@ -703,8 +703,28 @@
                         [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
                         ['link', 'image', 'video'],
                         ['clean']
-                    ]
-                }
+                    ],
+                    clipboard: {
+                        matchVisual: false // Prevents usage of deprecated mutation events
+                    }
+                },
+                bounds: document.querySelector('#editor-container'),
+                strict: true // Enforces stricter DOM handling
+            });
+            
+            // Use MutationObserver instead of deprecated events
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList') {
+                        // Handle content changes
+                        quill.update();
+                    }
+                });
+            });
+
+            observer.observe(quill.container, {
+                childList: true,
+                subtree: true
             });
         }
 
