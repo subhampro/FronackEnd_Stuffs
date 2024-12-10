@@ -81,12 +81,37 @@
 
         /* Admin-specific overrides and additions */
         .admin-badge {
-            background: var(--admin-accent);
+            position: relative;
+            top: -10px;
+            right: -5px;
+            background: linear-gradient(135deg, var(--admin-accent), #ff6b00);
             color: var(--secondary-color);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.7em;
-            margin-left: 10px;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 0.6em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: badgePulse 2s infinite, badgeFloat 3s ease-in-out infinite;
+        }
+
+        .admin-badge:hover {
+            transform: translateY(-2px) scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        @keyframes badgePulse {
+            0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+            100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+        }
+
+        @keyframes badgeFloat {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+            100% { transform: translateY(0); }
         }
 
         /* Form styles */
@@ -543,7 +568,7 @@
                     <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
                 </div>
                 <div id="sidebar">
-                    <h1>Guidebook <span class="admin-badge">ADMIN</span></h1>
+                    <h1>Guidebook<sup class="admin-badge">ADMIN</sup></h1>
                     <div class="category" onclick="loadSection('categories')">
                         <h2>📁 Categories</h2>
                     </div>
@@ -691,6 +716,42 @@
         }
 
         function initializeEditor() {
+            // Create custom scroll module that uses MutationObserver instead of deprecated events
+            class CustomScroll extends Quill.import('blots/scroll') {
+                constructor(registry, domNode) {
+                    super(registry, domNode);
+                    this.observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.type === 'childList' || 
+                                mutation.type === 'characterData' ||
+                                mutation.type === 'attributes') {
+                                this.update();
+                            }
+                        });
+                    });
+                    
+                    if (domNode instanceof Node) {
+                        this.observer.observe(domNode, {
+                            childList: true,
+                            subtree: true,
+                            characterData: true,
+                            attributes: true
+                        });
+                    } else {
+                        console.error('Failed to observe: domNode is not of type Node');
+                    }
+                }
+
+                detach() {
+                    this.observer.disconnect();
+                    super.detach();
+                }
+            }
+
+            // Register custom scroll module
+            Quill.register('blots/scroll', CustomScroll, true);
+
+            // Initialize Quill with custom settings
             quill = new Quill('#editor-container', {
                 theme: 'snow',
                 modules: {
@@ -705,26 +766,18 @@
                         ['clean']
                     ],
                     clipboard: {
-                        matchVisual: false // Prevents usage of deprecated mutation events
+                        matchVisual: false
                     }
                 },
                 bounds: document.querySelector('#editor-container'),
-                strict: true // Enforces stricter DOM handling
-            });
-            
-            // Use MutationObserver instead of deprecated events
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList') {
-                        // Handle content changes
-                        quill.update();
-                    }
-                });
+                strict: true
             });
 
-            observer.observe(quill.container, {
-                childList: true,
-                subtree: true
+            // Ensure cleanup when editor is destroyed
+            window.addEventListener('unload', () => {
+                if (quill) {
+                    quill.scroll.detach();
+                }
             });
         }
 
