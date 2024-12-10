@@ -11,6 +11,9 @@
             --secondary-color: #0a1929;
             --accent-color: #ff00f7;
             --text-color: #ffffff;
+            --sidebar-width: 15%;
+            --sidebar-width-tablet: 25%;
+            --sidebar-width-mobile: 75%;
         }
 
         body {
@@ -93,9 +96,9 @@
         }
 
         .category {
-            padding: 10px;  /* Reduced from 15px */
+            padding: 10px;
             position: relative;
-            margin-bottom: 5px;  /* Added for consistent spacing */
+            margin-bottom: 5px;
         }
 
         .category h2 {
@@ -103,8 +106,8 @@
             justify-content: space-between;
             align-items: center;
             margin: 0;
-            font-size: 0.9em;  /* Slightly reduced from 0.95em */
-            line-height: 1.2;  /* Added for better vertical rhythm */
+            font-size: 0.9em;
+            line-height: 1.2;
         }
 
         .dropdown-arrow {
@@ -147,7 +150,7 @@
         }
 
         .subcategory {
-            margin-top: 5px;  /* Reduced from 10px */
+            margin-top: 5px;
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -155,13 +158,13 @@
         }
 
         .subcategory.open {
-            max-height: 300px;  /* Reduced from 500px if needed */
+            max-height: 300px; 
             opacity: 1;
         }
 
         .page {
-            margin: 3px 0;  /* Reduced from 5px */
-            padding: 8px 10px;  /* Reduced from 10px */
+            margin: 3px 0;
+            padding: 8px 10px;
             border-left: 2px solid var(--primary-color);
             transform: translateY(-10px);
             opacity: 0;
@@ -194,13 +197,13 @@
 
         .page h3 {
             margin: 0;
-            font-size: 0.85em;  /* Slightly reduced from 0.95em */
+            font-size: 0.85em;  
             font-weight: normal;
             position: relative;
             display: flex;
             align-items: center;
             transition: all 0.3s ease;
-            line-height: 1.2;  /* Added for better vertical rhythm */
+            line-height: 1.2;  
         }
 
         .page:hover h3 {
@@ -238,7 +241,6 @@
             }
         }
 
-        /* Add this if you want a subtle pulse effect on hover */
         @keyframes subtlePulse {
             0% { transform: translateX(10px) scale(1); }
             50% { transform: translateX(10px) scale(1.02); }
@@ -306,7 +308,6 @@
             }
         }
 
-        /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 5px;
         }
@@ -319,10 +320,121 @@
             background: var(--primary-color);
             border-radius: 5px;
         }
+
+        @media screen and (max-width: 1200px) {
+            .tablet-frame {
+                padding: 15px;
+            }
+
+            .tablet-container {
+                width: 98vw;
+            }
+
+            #sidebar {
+                width: var(--sidebar-width-tablet);
+            }
+
+            #main {
+                width: calc(100% - var(--sidebar-width-tablet));
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .tablet-frame {
+                padding: 10px;
+            }
+
+            .tablet-container {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 15px;
+            }
+
+            #sidebar {
+                width: var(--sidebar-width-mobile);
+                position: absolute;
+                left: -75%;
+                height: 100%;
+                transition: left 0.3s ease;
+                z-index: 10;
+            }
+
+            #sidebar.active {
+                left: 0;
+            }
+
+            #main {
+                width: 100%;
+            }
+
+            .controls {
+                top: 10px;
+                right: 10px;
+            }
+
+            .control-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+
+            .menu-toggle {
+                display: block;
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                z-index: 20;
+                color: var(--primary-color);
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+            }
+
+            .category {
+                padding: 8px;
+            }
+
+            .page {
+                padding: 6px 8px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .tablet-frame::before,
+            .tablet-frame::after {
+                display: none;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .category h2 {
+                font-size: 0.85em;
+            }
+
+            .page h3 {
+                font-size: 0.8em;
+            }
+        }
+
+        .menu-toggle {
+            display: none;
+        }
+
+        .tablet-container * {
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
     <div class="tablet-frame">
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
         <div class="tablet-container">
             <div class="controls">
                 <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
@@ -426,7 +538,7 @@
         let currentZoom = 100;
         function zoom(direction) {
             currentZoom += direction * 10;
-            currentZoom = Math.min(Math.max(currentZoom, 70), 150); // Limit zoom between 70% and 150%
+            currentZoom = Math.min(Math.max(currentZoom, 70), 150);
             document.body.style.zoom = currentZoom + '%';
         }
 
@@ -438,6 +550,33 @@
             // For FiveM implementation
             // fetch(`https://${GetParentResourceName()}/closeGuidebook`);
         }
+
+        // Add sidebar toggle function
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.querySelector('.menu-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !menuToggle.contains(event.target) &&
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('active');
+            }
+        });
     </script>
 </body>
 </html>
