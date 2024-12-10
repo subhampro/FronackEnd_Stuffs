@@ -469,6 +469,21 @@
                 font-size: 16px;
             }
         }
+
+        /* Remove or comment out these styles */
+        .dropdown-arrow,
+        .category.active .dropdown-arrow,
+        .subcategory,
+        .subcategory.open {
+            display: none;
+        }
+
+        /* Update category hover effect */
+        .category:hover {
+            background: rgba(0, 247, 255, 0.2);
+            transform: translateX(5px);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -490,29 +505,14 @@
                     <!-- Reuse sidebar structure from guidebook.html -->
                     <div id="sidebar">
                         <h1>Guidebook <span class="admin-badge">ADMIN</span></h1>
-                        <div class="category" onclick="toggleSubcategories('categoriesSubcategories', this)">
-                            <h2>📁 Categories <span class="dropdown-arrow">▾</span></h2>
-                            <div id="categoriesSubcategories" class="subcategory">
-                                <div class="page" onclick="loadSection('categories')">
-                                    <h3>Manage Categories</h3>
-                                </div>
-                            </div>
+                        <div class="category" onclick="loadSection('categories')">
+                            <h2>📁 Categories</h2>
                         </div>
-                        <div class="category" onclick="toggleSubcategories('pagesSubcategories', this)">
-                            <h2>📄 Pages <span class="dropdown-arrow">▾</span></h2>
-                            <div id="pagesSubcategories" class="subcategory">
-                                <div class="page" onclick="loadSection('pages')">
-                                    <h3>Manage Pages</h3>
-                                </div>
-                            </div>
+                        <div class="category" onclick="loadSection('pages')">
+                            <h2>📄 Pages</h2>
                         </div>
-                        <div class="category" onclick="toggleSubcategories('pointsSubcategories', this)">
-                            <h2>📍 Points <span class="dropdown-arrow">▾</span></h2>
-                            <div id="pointsSubcategories" class="subcategory">
-                                <div class="page" onclick="loadSection('points')">
-                                    <h3>Manage Points</h3>
-                                </div>
-                            </div>
+                        <div class="category" onclick="loadSection('points')">
+                            <h2>📍 Points</h2>
                         </div>
                     </div>
 
@@ -661,19 +661,6 @@
 
         // Load initial section
         loadSection('categories');
-
-        function toggleSubcategories(id, element) {
-            const subcategories = document.getElementById(id);
-            element.classList.toggle('active');
-            
-            if (subcategories.classList.contains('open')) {
-                subcategories.classList.remove('open');
-                element.querySelector('.dropdown-arrow').style.transform = 'rotate(0deg)';
-            } else {
-                subcategories.classList.add('open');
-                element.querySelector('.dropdown-arrow').style.transform = 'rotate(180deg)';
-            }
-        }
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
