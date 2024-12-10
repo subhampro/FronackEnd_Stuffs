@@ -3,32 +3,25 @@ fx_version 'cerulean'
 game 'gta5'
 
 author 'Your Name'
-description 'Interactive Guidebook System for FiveM'
+description 'Guidebook Resource'
 version '1.0.0'
 
-shared_scripts {
-    '@ox_lib/init.lua',
-    'config.lua'
-}
-
 client_scripts {
-    'client/*.lua'
+    'client/main.lua',
+    'client/editor.lua'
 }
 
 server_scripts {
-    '@oxmysql/lib/MySQL.lua',
-    'server/*.lua'
+    'server/main.lua',
+    'server/database.lua',
+    'config.lua',
+    'sconfig.lua'
 }
-
-ui_page 'html/index.html'
 
 files {
-    'html/index.html',
-    'html/styles.css',
-    'html/app.js'
+    'ui/guidebook.html',
+    'ui/mockdata.json',
+    'locales/en.lua'
 }
 
-dependencies {
-    'oxmysql',
-    'ox_lib'
-}
+ui_page 'ui/guidebook.html'
