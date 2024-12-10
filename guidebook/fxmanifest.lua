@@ -9,9 +9,9 @@ version '1.0.0'
 shared_scripts {
     '@es_extended/imports.lua',
     '@qb-core/shared/locale.lua',
+    'locales/*.lua',         -- Remove init.lua reference since we merged it
     'shared/config.lua',
-    'shared/sconfig.lua',
-    'locales/*.lua'
+    'shared/sconfig.lua'
 }
 
 client_scripts {

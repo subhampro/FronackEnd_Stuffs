@@ -1,4 +1,5 @@
-import Vue from 'vue';
+// Remove import and use regular variable declaration
+const Vue = window.Vue;
 
 // Simplified config without theme definitions (moved to CSS)
 const GuideConfig = {

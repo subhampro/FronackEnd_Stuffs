@@ -1,3 +1,5 @@
+Locales = {}  -- Initialize the Locales table first
+
 Locales['en'] = {
     ['guidebook_opened'] = 'Guidebook opened',
     ['no_permission'] = 'You don\'t have permission to do this',
