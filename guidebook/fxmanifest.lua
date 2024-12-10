@@ -25,9 +25,3 @@ files {
 }
 
 ui_page 'ui/guidebook.html'
-
-
-
--- npm init -y
--- npm install express cors
--- node server.js
