@@ -197,10 +197,33 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding: 15px;
+            padding: 15px 160px 15px 15px; /* Increased right padding for buttons */
             background: rgba(0, 247, 255, 0.05);
-            border-radius: 5px;
+            border-radius: 5px 70px 70px 5px; /* Rounded right side */
             border-left: 3px solid var(--primary-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-actions::before {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 140px;
+            height: 100%;
+            background: radial-gradient(
+                circle at right center,
+                rgba(0, 247, 255, 0.1) 0%,
+                transparent 70%
+            );
+            animation: glowPulse 2s infinite;
+        }
+
+        @keyframes glowPulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
         }
 
         .tip {
@@ -427,16 +450,16 @@
         /* Add control buttons styling */
         .controls {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 15px;
+            right: 35px; /* Moved buttons more to the right */
             display: flex;
-            gap: 15px;
+            gap: 12px;
             z-index: 100;
         }
 
         .control-btn {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             border: 2px solid var(--primary-color);
             background: rgba(10, 25, 41, 0.8);
@@ -445,22 +468,29 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            transition: all 0.3s ease;
+            font-size: 18px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             backdrop-filter: blur(5px);
+            transform: scale(1);
         }
 
         .control-btn:hover {
             background: var(--primary-color);
             color: var(--secondary-color);
             box-shadow: 0 0 15px var(--primary-color);
+            transform: scale(1.1);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
         }
 
         /* Mobile responsive controls */
         @media screen and (max-width: 768px) {
             .controls {
                 top: 10px;
-                right: 10px;
+                right: 25px;
+                gap: 8px;
             }
 
             .control-btn {
@@ -705,4 +735,4 @@
         });
     </script>
 </body>
-</html>
+</html> 
