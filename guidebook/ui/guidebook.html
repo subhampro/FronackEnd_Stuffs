@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,11 +5,366 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Guidebook</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        :root {
+            --primary-color: #00f7ff;
+            --secondary-color: #0a1929;
+            --accent-color: #ff00f7;
+            --text-color: #ffffff;
+        }
+
+        body {
+            background: linear-gradient(45deg, #000000, #1a1a1a);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+            color: var(--text-color);
+        }
+
+        .tablet-frame {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 30px;
+            box-shadow: 
+                0 0 0 10px #1a1a1a,
+                0 20px 40px rgba(0, 0, 0, 0.8);
+            position: relative;
+            animation: frameAppear 1s ease-out;
+        }
+
+        .tablet-frame::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 3px;
+            height: 80px;
+            background: #1a1a1a;
+            box-shadow: inset 0 0 5px rgba(0, 247, 255, 0.3);
+            border-radius: 3px;
+            transform: translateY(-50%);
+        }
+
+        .tablet-frame::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15px;
+            height: 15px;
+            background: #222;
+            border-radius: 50%;
+        }
+
+        .tablet-container {
+            background: var(--secondary-color);
+            width: 95vw;
+            height: 90vh;
+            border-radius: 20px;
+            box-shadow: 0 0 20px var(--primary-color),
+                        inset 0 0 20px rgba(0, 247, 255, 0.3);
+            display: flex;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--primary-color);
+            animation: powerOn 1s ease-out;
+        }
+
+        #sidebar {
+            width: 15%;
+            background: rgba(10, 25, 41, 0.9);
+            padding: 20px;
+            border-right: 1px solid var(--primary-color);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        #main {
+            width: 85%;
+            padding: 30px;
+            background: rgba(10, 25, 41, 0.7);
+            overflow-y: auto;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .category {
+            padding: 15px;
+            position: relative;
+        }
+
+        .category h2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0;
+            font-size: 1em;
+        }
+
+        .dropdown-arrow {
+            color: var(--primary-color);
+            font-size: 0.8em;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.7;
+            border: none;
+            background: none;
+        }
+
+        .category.active {
+            background: rgba(0, 247, 255, 0.1);
+            margin-bottom: 10px;
+        }
+
+        .category.active .dropdown-arrow {
+            transform: rotate(180deg);
+            opacity: 1;
+        }
+
+        .category:hover {
+            background: rgba(0, 247, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .category::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: var(--primary-color);
+            transition: all 0.5s ease;
+        }
+
+        .category:hover::before {
+            left: 0;
+        }
+
+        .subcategory {
+            margin-top: 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+        }
+
+        .subcategory.open {
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        .page {
+            margin: 5px 0;
+            padding: 10px;
+            border-left: 2px solid var(--primary-color);
+            transform: translateY(-10px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .subcategory.open .page {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .subcategory.open .page:nth-child(1) { transition-delay: 0.1s; }
+        .subcategory.open .page:nth-child(2) { transition-delay: 0.2s; }
+        .subcategory.open .page:nth-child(3) { transition-delay: 0.3s; }
+        .subcategory.open .page:nth-child(4) { transition-delay: 0.4s; }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            background: rgba(10, 25, 41, 0.8);
+            color: var(--primary-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .control-btn:hover {
+            background: var(--primary-color);
+            color: var(--secondary-color);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        @keyframes powerOn {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes frameAppear {
+            0% { 
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            100% { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 247, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <!-- Guidebook content will be rendered here -->
+    <div class="tablet-frame">
+        <div class="tablet-container">
+            <div class="controls">
+                <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
+                <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
+                <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
+            </div>
+            <div id="sidebar">
+                <h1>Guidebook</h1>
+                <div class="category" onclick="toggleSubcategories('welcomeSubcategories', this)">
+                    <h2>Welcome <span class="dropdown-arrow">▾</span></h2>
+                    <div id="welcomeSubcategories" class="subcategory">
+                        <div class="page" onclick="loadPage('Our City')">
+                            <h3>Our City</h3>
+                        </div>
+                        <div class="page" onclick="loadPage('VIP')">
+                            <h3>VIP</h3>
+                        </div>
+                        <div class="page" onclick="loadPage('Website')">
+                            <h3>Website</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="category" onclick="toggleSubcategories('tutorialsSubcategories', this)">
+                    <h2>Tutorials <span class="dropdown-arrow">▾</span></h2>
+                    <div id="tutorialsSubcategories" class="subcategory">
+                        <div class="page" onclick="loadPage('Buying a Gun')">
+                            <h3>Buying a Gun</h3>
+                        </div>
+                        <div class="page" onclick="loadPage('Cars and Bikes')">
+                            <h3>Cars and Bikes</h3>
+                        </div>
+                        <div class="page" onclick="loadPage('Getting a Tattoo')">
+                            <h3>Getting a Tattoo</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="category" onclick="toggleSubcategories('rulesSubcategories', this)">
+                    <h2>Rules <span class="dropdown-arrow">▾</span></h2>
+                    <div id="rulesSubcategories" class="subcategory">
+                        <div class="page" onclick="loadPage('Server Rules')">
+                            <h3>Server Rules</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="category" onclick="toggleSubcategories('cityLawsSubcategories', this)">
+                    <h2>City Laws <span class="dropdown-arrow">▾</span></h2>
+                    <div id="cityLawsSubcategories" class="subcategory">
+                        <div class="page" onclick="loadPage('City Laws')">
+                            <h3>City Laws</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="category" onclick="toggleSubcategories('employmentSubcategories', this)">
+                    <h2>Department of Employment <span class="dropdown-arrow">▾</span></h2>
+                    <div id="employmentSubcategories" class="subcategory">
+                        <div class="page" onclick="loadPage('Police')">
+                            <h3>Police</h3>
+                        </div>
+                        <div class="page" onclick="loadPage('EMS')">
+                            <h3>EMS</h3>
+                        </div>
+                        <div class="page" onclick="loadPage('Poster Delivery')">
+                            <h3>Poster Delivery</h3>
+                        </div>
+                        <div class="page" onclick="loadPage('Cashier')">
+                            <h3>Cashier</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="main">
+                <h2>Home</h2>
+                <p>Welcome to the Guidebook. Select a category from the left to get started.</p>
+            </div>
+        </div>
     </div>
-    <script src="app.js"></script>
+    <script>
+        function toggleSubcategories(id, element) {
+            const subcategories = document.getElementById(id);
+            element.classList.toggle('active');
+            
+            if (subcategories.classList.contains('open')) {
+                subcategories.classList.remove('open');
+                element.querySelector('.dropdown-arrow').style.transform = 'rotate(0deg)';
+            } else {
+                subcategories.classList.add('open');
+                element.querySelector('.dropdown-arrow').style.transform = 'rotate(180deg)';
+            }
+        }
+
+        function loadPage(pageTitle) {
+            const mainContent = document.getElementById('main');
+            mainContent.style.opacity = '0';
+            
+            setTimeout(() => {
+                mainContent.innerHTML = `<h2>${pageTitle}</h2><p>Content for ${pageTitle}.</p>`;
+                mainContent.style.opacity = '1';
+            }, 300);
+        }
+
+        let currentZoom = 100;
+        function zoom(direction) {
+            currentZoom += direction * 10;
+            currentZoom = Math.min(Math.max(currentZoom, 70), 150); // Limit zoom between 70% and 150%
+            document.body.style.zoom = currentZoom + '%';
+        }
+
+        function closeGuidebook() {
+            // For web testing
+            if (window.confirm('Close guidebook?')) {
+                window.close();
+            }
+            // For FiveM implementation
+            // fetch(`https://${GetParentResourceName()}/closeGuidebook`);
+        }
+    </script>
 </body>
 </html>
