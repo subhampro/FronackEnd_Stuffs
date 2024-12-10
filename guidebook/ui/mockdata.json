@@ -20,7 +20,7 @@
                     "key": "asassa",
                     "categoryId": "cat1",
                     "order": "1",
-                    "enabled": false,
+                    "enabled": true,
                     "content": "<p>Welcome to our server!</p>"
                 }
             ]
