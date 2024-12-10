@@ -25,6 +25,18 @@ function DebugPoint(point)
         point.name, point.type, point.coords))
 end
 
+-- Add after Debug Functions
+local function SafeNUIOperation(operation, fallback)
+    local success, error = pcall(operation)
+    if not success then
+        print('^1[Guidebook Error]^7:', error)
+        SetNuiFocus(false, false) -- Reset NUI focus
+        if fallback then fallback() end
+        return false
+    end
+    return true
+end
+
 -- Theme Management
 local themes = {
     dark = {
@@ -123,6 +135,15 @@ function HideUI()
     })
 end
 
+function OpenGuidebook(pageKey)
+    ShowUI({pageKey = pageKey})
+    SendNUIMessage({
+        type = 'openGuidebook',
+        page = pageKey
+    })
+    SetNuiFocus(true, true)
+end
+
 -- Editor Functions
 function OpenEditor(data)
     isEditing = true
@@ -143,11 +164,17 @@ end
 
 -- Admin Panel Functions
 function OpenAdminPanel()
-    isAdminPanelOpen = true
-    SendNUIMessage({
-        type = 'openAdminPanel'
-    })
-    SetNuiFocus(true, true)
+    SafeNUIOperation(function()
+        isAdminPanelOpen = true
+        SendNUIMessage({
+            type = 'openAdminPanel'
+        })
+        SetNuiFocus(true, true)
+        print('^2[Guidebook]^7: Admin panel opened successfully')
+    end, function()
+        isAdminPanelOpen = false
+        SetNuiFocus(false, false)
+    end)
 end
 
 function CloseAdminPanel()
@@ -316,6 +343,18 @@ end)
 RegisterCommand('helpadmin', function()
     OpenAdminPanel()
 end)
+
+-- Add after all other RegisterCommand functions
+RegisterCommand('resetui', function()
+    print('^3[Guidebook]^7: Attempting to reset UI state...')
+    isEditing = false
+    isAdminPanelOpen = false
+    SetNuiFocus(false, false)
+    SendNUIMessage({
+        type = 'forceClose'
+    })
+    print('^2[Guidebook]^7: UI state reset complete')
+end, false)
 
 -- Register All NUI Callbacks
 RegisterNUICallback('close', function(data, cb)

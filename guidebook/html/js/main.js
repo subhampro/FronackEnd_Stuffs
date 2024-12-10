@@ -1,9 +1,22 @@
-
 const GuideConfig = {
     // Only keep non-theme related settings
     IFrameInsertIntoPage: false,
     // ...other UI settings...
 };
+
+window.addEventListener('message', (event) => {
+    try {
+        const item = event.data;
+        if (item.type === 'forceClose') {
+            app.$data.visible = false;
+            app.$data.isEditing = false;
+            app.$data.isAdminPanelOpen = false;
+            console.log('[Guidebook]: UI forcefully closed by command');
+        }
+    } catch (error) {
+        console.error('[Guidebook Error]:', error);
+    }
+});
 
 // Component definitions
 const SearchComponent = {
@@ -247,19 +260,39 @@ const AdminPanelComponent = {
             pages: []
         }
     },
+    mounted() {
+        try {
+            console.log('[Guidebook]: Admin panel component mounted');
+            this.fetchCategories();
+            this.fetchPages();
+        } catch (error) {
+            console.error('[Guidebook Error]: Failed to mount admin panel -', error);
+            fetch(`https://${GetParentResourceName()}/closeAdminPanel`, {
+                method: 'POST'
+            });
+        }
+    },
     methods: {
         async fetchCategories() {
-            const response = await fetch(`https://${GetParentResourceName()}/fetchCategories`);
-            if (response.ok) {
-                const data = await response.json();
-                this.categories = data.categories;
+            try {
+                const response = await fetch(`https://${GetParentResourceName()}/fetchCategories`);
+                if (response.ok) {
+                    const data = await response.json();
+                    this.categories = data.categories;
+                }
+            } catch (error) {
+                console.error('[Guidebook Error]: Failed to fetch categories -', error);
             }
         },
         async fetchPages() {
-            const response = await fetch(`https://${GetParentResourceName()}/fetchPages`);
-            if (response.ok) {
-                const data = await response.json();
-                this.pages = data.pages;
+            try {
+                const response = await fetch(`https://${GetParentResourceName()}/fetchPages`);
+                if (response.ok) {
+                    const data = await response.json();
+                    this.pages = data.pages;
+                }
+            } catch (error) {
+                console.error('[Guidebook Error]: Failed to fetch pages -', error);
             }
         },
         async saveCategory() {
@@ -304,10 +337,6 @@ const AdminPanelComponent = {
             });
             this.fetchPages();
         }
-    },
-    mounted() {
-        this.fetchCategories();
-        this.fetchPages();
     }
 };
 
