@@ -255,7 +255,7 @@
             color: var(--primary-color);
             font-size: 0.85em;
             opacity: 0.8;
-            margin: 5px 0;
+            margin: 5px 0 25px 0; /* Added 25px bottom margin */
             padding-left: 10px;
             border-left: 2px solid var(--primary-color);
         }
@@ -559,11 +559,11 @@
 
         /* Form layout improvements */
         .form-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
             gap: 20px;
-            margin-bottom: 20px;
-            max-width: 100%;  /* Make form container take full width */
         }
 
         .form-group {
@@ -599,6 +599,8 @@
         .editor-wrapper {
             grid-column: 1 / -1;
             margin-top: 20px;
+            width: 80%;  /* Match text-appearance-controls width */
+            max-width: 1000px;
         }
 
         #editor-container {
@@ -695,12 +697,25 @@
 
         .text-appearance-controls {
             background: rgba(0, 247, 255, 0.05);
-            padding: 20px;
-            border-radius: 10px;
+            padding: 30px;
+            border-radius: 15px;
             border: 1px solid var(--primary-color);
             margin-bottom: 30px;
-            width: calc(100% - 42px); /* Full width minus padding */
+            width: 80%;  /* Reduced width */
+            max-width: 1000px;  /* Maximum width */
             box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0, 247, 255, 0.1);
+        }
+
+        .text-appearance-controls .form-row {
+            margin-bottom: 25px;  /* Increased spacing between rows */
+        }
+
+        .text-appearance-controls .form-group {
+            background: rgba(10, 25, 41, 0.5);  /* Slightly darker background */
+            border: 1px solid rgba(0, 247, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
         }
 
         .text-font-group {
@@ -1026,4 +1041,4 @@
         loadSection('categories');
     </script>
 </body>
-</html>
+</html>  
