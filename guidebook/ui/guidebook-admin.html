@@ -1197,34 +1197,32 @@
             }
         }
 
-        async function saveToJSON(data) {
+        async function loadFromJSON() {
             try {
-                // Save to localStorage instead of file
-                localStorage.setItem('guidebookData', JSON.stringify(data));
+                const response = await fetch('http://localhost:3000/api/data');
+                const data = await response.json();
                 return data;
             } catch (error) {
-                console.error('Error saving data:', error);
-                alert('Error saving data');
+                console.error('Error loading data:', error);
                 return null;
             }
         }
 
-        async function loadFromJSON() {
+        async function saveToJSON(data) {
             try {
-                // Load from localStorage or return default structure
-                const savedData = localStorage.getItem('guidebookData');
-                if (savedData) {
-                    return JSON.parse(savedData);
-                }
+                const response = await fetch('http://localhost:3000/api/data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
                 
-                // Return default data structure if nothing is saved
-                return {
-                    title: "Guidebook",
-                    categories: [],
-                    points: []
-                };
+                if (!response.ok) throw new Error('Failed to save data');
+                return data;
             } catch (error) {
-                console.error('Error loading data:', error);
+                console.error('Error saving data:', error);
+                alert('Error saving data');
                 return null;
             }
         }

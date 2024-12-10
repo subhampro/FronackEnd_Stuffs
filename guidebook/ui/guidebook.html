@@ -542,11 +542,9 @@
 
         async function loadPage(pageId) {
             try {
-                const savedData = localStorage.getItem('guidebookData');
-                const data = savedData ? JSON.parse(savedData) : null;
+                const response = await fetch('http://localhost:3000/api/data');
+                const data = await response.json();
                 
-                if (!data) return;
-
                 let page;
                 for (const category of data.categories) {
                     page = category.pages.find(p => p.id === pageId);
@@ -618,8 +616,8 @@
 
         async function loadContent() {
             try {
-                const savedData = localStorage.getItem('guidebookData');
-                const data = savedData ? JSON.parse(savedData) : null;
+                const response = await fetch('http://localhost:3000/api/data');
+                const data = await response.json();
                 
                 if (!data) {
                     console.error('No data found');
