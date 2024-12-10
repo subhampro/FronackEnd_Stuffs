@@ -6,37 +6,37 @@
             "name": "Getting Started",
             "pages": [
                 {
-                    "id": "1733853118655",
-                    "label": "Page 2 ",
-                    "key": "page2",
+                    "id": "page1",
+                    "label": "Welcome Guide",
+                    "key": "welcome-guide",
+                    "categoryId": "cat1",
+                    "order": "1",
+                    "enabled": false,
+                    "content": "<h2 style=\"color: #00f7ff; margin-bottom: 20px;\">Welcome to Our Server! 🌟</h2><p>We're excited to have you join our community. This guide will help you get started with everything you need to know.</p><p><br></p><p style=\"color: #ffd700; font-style: italic;\">Need help? Our staff is always here to assist you!</p>"
+                },
+                {
+                    "id": "page2",
+                    "label": "Server Features",
+                    "key": "server-features",
                     "categoryId": "cat1",
                     "order": "2",
                     "enabled": true,
-                    "content": "<p>Its a content of page 2</p>"
-                },
-                {
-                    "id": "page1",
-                    "label": "Tesa",
-                    "key": "asassa",
-                    "categoryId": "cat1",
-                    "order": "1",
-                    "enabled": true,
-                    "content": "<p>Welcome to our server!</p>"
+                    "content": "<h2 style='color: #00f7ff'>Amazing Features 🚀</h2><div style='display: grid; gap: 20px; margin: 20px 0;'><div style='background: rgba(0, 247, 255, 0.1); padding: 15px; border-radius: 8px;'><h3 style='color: #ff00f7'>🎮 Custom Jobs</h3><p>Explore various unique jobs and careers!</p></div><div style='background: rgba(255, 0, 247, 0.1); padding: 15px; border-radius: 8px;'><h3 style='color: #00f7ff'>🏎️ Custom Vehicles</h3><p>Experience our exclusive vehicle collection!</p></div><div style='background: rgba(255, 215, 0, 0.1); padding: 15px; border-radius: 8px;'><h3 style='color: #ffd700'>💰 Economy System</h3><p>Engage in our dynamic economy!</p></div></div>"
                 }
             ]
         },
         {
             "id": "1733853091439",
-            "name": "Test Karo BC",
+            "name": "Gameplay Guides",
             "pages": [
                 {
                     "id": "1733856127303",
-                    "label": "Page 2 ",
-                    "key": "page2",
+                    "label": "Making Money",
+                    "key": "making-money",
                     "categoryId": "1733853091439",
                     "order": "1",
                     "enabled": true,
-                    "content": "<p><span style=\"background-color: rgba(10, 25, 41, 0.5); color: rgb(0, 247, 255);\">Order</span></p>"
+                    "content": "<h2 style='color: #00f7ff; text-align: center;'>💰 Money Making Guide</h2><div style='background: rgba(0, 247, 255, 0.05); padding: 20px; border-radius: 10px; margin: 20px 0;'><h3 style='color: #ffd700'>Legal Jobs 👨‍💼</h3><ul style='color: #ffffff'><li>Taxi Driver - Easy starter job</li><li>Delivery Driver - Flexible hours</li><li>Mechanic - Skilled labor</li><li>Real Estate - High investment, high return</li></ul></div><div style='background: rgba(255, 0, 247, 0.05); padding: 20px; border-radius: 10px; margin: 20px 0;'><h3 style='color: #ff00f7'>Business Tips 📈</h3><p>Start small, think big! Begin with basic jobs and work your way up to owning businesses.</p></div>"
                 }
             ]
         }
