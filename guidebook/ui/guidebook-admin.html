@@ -686,6 +686,78 @@
             align-items: center;
             gap: 20px;
         }
+
+        /* Add these new styles in your <style> section */
+
+        .text-appearance-controls {
+            background: rgba(0, 247, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--primary-color);
+            margin-bottom: 30px;
+        }
+
+        .text-font-group {
+            flex: 2;
+        }
+
+        .text-color-group {
+            flex: 1;
+        }
+
+        .color-preview-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .color-picker {
+            width: 60px;
+            height: 60px;
+            </div>
+            border: 2px solid var(--primary-color);
+            border-radius: 10px;
+            cursor: pointer;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .color-picker:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        .color-preview {
+            flex: 1;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        #font-preview {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 247, 255, 0.05);
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--primary-color);
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+
+        #font-preview:hover {
+            background: rgba(0, 247, 255, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 247, 255, 0.2);
+        }
+
+        #font-select {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -725,144 +797,8 @@
         let quill;
         let currentZoom = 100;
 
-        // Add the missing loadCategories function
-        function loadCategories() {
-            // Temporary implementation for testing
-            const categoriesList = document.getElementById('categories-list');
-            categoriesList.innerHTML = `
-                <div class="tip">Categories will be loaded here</div>
-            `;
-        }
-
-        function loadSection(section) {
-            const main = document.getElementById('main');
-            
-            switch(section) {
-                case 'categories':
-                    loadCategoriesSection();
-                    break;
-                case 'pages':
-                    loadPagesSection();
-                    break;
-                case 'points':
-                    loadPointsSection();
-                    break;
-            }
-        }
-
-        function loadCategoriesSection() {
-            const content = `
-                <div class="header-actions">
-                    <h2>Categories</h2>
-                    <button class="btn-primary" onclick="showNewCategoryForm()">+ New Category</button>
-                </div>
-                <div id="categories-list"></div>
-            `;
-            document.getElementById('main').innerHTML = content;
-            // Load categories from JSON
-            loadCategories();
-        }
-
-        function loadPagesSection() {
-            const content = `
-                <div class="header-actions">
-                    <h2>Creating Page</h2>
-                </div>
-                <form id="page-form" class="form-container">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Category</label>
-                            <select class="form-control" id="category-select"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Page Label</label>
-                            <input type="text" class="form-control" id="page-label">
-                        </div>
-                        <div class="form-group">
-                            <label>Key (Slug)</label>
-                            <input type="text" class="form-control" id="page-key">
-                        </div>
-                    </div>
-
-                    <div class="page-header-controls">
-                        <div class="form-group small">
-                            <label>Order</label>
-                            <input type="number" class="form-control" min="1" max="99" id="page-order">
-                        </div>
-                        <label class="enable-toggle">
-                            <input type="checkbox" id="page-enabled">
-                            <span class="toggle-slider"></span>
-                            Enable Page
-                        </label>
-                    </div>
-
-                    <div class="form-group full-width editor-wrapper">
-                        <label>Content</label>
-                        <p class="tip">Tip: You can right/left click image/video/(iframe , if enable) to show resizing tools!</p>
-                        <div id="editor-container"></div>
-                    </div>
-                    <button type="submit" class="btn-primary">Save Page</button>
-                </form>
-            `;
-            document.getElementById('main').innerHTML = content;
-            initializeEditor();
-        }
-
-        function loadPointsSection() {
-            const content = `
-                <div class="header-actions">
-                    <h2>Creating Point</h2>
-                </div>
-                <p class="tip">Create in-game markers Or 3D text with Custom content or directly open help page!</p>
-                <p class="tip">Tip: You can use right arrow / left arrow to change value in the range sliders with precision!</p>
-                <form id="point-form" class="form-container">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Label</label>
-                            <input type="text" class="form-control" id="point-label">
-                        </div>
-                        <div class="form-group">
-                            <label>Key</label>
-                            <input type="text" class="form-control" id="point-key">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Text Size (0-5)</label>
-                            <input type="range" class="range-slider" min="0" max="5" step="0.1" id="text-size">
-                        </div>
-                        <div class="form-group">
-                            <label>Draw Distance (0-100)</label>
-                            <input type="range" class="range-slider" min="0" max="100" step="1" id="draw-distance">
-                        </div>
-                    </div>
-
-                    <div class="page-header-controls">
-                        <div class="form-group small">
-                            <label>Text Color</label>
-                            <input type="color" class="color-picker" id="text-color">
-                        </div>
-                        <div class="form-group">
-                            <label>Text Font</label>
-                            <select class="form-control" id="font-select"></select>
-                            <div id="font-preview">Preview Text</div>
-                        </div>
-                    </div>
-
-                    <div class="form-group full-width editor-wrapper">
-                        <label>Content</label>
-                        <div id="editor-container"></div>
-                    </div>
-                    <button type="submit" class="btn-primary">Save Point</button>
-                </form>
-            `;
-            document.getElementById('main').innerHTML = content;
-            initializeEditor();
-        }
-
+        // Initialize Quill editor
         function initializeEditor() {
-            // Initialize Quill with basic settings
             quill = new Quill('#editor-container', {
                 theme: 'snow',
                 modules: {
@@ -887,24 +823,158 @@
                 strict: true
             });
 
-            // Add content change handler
             quill.on('text-change', function(delta, oldDelta, source) {
                 if (source === 'user') {
                     // Handle content changes here if needed
                 }
             });
-
-            // Clean up
-            window.addEventListener('unload', () => {
-                if (quill) {
-                    quill = null;
-                }
-            });
         }
 
-        // Load initial section
-        loadSection('categories');
+        // Section loading functions
+        function loadCategoriesSection() {
+            const content = `
+                <div class="header-actions">
+                    <h2>Categories</h2>
+                    <button class="btn-primary" onclick="showNewCategoryForm()">+ New Category</button>
+                </div>
+                <div id="categories-list"></div>
+            `;
+            document.getElementById('main').innerHTML = content;
+            loadCategories();
+        }
 
+        function loadPagesSection() {
+            const content = `
+                <div class="header-actions">
+                    <h2>Creating Page</h2>
+                </div>
+                <form id="page-form" class="form-container">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select class="form-control" id="category-select">
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Page Label</label>
+                            <input type="text" class="form-control" id="page-label">
+                        </div>
+                        <div class="form-group">
+                            <label>Key (Slug)</label>
+                            <input type="text" class="form-control" id="page-key">
+                        </div>
+                    </div>
+
+                    <div class="page-header-controls">
+                        <div class="form-group small">
+                            <label>Order</label>
+                            <input type="number" class="form-control" min="1" max="99" id="page-order" value="1">
+                        </div>
+                        <label class="enable-toggle">
+                            <input type="checkbox" id="page-enabled" checked>
+                            <span class="toggle-slider"></span>
+                            Enable Page
+                        </label>
+                    </div>
+
+                    <div class="form-group full-width editor-wrapper">
+                        <label>Content</label>
+                        <div id="editor-container"></div>
+                    </div>
+                    <button type="submit" class="btn-primary">Save Page</button>
+                </form>
+            `;
+            document.getElementById('main').innerHTML = content;
+            
+            // Initialize editor after the container is added to DOM
+            setTimeout(() => initializeEditor(), 0);
+        }
+
+        function loadPointsSection() {
+            const content = `
+                <div class="header-actions">
+                    <h2>Creating Point</h2>
+                </div>
+                <p class="tip">Create in-game markers Or 3D text with Custom content or directly open help page!</p>
+                <form id="point-form" class="form-container">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Label</label>
+                            <input type="text" class="form-control" id="point-label">
+                        </div>
+                        <div class="form-group">
+                            <label>Key</label>
+                            <input type="text" class="form-control" id="point-key">
+                        </div>
+                    </div>
+
+                    <div class="text-appearance-controls">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Text Size (0-5)</label>
+                                <input type="range" class="range-slider" min="0" max="5" step="0.1" id="text-size" value="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Draw Distance (0-100)</label>
+                                <input type="range" class="range-slider" min="0" max="100" step="1" id="draw-distance" value="50">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="text-color-group">
+                                <label>Text Color</label>
+                                <div class="color-preview-container">
+                                    <input type="color" class="color-picker" id="text-color" value="#00f7ff">
+                                </div>
+                            </div>
+                            <div class="text-font-group">
+                                <label>Text Font</label>
+                                <select class="form-control" id="font-select">
+                                    <option value="1">Font 1</option>
+                                    <option value="2">Font 2</option>
+                                </select>
+                                <div id="font-preview">Preview Text</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width editor-wrapper">
+                        <label>Content</label>
+                        <div id="editor-container"></div>
+                    </div>
+                    <button type="submit" class="btn-primary">Save Point</button>
+                </form>
+            `;
+            document.getElementById('main').innerHTML = content;
+            
+            // Initialize editor after the container is added to DOM
+            setTimeout(() => initializeEditor(), 0);
+        }
+
+        function loadCategories() {
+            const categoriesList = document.getElementById('categories-list');
+            categoriesList.innerHTML = `
+                <div class="tip">Categories will be loaded here</div>
+            `;
+        }
+
+        function loadSection(section) {
+            const main = document.getElementById('main');
+            switch(section) {
+                case 'categories':
+                    loadCategoriesSection();
+                    break;
+                case 'pages':
+                    loadPagesSection();
+                    break;
+                case 'points':
+                    loadPointsSection();
+                    break;
+            }
+        }
+
+        // Utility functions
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('active');
@@ -925,7 +995,7 @@
             }
         }
 
-        // Close sidebar when clicking outside on mobile
+        // Event listeners
         document.addEventListener('click', function(event) {
             const sidebar = document.getElementById('sidebar');
             const menuToggle = document.querySelector('.menu-toggle');
@@ -938,13 +1008,15 @@
             }
         });
 
-        // Handle window resize
         window.addEventListener('resize', function() {
             const sidebar = document.getElementById('sidebar');
             if (window.innerWidth > 768) {
                 sidebar.classList.remove('active');
             }
         });
+
+        // Initialize the application
+        loadSection('categories');
     </script>
 </body>
 </html>
