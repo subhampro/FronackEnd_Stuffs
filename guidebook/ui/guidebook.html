@@ -26,6 +26,7 @@
             min-height: 100vh;
             font-family: 'Segoe UI', sans-serif;
             color: var(--text-color);
+            overflow: hidden; /* Hide scrollbar */
         }
 
         .tablet-frame {
@@ -73,7 +74,7 @@
                         inset 0 0 20px rgba(0, 247, 255, 0.3);
             display: flex;
             position: relative;
-            overflow: hidden;
+            overflow: hidden; /* Hide scrollbar */
             backdrop-filter: blur(10px);
             border: 2px solid var(--primary-color);
             animation: powerOn 1s ease-out;
