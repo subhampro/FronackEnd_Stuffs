@@ -102,7 +102,7 @@
             justify-content: space-between;
             align-items: center;
             margin: 0;
-            font-size: 1em;
+            font-size: 0.95em;
         }
 
         .dropdown-arrow {
@@ -164,17 +164,87 @@
             transform: translateY(-10px);
             opacity: 0;
             transition: all 0.3s ease;
+            background: rgba(0, 247, 255, 0.03);
+            font-size: 0.9em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                45deg,
+                rgba(0, 247, 255, 0.05),
+                rgba(255, 0, 247, 0.05)
+            );
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .page:hover::before {
+            transform: translateX(0);
+        }
+
+        .page h3 {
+            margin: 0;
+            font-size: 0.95em;
+            font-weight: normal;
+            position: relative;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .page:hover h3 {
+            transform: translateX(10px);
+            color: var(--primary-color);
+            text-shadow: 0 0 8px rgba(0, 247, 255, 0.5);
+        }
+
+        .page h3::before {
+            content: '•';
+            color: var(--primary-color);
+            margin-right: 8px;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+
+        .page:hover h3::before {
+            opacity: 1;
+            transform: scale(1);
         }
 
         .subcategory.open .page {
-            transform: translateY(0);
-            opacity: 1;
+            animation: slideDown 0.4s ease forwards;
         }
 
-        .subcategory.open .page:nth-child(1) { transition-delay: 0.1s; }
-        .subcategory.open .page:nth-child(2) { transition-delay: 0.2s; }
-        .subcategory.open .page:nth-child(3) { transition-delay: 0.3s; }
-        .subcategory.open .page:nth-child(4) { transition-delay: 0.4s; }
+        @keyframes slideDown {
+            0% {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Add this if you want a subtle pulse effect on hover */
+        @keyframes subtlePulse {
+            0% { transform: translateX(10px) scale(1); }
+            50% { transform: translateX(10px) scale(1.02); }
+            100% { transform: translateX(10px) scale(1); }
+        }
+
+        .page:hover h3 {
+            animation: subtlePulse 1s ease infinite;
+        }
 
         .controls {
             position: absolute;
@@ -259,7 +329,7 @@
             <div id="sidebar">
                 <h1>Guidebook</h1>
                 <div class="category" onclick="toggleSubcategories('welcomeSubcategories', this)">
-                    <h2>Welcome <span class="dropdown-arrow">▾</span></h2>
+                    <h2>👋 Welcome <span class="dropdown-arrow">▾</span></h2>
                     <div id="welcomeSubcategories" class="subcategory">
                         <div class="page" onclick="loadPage('Our City')">
                             <h3>Our City</h3>
@@ -273,7 +343,7 @@
                     </div>
                 </div>
                 <div class="category" onclick="toggleSubcategories('tutorialsSubcategories', this)">
-                    <h2>Tutorials <span class="dropdown-arrow">▾</span></h2>
+                    <h2>📚 Tutorials <span class="dropdown-arrow">▾</span></h2>
                     <div id="tutorialsSubcategories" class="subcategory">
                         <div class="page" onclick="loadPage('Buying a Gun')">
                             <h3>Buying a Gun</h3>
@@ -287,7 +357,7 @@
                     </div>
                 </div>
                 <div class="category" onclick="toggleSubcategories('rulesSubcategories', this)">
-                    <h2>Rules <span class="dropdown-arrow">▾</span></h2>
+                    <h2>📜 Rules <span class="dropdown-arrow">▾</span></h2>
                     <div id="rulesSubcategories" class="subcategory">
                         <div class="page" onclick="loadPage('Server Rules')">
                             <h3>Server Rules</h3>
@@ -295,7 +365,7 @@
                     </div>
                 </div>
                 <div class="category" onclick="toggleSubcategories('cityLawsSubcategories', this)">
-                    <h2>City Laws <span class="dropdown-arrow">▾</span></h2>
+                    <h2>⚖️ City Laws <span class="dropdown-arrow">▾</span></h2>
                     <div id="cityLawsSubcategories" class="subcategory">
                         <div class="page" onclick="loadPage('City Laws')">
                             <h3>City Laws</h3>
@@ -303,7 +373,7 @@
                     </div>
                 </div>
                 <div class="category" onclick="toggleSubcategories('employmentSubcategories', this)">
-                    <h2>Department of Employment <span class="dropdown-arrow">▾</span></h2>
+                    <h2>💼 Department of Employment <span class="dropdown-arrow">▾</span></h2>
                     <div id="employmentSubcategories" class="subcategory">
                         <div class="page" onclick="loadPage('Police')">
                             <h3>Police</h3>
