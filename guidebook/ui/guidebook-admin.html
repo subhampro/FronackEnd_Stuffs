@@ -514,6 +514,22 @@
             transform: translateX(5px);
             cursor: pointer;
         }
+
+        .zoom-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+        }
+
+        .tablet-container * {
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -526,30 +542,22 @@
                     <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
                     <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
                 </div>
-                <div class="tablet-container">
-                    <div class="controls">
-                        <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
-                        <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
-                        <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
+                <div id="sidebar">
+                    <h1>Guidebook <span class="admin-badge">ADMIN</span></h1>
+                    <div class="category" onclick="loadSection('categories')">
+                        <h2>📁 Categories</h2>
                     </div>
-                    <!-- Reuse sidebar structure from guidebook.html -->
-                    <div id="sidebar">
-                        <h1>Guidebook <span class="admin-badge">ADMIN</span></h1>
-                        <div class="category" onclick="loadSection('categories')">
-                            <h2>📁 Categories</h2>
-                        </div>
-                        <div class="category" onclick="loadSection('pages')">
-                            <h2>📄 Pages</h2>
-                        </div>
-                        <div class="category" onclick="loadSection('points')">
-                            <h2>📍 Points</h2>
-                        </div>
+                    <div class="category" onclick="loadSection('pages')">
+                        <h2>📄 Pages</h2>
                     </div>
+                    <div class="category" onclick="loadSection('points')">
+                        <h2>📍 Points</h2>
+                    </div>
+                </div>
 
-                    <!-- Dynamic main content -->
-                    <div id="main">
-                        <!-- Content will be loaded dynamically -->
-                    </div>
+                <!-- Dynamic main content -->
+                <div id="main">
+                    <!-- Content will be loaded dynamically -->
                 </div>
             </div>
         </div>
@@ -735,4 +743,4 @@
         });
     </script>
 </body>
-</html> 
+</html>
