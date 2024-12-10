@@ -716,42 +716,7 @@
         }
 
         function initializeEditor() {
-            // Create custom scroll module that uses MutationObserver instead of deprecated events
-            class CustomScroll extends Quill.import('blots/scroll') {
-                constructor(registry, domNode) {
-                    super(registry, domNode);
-                    this.observer = new MutationObserver((mutations) => {
-                        mutations.forEach((mutation) => {
-                            if (mutation.type === 'childList' || 
-                                mutation.type === 'characterData' ||
-                                mutation.type === 'attributes') {
-                                this.update();
-                            }
-                        });
-                    });
-                    
-                    if (domNode instanceof Node) {
-                        this.observer.observe(domNode, {
-                            childList: true,
-                            subtree: true,
-                            characterData: true,
-                            attributes: true
-                        });
-                    } else {
-                        console.error('Failed to observe: domNode is not of type Node');
-                    }
-                }
-
-                detach() {
-                    this.observer.disconnect();
-                    super.detach();
-                }
-            }
-
-            // Register custom scroll module
-            Quill.register('blots/scroll', CustomScroll, true);
-
-            // Initialize Quill with custom settings
+            // Initialize Quill with basic settings
             quill = new Quill('#editor-container', {
                 theme: 'snow',
                 modules: {
@@ -765,18 +730,28 @@
                         ['link', 'image', 'video'],
                         ['clean']
                     ],
-                    clipboard: {
-                        matchVisual: false
+                    history: {
+                        delay: 1000,
+                        maxStack: 500,
+                        userOnly: true
                     }
                 },
-                bounds: document.querySelector('#editor-container'),
+                placeholder: 'Start writing...',
+                readOnly: false,
                 strict: true
             });
 
-            // Ensure cleanup when editor is destroyed
+            // Add content change handler
+            quill.on('text-change', function(delta, oldDelta, source) {
+                if (source === 'user') {
+                    // Handle content changes here if needed
+                }
+            });
+
+            // Clean up
             window.addEventListener('unload', () => {
                 if (quill) {
-                    quill.scroll.detach();
+                    quill = null;
                 }
             });
         }
@@ -826,4 +801,4 @@
         });
     </script>
 </body>
-</html>
+</html> 
