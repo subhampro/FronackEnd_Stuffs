@@ -334,4 +334,4 @@ document.addEventListener('DOMContentLoaded', () => {
     vueApp.mount('#guidebook');
 });
 
-export { GuideConfig as default };
+window.GuideConfig = GuideConfig;
