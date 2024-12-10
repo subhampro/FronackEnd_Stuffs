@@ -228,6 +228,15 @@
             animation: slideIn 0.5s ease-out;
         }
 
+        #main {
+            width: 85%;
+            padding: 30px;
+            background: rgba(10, 25, 41, 0.7);
+            overflow-y: auto;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Add these category styles to match guidebook.html */
         .category {
             padding: 10px;
             position: relative;
@@ -248,8 +257,6 @@
             font-size: 0.8em;
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             opacity: 0.7;
-            border: none;
-            background: none;
         }
 
         .category.active {
@@ -262,8 +269,94 @@
             opacity: 1;
         }
 
-        #main {
-            animation: fadeIn 0.5s ease-out;
+        .category:hover {
+            background: rgba(0, 247, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .subcategory {
+            margin-top: 5px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+        }
+
+        .subcategory.open {
+            max-height: 300px;
+            opacity: 1;
+        }
+
+        .page {
+            margin: 3px 0;
+            padding: 8px 10px;
+            border-left: 2px solid var(--primary-color);
+            transform: translateY(-10px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            background: rgba(0, 247, 255, 0.03);
+            font-size: 0.9em;
+        }
+
+        /* Add responsive styles */
+        @media screen and (max-width: 1200px) {
+            .tablet-container {
+                width: 98vw;
+            }
+
+            #sidebar {
+                width: var(--sidebar-width-tablet);
+            }
+
+            #main {
+                width: calc(100% - var(--sidebar-width-tablet));
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .tablet-frame {
+                padding: 10px;
+            }
+
+            .tablet-container {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 15px;
+            }
+
+            #sidebar {
+                width: var(--sidebar-width-mobile);
+                position: absolute;
+                left: -75%;
+                height: 100%;
+                transition: left 0.3s ease;
+                z-index: 10;
+            }
+
+            #sidebar.active {
+                left: 0;
+            }
+
+            #main {
+                width: 100%;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+        }
+
+        .menu-toggle {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 20;
+            color: var(--primary-color);
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
         }
 
         /* Add all animations from guidebook.html */
@@ -335,7 +428,13 @@
 <body>
     <div class="zoom-wrapper">
         <div class="tablet-frame">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
             <div class="tablet-container">
+                <div class="controls">
+                    <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
+                    <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
+                    <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
+                </div>
                 <!-- Reuse sidebar structure from guidebook.html -->
                 <div id="sidebar">
                     <h1>Guidebook <span class="admin-badge">ADMIN</span></h1>
@@ -347,6 +446,21 @@
                             </div>
                         </div>
                     </div>
+                    <div class="category" onclick="toggleSubcategories('pagesSubcategories', this)">
+                        <h2>📄 Pages <span class="dropdown-arrow">▾</span></h2>
+                        <div id="pagesSubcategories" class="subcategory">
+                            <div class="page" onclick="loadSection('pages')">
+                                <h3>Manage Pages</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="category" onclick="toggleSubcategories('pointsSubcategories', this)">
+                        <h2>📍 Points <span class="dropdown-arrow">▾</span></h2>
+                        <div id="pointsSubcategories" class="subcategory">
+                            <div class="page" onclick="loadSection('points')">
+                                <h3>Manage Points</h3>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -459,7 +573,6 @@
                         <input type="color" class="color-picker" id="text-color">
                     </div>
                     <div class="form-group">
-                        [{ 'script': 'super' }, { 'script': 'sub' }],
                         <label>Text Font</label>
                         <select class="form-control" id="font-select"></select>
                         <div id="font-preview">Preview Text</div>
@@ -495,17 +608,6 @@
 
         // Load initial section
         loadSection('categories');
-    </script>
-</body>
-</html>
-                        [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
-                        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-                        ['link', 'image', 'video'],
-                        ['clean']
-                    ]
-                }
-            });
-        }
 
         function toggleSubcategories(id, element) {
             const subcategories = document.getElementById(id);
@@ -520,8 +622,47 @@
             }
         }
 
-        // Load initial section
-        loadSection('categories');
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        let currentZoom = 100;
+        function zoom(direction) {
+            currentZoom += direction * 10;
+            currentZoom = Math.min(Math.max(currentZoom, 70), 150);
+            
+            const wrapper = document.querySelector('.zoom-wrapper');
+            wrapper.style.transform = `scale(${currentZoom/100})`;
+            wrapper.style.transformOrigin = 'center center';
+        }
+
+        function closeGuidebook() {
+            if (window.confirm('Close guidebook?')) {
+                window.close();
+            }
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.querySelector('.menu-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !menuToggle.contains(event.target) &&
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('active');
+            }
+        });
     </script>
 </body>
 </html>
