@@ -816,31 +816,40 @@
                 <p class="tip">Create in-game markers Or 3D text with Custom content or directly open help page!</p>
                 <p class="tip">Tip: You can use right arrow / left arrow to change value in the range sliders with precision!</p>
                 <form id="point-form" class="form-container">
-                    <div class="form-group">
-                        <label>Label</label>
-                        <input type="text" class="form-control" id="point-label">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Label</label>
+                            <input type="text" class="form-control" id="point-label">
+                        </div>
+                        <div class="form-group">
+                            <label>Key</label>
+                            <input type="text" class="form-control" id="point-key">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Key</label>
-                        <input type="text" class="form-control" id="point-key">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Text Size (0-5)</label>
+                            <input type="range" class="range-slider" min="0" max="5" step="0.1" id="text-size">
+                        </div>
+                        <div class="form-group">
+                            <label>Draw Distance (0-100)</label>
+                            <input type="range" class="range-slider" min="0" max="100" step="1" id="draw-distance">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Text Size (0-5)</label>
-                        <input type="range" class="range-slider" min="0" max="5" step="0.1" id="text-size">
+
+                    <div class="page-header-controls">
+                        <div class="form-group small">
+                            <label>Text Color</label>
+                            <input type="color" class="color-picker" id="text-color">
+                        </div>
+                        <div class="form-group">
+                            <label>Text Font</label>
+                            <select class="form-control" id="font-select"></select>
+                            <div id="font-preview">Preview Text</div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Draw Distance (0-100)</label>
-                        <input type="range" class="range-slider" min="0" max="100" step="1" id="draw-distance">
-                    </div>
-                    <div class="form-group">
-                        <label>Text Color</label>
-                        <input type="color" class="color-picker" id="text-color">
-                    </div>
-                    <div class="form-group">
-                        <label>Text Font</label>
-                        <select class="form-control" id="font-select"></select>
-                        <div id="font-preview">Preview Text</div>
-                    </div>
+
                     <div class="form-group full-width editor-wrapper">
                         <label>Content</label>
                         <div id="editor-container"></div>
