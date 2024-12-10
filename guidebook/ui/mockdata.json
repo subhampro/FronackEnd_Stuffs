@@ -6,12 +6,13 @@
             "name": "Getting Started",
             "pages": [
                 {
-                    "id": "page1",
-                    "label": "Welcome",
-                    "key": "welcome",
-                    "content": "Welcome to our server!",
-                    "order": 1,
-                    "enabled": true
+                    "id": "1733853118655",
+                    "label": "Page 2 ",
+                    "key": "page2",
+                    "categoryId": "cat1",
+                    "order": "1",
+                    "enabled": true,
+                    "content": "<p>Its a content of page 2</p>"
                 }
             ]
         },
@@ -20,13 +21,13 @@
             "name": "Test Karo BC",
             "pages": [
                 {
-                    "id": "1733853118655",
-                    "label": "Page 2 ",
-                    "key": "page2",
+                    "id": "page1",
+                    "label": "Tesa",
+                    "key": "asassa",
                     "categoryId": "1733853091439",
                     "order": "1",
                     "enabled": true,
-                    "content": "<p>Its a content of page 2</p>"
+                    "content": "<p>Welcome to our server!</p>"
                 }
             ]
         }
