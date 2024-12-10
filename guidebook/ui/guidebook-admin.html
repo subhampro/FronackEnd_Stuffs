@@ -282,6 +282,7 @@
             background: rgba(10, 25, 41, 0.7);
             overflow-y: auto;
             animation: fadeIn 0.5s ease-out;
+            box-sizing: border-box; /* Include padding in width calculation */
         }
 
         /* Add these category styles to match guidebook.html */
@@ -562,6 +563,7 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
             margin-bottom: 20px;
+            max-width: 100%;  /* Make form container take full width */
         }
 
         .form-group {
@@ -615,11 +617,13 @@
             display: flex;
             gap: 20px;
             margin-bottom: 20px;
+            width: 100%;
         }
 
         .form-row .form-group {
             flex: 1;
             margin-bottom: 0;
+            min-width: 200px; /* Ensure minimum width for inputs */
         }
 
         .form-row .form-group.small {
@@ -695,6 +699,8 @@
             border-radius: 10px;
             border: 1px solid var(--primary-color);
             margin-bottom: 30px;
+            width: calc(100% - 42px); /* Full width minus padding */
+            box-sizing: border-box;
         }
 
         .text-font-group {
