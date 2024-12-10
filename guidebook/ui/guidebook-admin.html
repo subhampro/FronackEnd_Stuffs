@@ -945,6 +945,100 @@
         #sidebar.active + .sidebar-backdrop {
             display: block;
         }
+
+        /* New/Updated Category Listing Styles */
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        .category-item {
+            background: rgba(10, 25, 41, 0.6);
+            border: 1px solid var(--primary-color);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .category-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 247, 255, 0.1);
+        }
+
+        .category-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary-color);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .category-item:hover::before {
+            transform: scaleY(1);
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .category-title {
+            font-size: 1.2em;
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .category-edit {
+            background: rgba(0, 247, 255, 0.1);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 5px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .category-edit:hover {
+            background: var(--primary-color);
+            color: var(--secondary-color);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        .category-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            background: rgba(0, 247, 255, 0.05);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .stat-item i {
+            color: var(--primary-color);
+            margin-right: 5px;
+        }
+
+        @media screen and (max-width: 768px) {
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1198,14 +1292,44 @@
             const data = await loadFromJSON();
             
             if (data && data.categories) {
-                const categoriesHtml = data.categories.map(category => `
-                    <div class="category-item">
-                        <h3>${category.name}</h3>
-                        <p>Pages: ${category.pages.length}</p>
+                const categoriesHtml = `
+                    <div class="categories-grid">
+                        ${data.categories.map(category => `
+                            <div class="category-item" data-id="${category.id}">
+                                <div class="category-header">
+                                    <h3 class="category-title">${category.name}</h3>
+                                    <button class="category-edit" onclick="editCategory('${category.id}')">
+                                        Edit
+                                    </button>
+                                </div>
+                                <div class="category-stats">
+                                    <div class="stat-item">
+                                        <i>📄</i> ${category.pages.length} Pages
+                                    </div>
+                                    <div class="stat-item">
+                                        <i>👁️</i> ${category.pages.filter(p => p.enabled).length} Active
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
-                `).join('');
+                `;
                 
                 categoriesList.innerHTML = categoriesHtml || '<div class="tip">No categories yet</div>';
+            }
+        }
+
+        async function editCategory(categoryId) {
+            const data = await loadFromJSON();
+            const category = data.categories.find(c => c.id === categoryId);
+            
+            if (category) {
+                const newName = prompt('Enter new category name:', category.name);
+                if (newName && newName.trim() !== '') {
+                    category.name = newName.trim();
+                    await saveToJSON(data);
+                    loadCategories();
+                }
             }
         }
 
