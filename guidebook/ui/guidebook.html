@@ -431,84 +431,98 @@
         .tablet-container * {
             transition: all 0.3s ease;
         }
+
+        .zoom-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+        }
     </style>
 </head>
 <body>
-    <div class="tablet-frame">
-        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-        <div class="tablet-container">
-            <div class="controls">
-                <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
-                <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
-                <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
-            </div>
-            <div id="sidebar">
-                <h1>Guidebook</h1>
-                <div class="category" onclick="toggleSubcategories('welcomeSubcategories', this)">
-                    <h2>👋 Welcome <span class="dropdown-arrow">▾</span></h2>
-                    <div id="welcomeSubcategories" class="subcategory">
-                        <div class="page" onclick="loadPage('Our City')">
-                            <h3>Our City</h3>
+    <div class="zoom-wrapper">
+        <div class="tablet-frame">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <div class="tablet-container">
+                <div class="controls">
+                    <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
+                    <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
+                    <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
+                </div>
+                <div id="sidebar">
+                    <h1>Guidebook</h1>
+                    <div class="category" onclick="toggleSubcategories('welcomeSubcategories', this)">
+                        <h2>👋 Welcome <span class="dropdown-arrow">▾</span></h2>
+                        <div id="welcomeSubcategories" class="subcategory">
+                            <div class="page" onclick="loadPage('Our City')">
+                                <h3>Our City</h3>
+                            </div>
+                            <div class="page" onclick="loadPage('VIP')">
+                                <h3>VIP</h3>
+                            </div>
+                            <div class="page" onclick="loadPage('Website')">
+                                <h3>Website</h3>
+                            </div>
                         </div>
-                        <div class="page" onclick="loadPage('VIP')">
-                            <h3>VIP</h3>
+                    </div>
+                    <div class="category" onclick="toggleSubcategories('tutorialsSubcategories', this)">
+                        <h2>📚 Tutorials <span class="dropdown-arrow">▾</span></h2>
+                        <div id="tutorialsSubcategories" class="subcategory">
+                            <div class="page" onclick="loadPage('Buying a Gun')">
+                                <h3>Buying a Gun</h3>
+                            </div>
+                            <div class="page" onclick="loadPage('Cars and Bikes')">
+                                <h3>Cars and Bikes</h3>
+                            </div>
+                            <div class="page" onclick="loadPage('Getting a Tattoo')">
+                                <h3>Getting a Tattoo</h3>
+                            </div>
                         </div>
-                        <div class="page" onclick="loadPage('Website')">
-                            <h3>Website</h3>
+                    </div>
+                    <div class="category" onclick="toggleSubcategories('rulesSubcategories', this)">
+                        <h2>📜 Rules <span class="dropdown-arrow">▾</span></h2>
+                        <div id="rulesSubcategories" class="subcategory">
+                            <div class="page" onclick="loadPage('Server Rules')">
+                                <h3>Server Rules</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="category" onclick="toggleSubcategories('cityLawsSubcategories', this)">
+                        <h2>⚖️ City Laws <span class="dropdown-arrow">▾</span></h2>
+                        <div id="cityLawsSubcategories" class="subcategory">
+                            <div class="page" onclick="loadPage('City Laws')">
+                                <h3>City Laws</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="category" onclick="toggleSubcategories('employmentSubcategories', this)">
+                        <h2>💼 Department of Employment <span class="dropdown-arrow">▾</span></h2>
+                        <div id="employmentSubcategories" class="subcategory">
+                            <div class="page" onclick="loadPage('Police')">
+                                <h3>Police</h3>
+                            </div>
+                            <div class="page" onclick="loadPage('EMS')">
+                                <h3>EMS</h3>
+                            </div>
+                            <div class="page" onclick="loadPage('Poster Delivery')">
+                                <h3>Poster Delivery</h3>
+                            </div>
+                            <div class="page" onclick="loadPage('Cashier')">
+                                <h3>Cashier</h3>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="category" onclick="toggleSubcategories('tutorialsSubcategories', this)">
-                    <h2>📚 Tutorials <span class="dropdown-arrow">▾</span></h2>
-                    <div id="tutorialsSubcategories" class="subcategory">
-                        <div class="page" onclick="loadPage('Buying a Gun')">
-                            <h3>Buying a Gun</h3>
-                        </div>
-                        <div class="page" onclick="loadPage('Cars and Bikes')">
-                            <h3>Cars and Bikes</h3>
-                        </div>
-                        <div class="page" onclick="loadPage('Getting a Tattoo')">
-                            <h3>Getting a Tattoo</h3>
-                        </div>
-                    </div>
+                <div id="main">
+                    <h2>Home</h2>
+                    <p>Welcome to the Guidebook. Select a category from the left to get started.</p>
                 </div>
-                <div class="category" onclick="toggleSubcategories('rulesSubcategories', this)">
-                    <h2>📜 Rules <span class="dropdown-arrow">▾</span></h2>
-                    <div id="rulesSubcategories" class="subcategory">
-                        <div class="page" onclick="loadPage('Server Rules')">
-                            <h3>Server Rules</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="category" onclick="toggleSubcategories('cityLawsSubcategories', this)">
-                    <h2>⚖️ City Laws <span class="dropdown-arrow">▾</span></h2>
-                    <div id="cityLawsSubcategories" class="subcategory">
-                        <div class="page" onclick="loadPage('City Laws')">
-                            <h3>City Laws</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="category" onclick="toggleSubcategories('employmentSubcategories', this)">
-                    <h2>💼 Department of Employment <span class="dropdown-arrow">▾</span></h2>
-                    <div id="employmentSubcategories" class="subcategory">
-                        <div class="page" onclick="loadPage('Police')">
-                            <h3>Police</h3>
-                        </div>
-                        <div class="page" onclick="loadPage('EMS')">
-                            <h3>EMS</h3>
-                        </div>
-                        <div class="page" onclick="loadPage('Poster Delivery')">
-                            <h3>Poster Delivery</h3>
-                        </div>
-                        <div class="page" onclick="loadPage('Cashier')">
-                            <h3>Cashier</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="main">
-                <h2>Home</h2>
-                <p>Welcome to the Guidebook. Select a category from the left to get started.</p>
             </div>
         </div>
     </div>
@@ -540,7 +554,10 @@
         function zoom(direction) {
             currentZoom += direction * 10;
             currentZoom = Math.min(Math.max(currentZoom, 70), 150);
-            document.body.style.zoom = currentZoom + '%';
+            
+            const wrapper = document.querySelector('.zoom-wrapper');
+            wrapper.style.transform = `scale(${currentZoom/100})`;
+            wrapper.style.transformOrigin = 'center center';
         }
 
         function closeGuidebook() {
