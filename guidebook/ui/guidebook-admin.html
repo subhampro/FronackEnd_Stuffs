@@ -423,6 +423,52 @@
         @media screen and (max-width: 480px) {
             /* existing code */
         }
+
+        /* Add control buttons styling */
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            background: rgba(10, 25, 41, 0.8);
+            color: var(--primary-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .control-btn:hover {
+            background: var(--primary-color);
+            color: var(--secondary-color);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        /* Mobile responsive controls */
+        @media screen and (max-width: 768px) {
+            .controls {
+                top: 10px;
+                right: 10px;
+            }
+
+            .control-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -435,38 +481,45 @@
                     <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
                     <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
                 </div>
-                <!-- Reuse sidebar structure from guidebook.html -->
-                <div id="sidebar">
-                    <h1>Guidebook <span class="admin-badge">ADMIN</span></h1>
-                    <div class="category" onclick="toggleSubcategories('categoriesSubcategories', this)">
-                        <h2>📁 Categories <span class="dropdown-arrow">▾</span></h2>
-                        <div id="categoriesSubcategories" class="subcategory">
-                            <div class="page" onclick="loadSection('categories')">
-                                <h3>Manage Categories</h3>
+                <div class="tablet-container">
+                    <div class="controls">
+                        <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
+                        <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
+                        <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
+                    </div>
+                    <!-- Reuse sidebar structure from guidebook.html -->
+                    <div id="sidebar">
+                        <h1>Guidebook <span class="admin-badge">ADMIN</span></h1>
+                        <div class="category" onclick="toggleSubcategories('categoriesSubcategories', this)">
+                            <h2>📁 Categories <span class="dropdown-arrow">▾</span></h2>
+                            <div id="categoriesSubcategories" class="subcategory">
+                                <div class="page" onclick="loadSection('categories')">
+                                    <h3>Manage Categories</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="category" onclick="toggleSubcategories('pagesSubcategories', this)">
+                            <h2>📄 Pages <span class="dropdown-arrow">▾</span></h2>
+                            <div id="pagesSubcategories" class="subcategory">
+                                <div class="page" onclick="loadSection('pages')">
+                                    <h3>Manage Pages</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="category" onclick="toggleSubcategories('pointsSubcategories', this)">
+                            <h2>📍 Points <span class="dropdown-arrow">▾</span></h2>
+                            <div id="pointsSubcategories" class="subcategory">
+                                <div class="page" onclick="loadSection('points')">
+                                    <h3>Manage Points</h3>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="category" onclick="toggleSubcategories('pagesSubcategories', this)">
-                        <h2>📄 Pages <span class="dropdown-arrow">▾</span></h2>
-                        <div id="pagesSubcategories" class="subcategory">
-                            <div class="page" onclick="loadSection('pages')">
-                                <h3>Manage Pages</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="category" onclick="toggleSubcategories('pointsSubcategories', this)">
-                        <h2>📍 Points <span class="dropdown-arrow">▾</span></h2>
-                        <div id="pointsSubcategories" class="subcategory">
-                            <div class="page" onclick="loadSection('points')">
-                                <h3>Manage Points</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Dynamic main content -->
-                <div id="main">
-                    <!-- Content will be loaded dynamically -->
+                    <!-- Dynamic main content -->
+                    <div id="main">
+                        <!-- Content will be loaded dynamically -->
+                    </div>
                 </div>
             </div>
         </div>
