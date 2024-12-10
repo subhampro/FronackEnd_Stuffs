@@ -28,11 +28,8 @@ ui_page 'html/index.html'
 
 files {
     'html/index.html',
-    'html/admin.html',
     'html/css/*.css',
-    'html/components/components.html',
     'html/js/*.js',
-    'html/img/*.png'
 }
 
 dependencies {

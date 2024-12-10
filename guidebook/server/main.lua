@@ -1,5 +1,5 @@
 local Framework = nil
-local MySQL = require('mysql-async')
+local MySQL = require('@oxmysql/lib/MySQL') -- Ensure this path is correct
 local Categories = {}
 local Pages = {}
 

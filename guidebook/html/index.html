@@ -184,5 +184,13 @@
         </div>
     </div>
     <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = Vue.createApp({
+                // ...existing Vue app code...
+            });
+            app.mount('#guidebook');
+        });
+    </script>
 </body>
 </html>
