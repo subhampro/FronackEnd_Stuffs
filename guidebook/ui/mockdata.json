@@ -1,20 +1,5 @@
-/*
-* 🎮 FiveM Roleplay Guidebook Data
-* -------------------------------------
-* Hey there curious developer! 👋
-* This is where all the magical content lives.
-* Feel free to add your own categories and pages,
-* just make sure to keep the structure intact
-* or things will break and we'll all cry 😭
-*/
-
 {
-    // The grand title of our masterpiece
     "title": "FiveM Roleplay Guidebook",
-    
-    // Categories: Where all the good stuff is organized
-    // Pro tip: Keep them organized or your users will get lost
-    // like my dad went to buy milk 🥛
     "categories": [
         {
             "id": "welcome",
@@ -100,8 +85,6 @@
                 }
             ]
         },
-        // 📚 Rules & Regulations - Because chaos is not an option
-        // (unless you're into that sort of thing)
         {
             "id": "rules-regulations",
             "name": "📜 Rules & Regulations",
@@ -247,9 +230,6 @@
             ]
         }
     ],
-
-    // World markers - Because getting lost in Los Santos
-    // is only fun the first 47 times
     "points": [
         {
             "id": "spawn",

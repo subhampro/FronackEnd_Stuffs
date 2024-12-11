@@ -25,4 +25,7 @@ files {
     'locales/*.lua'           -- Translations
 }
 
+-- Add this line to ensure the JSON file is loaded
+file 'ui/mockdata.json'
+
 ui_page 'ui/guidebook.html'
