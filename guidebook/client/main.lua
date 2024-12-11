@@ -84,7 +84,12 @@ end)
 
 -- Modified getData callback handler
 RegisterNUICallback('getData', function(data, cb)
-    TriggerServerEvent('guidebook:getData')
+    if not serverReady then
+        cb({ error = "Server not ready" })
+        return
+    end
+    
+    TriggerServerEvent('guidebook:getData', data)
     cb({})
 end)
 

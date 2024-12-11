@@ -7,8 +7,9 @@ end
 
 -- Improved data handling
 RegisterNetEvent('guidebook:getData')
-AddEventHandler('guidebook:getData', function()
+AddEventHandler('guidebook:getData', function(data)
     local source = source
+    if not source then return end
     local resourcePath = GetResourcePath(GetCurrentResourceName())
     local file = io.open(resourcePath .. '/ui/mockdata.json', 'r')
     
@@ -19,6 +20,23 @@ AddEventHandler('guidebook:getData', function()
         -- Improved error handling for JSON decode
         local success, decodedData = pcall(json.decode, content)
         if success then
+            if data and data.pageId then
+                -- Find specific page content
+                for _, category in ipairs(decodedData.categories) do
+                    for _, page in ipairs(category.pages) do
+                        if page.label == data.pageId then
+                            TriggerClientEvent('guidebook:receiveData', source, {
+                                pageContent = {
+                                    label = page.label,
+                                    content = page.content
+                                }
+                            })
+                            return
+                        end
+                    end
+                end
+            end
+            -- Send full data if no specific page requested
             Debug('Sending data to client...')
             TriggerClientEvent('guidebook:receiveData', source, decodedData)
         else

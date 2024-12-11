@@ -559,10 +559,17 @@
                     debugUI('UI hidden');
                 }
             } else if (event.data.type === "updateData") {
-                debugUI('Received data update');
-                if (event.data.data) {
+                if (event.data.data.pageContent) {
+                    // Handle specific page content
+                    const mainContent = document.getElementById('main');
+                    mainContent.innerHTML = `
+                        <h2>${event.data.data.pageContent.label}</h2>
+                        <div>${event.data.data.pageContent.content}</div>
+                    `;
+                    mainContent.style.opacity = '1';
+                } else {
+                    // Handle full data update
                     updateContent(event.data.data);
-                    debugUI('Content updated with new data');
                 }
             }
         });
@@ -836,7 +843,7 @@
                         <h2>${category.name} <span class="dropdown-arrow">▾</span></h2>
                         <div id="${category.id}Subcategories" class="subcategory">
                             ${category.pages.filter(page => page.enabled).map(page => `
-                                <div class="page" onclick="loadPage('${page.id}', '${category.id}')">
+                                <div class="page" onclick="loadPage('${page.label}')">
                                     <h3>${page.label}</h3>
                                 </div>
                             `).join('')}
@@ -846,6 +853,48 @@
             `;
             
             debugUI('Sidebar updated successfully');
+        }
+
+        // Fix the updateContent function
+        function updateContent(data) {
+            debugUI('Updating content with data:', data);
+            
+            if (!data || !data.categories) {
+                debugUI('Invalid data format');
+                return;
+            }
+            
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = `
+                <h1>${data.title || 'Guidebook'}</h1>
+                ${data.categories.map(category => `
+                    <div class="category" onclick="toggleSubcategories('${category.id}Subcategories', this)">
+                        <h2>${category.name} <span class="dropdown-arrow">▾</span></h2>
+                        <div id="${category.id}Subcategories" class="subcategory">
+                            ${category.pages.filter(page => page.enabled).map(page => `
+                                <div class="page" onclick="loadPage('${page.label}')">
+                                    <h3>${page.label}</h3>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+            
+            debugUI('Sidebar updated successfully');
+        }
+
+        // Fix the loadPage function
+        function loadPage(pageId) {
+            debugUI('Loading page: ' + pageId);
+            
+            fetch(`https://${GetParentResourceName()}/getData`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ pageId: pageId })
+            });
         }
     </script>
 </body>
