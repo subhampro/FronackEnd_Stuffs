@@ -1,5 +1,10 @@
 local display = false
 
+-- Debug function
+local function Debug(msg)
+    print('^3[Guidebook Debug]^7 ' .. msg)
+end
+
 CreateThread(function()
     Wait(500)
     SetDisplay(false) -- Force initial state
@@ -10,11 +15,6 @@ CreateThread(function()
     TriggerEvent('chat:addSuggestion', '/closeui', 'Force close UI if stuck')
     Debug('Resource started and commands registered')
 end)
-
--- Debug function
-local function Debug(msg)
-    print('^3[Guidebook Debug]^7 ' .. msg)
-end
 
 RegisterCommand('closeui', function()
     SetDisplay(false)
