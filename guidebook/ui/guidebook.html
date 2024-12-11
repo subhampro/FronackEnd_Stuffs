@@ -566,6 +566,9 @@
                     },
                     body: JSON.stringify({})
                 }).catch(err => console.error(err));
+            } else if (event.data.type === "updateData") {
+                // Handle received data
+                updateContent(event.data.data);
             }
         });
 
@@ -641,28 +644,13 @@
 
         // Update loadFromJSON function for FiveM compatibility
         async function loadFromJSON() {
-            try {
-                const response = await fetch(`https://${GetParentResourceName()}/getData`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('Error loading data:', error);
-                return {
-                    title: "Guidebook",
-                    categories: [
-                        {
-                            id: "welcome",
-                            name: "👋 Welcome",
-                            pages: []
-                        }
-                    ]
-                };
-            }
+            await fetch(`https://${GetParentResourceName()}/getData`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            return {}; // Data will be received via message event
         }
 
         // Replace the saveToJSON function
@@ -835,6 +823,28 @@
             document.body.style.display = 'none';
             document.body.style.pointerEvents = 'none';
         });
+
+        // New function to update content
+        function updateContent(data) {
+            if (!data || !data.categories) return;
+            
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = `
+                <h1>${data.title || 'Guidebook'}</h1>
+                ${data.categories.map(category => `
+                    <div class="category" onclick="toggleSubcategories('${category.id}Subcategories', this)">
+                        <h2>${category.name} <span class="dropdown-arrow">▾</span></h2>
+                        <div id="${category.id}Subcategories" class="subcategory">
+                            ${category.pages.filter(page => page.enabled).map(page => `
+                                <div class="page" onclick="loadPage('${page.id}', '${category.id}')">
+                                    <h3>${page.label}</h3>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
     </script>
 </body>
 </html>

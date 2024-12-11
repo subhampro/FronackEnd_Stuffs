@@ -82,24 +82,19 @@ RegisterNUICallback('uiReady', function(data, cb)
     cb('ok')
 end)
 
--- Add the getData callback handler
+-- Modified getData callback handler
 RegisterNUICallback('getData', function(data, cb)
-    local resourcePath = GetResourcePath(GetCurrentResourceName())
-    local file = io.open(resourcePath .. '/ui/mockdata.json', 'r') -- Changed path to mockdata.json
-    
-    if file then
-        local content = file:read('*all')
-        file:close()
-        Debug('Data loaded successfully')
-        cb(json.decode(content))
-    else
-        Debug('Failed to load data, using fallback')
-        cb({
-            title = "Guidebook",
-            categories = {},
-            points = {}
-        })
-    end
+    TriggerServerEvent('guidebook:getData')
+    cb({})
+end)
+
+-- Add new event handler for receiving data
+RegisterNetEvent('guidebook:receiveData')
+AddEventHandler('guidebook:receiveData', function(data)
+    SendNUIMessage({
+        type = "updateData",
+        data = data
+    })
 end)
 
 -- The magic that makes the display work

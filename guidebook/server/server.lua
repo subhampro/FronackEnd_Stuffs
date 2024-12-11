@@ -15,10 +15,23 @@ AddEventHandler('guidebook:getData', function()
     if file then
         local content = file:read('*all')
         file:close()
-        TriggerClientEvent('guidebook:receiveData', source, json.decode(content))
-        Debug('Data sent to client')
+        local success, decodedData = pcall(json.decode, content)
+        if success then
+            TriggerClientEvent('guidebook:receiveData', source, decodedData)
+            Debug('Data sent to client')
+        else
+            Debug('Failed to decode mockdata.json')
+            TriggerClientEvent('guidebook:receiveData', source, {
+                title = "Guidebook",
+                categories = {}
+            })
+        end
     else
         Debug('Failed to load mockdata.json')
+        TriggerClientEvent('guidebook:receiveData', source, {
+            title = "Guidebook",
+            categories = {}
+        })
     end
 end)
 
@@ -37,10 +50,9 @@ AddEventHandler('guidebook:saveData', function(data)
     end
 end)
 
--- Server ready check
+-- Server is always ready now (no Node.js dependency)
 RegisterNetEvent('guidebook:checkServer')
 AddEventHandler('guidebook:checkServer', function()
     local source = source
     TriggerClientEvent('guidebook:serverStatus', source, true)
-    Debug('Server status check - Ready')
 end)
