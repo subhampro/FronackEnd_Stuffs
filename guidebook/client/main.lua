@@ -1,6 +1,9 @@
 local display = false
 
 CreateThread(function()
+    Wait(500)
+    SetDisplay(false) -- Force initial state
+    Wait(500)
     SetDisplay(false) -- Force hide UI on resource start
     Wait(1000)
     TriggerEvent('chat:addSuggestion', '/help', 'Open the guidebook')
@@ -46,7 +49,6 @@ function SetDisplay(bool)
         type = "ui",
         status = bool
     })
-    if bool then
-        Debug('Opening UI')
-    end
+    Debug('Display set to: ' .. tostring(bool))
+    Wait(100) -- Add small delay to ensure NUI message is processed
 end

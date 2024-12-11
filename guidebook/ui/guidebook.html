@@ -7,9 +7,8 @@
     <!-- <link rel="stylesheet" href="styles.css"> -->
     <style>
         body {
-            display: none !important;
+            display: none;
             opacity: 0;
-            pointer-events: none;
         }
         :root {
             --primary-color: #00f7ff;
@@ -542,11 +541,14 @@
             
             if (event.data.type === "ui") {
                 if (event.data.status) {
-                    document.body.style.removeProperty('display');
-                    document.body.style.display = "flex"; // Change to flex since body uses flexbox
+                    document.body.style.display = "flex";
+                    document.body.style.opacity = "1";
+                    document.body.style.pointerEvents = "auto";
                     debugUI('UI displayed');
                 } else {
                     document.body.style.display = "none";
+                    document.body.style.opacity = "0";
+                    document.body.style.pointerEvents = "none";
                     debugUI('UI hidden');
                 }
             } else if (event.data.type === "checkUI") {
@@ -690,4 +692,4 @@
         });
     </script>
 </body>
-</html>
+</html>  
