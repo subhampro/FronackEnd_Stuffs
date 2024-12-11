@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Guidebook</title>
-    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <!-- Hey there! We'll add our styles directly here for better performance -->
     <style>
         body {
             display: none;
@@ -450,15 +450,20 @@
     </style>
 </head>
 <body>
+    <!-- The wrapper helps us with the zoom functionality -->
     <div class="zoom-wrapper">
+        <!-- Our fancy tablet-style frame -->
         <div class="tablet-frame">
+            <!-- Mobile menu toggle button -->
             <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
             <div class="tablet-container">
+                <!-- Control buttons for zoom and close -->
                 <div class="controls">
                     <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
                     <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
                     <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
                 </div>
+                <!-- Left sidebar with navigation -->
                 <div id="sidebar">
                     <h1>Guidebook</h1>
                     <div class="category" onclick="toggleSubcategories('welcomeSubcategories', this)">
@@ -523,6 +528,7 @@
                         </div>
                     </div>
                 </div>
+                <!-- Main content area -->
                 <div id="main">
                     <h2>Home</h2>
                     <p>Welcome to the Guidebook. Select a category from the left to get started.</p>
@@ -531,11 +537,12 @@
         </div>
     </div>
     <script>
-        // Add debug function
+        // Hey! Let's keep track of some important stuff
         function debugUI(msg) {
             console.log('[Guidebook UI Debug]', msg);
         }
 
+        // Listen for messages from the game
         window.addEventListener('message', function(event) {
             debugUI('Message received: ' + event.data.type);
             
@@ -562,6 +569,7 @@
             }
         });
 
+        // This makes our category dropdowns work
         function toggleSubcategories(id, element) {
             const subcategories = document.getElementById(id);
             element.classList.toggle('active');
@@ -575,6 +583,7 @@
             }
         }
 
+        // Load up page content when clicked
         async function loadPage(pageId, categoryId) {
             try {
                 const response = await fetch('http://localhost:3000/api/data');
@@ -600,6 +609,7 @@
             }
         }
 
+        // Handle the zoom in/out feature
         let currentZoom = 100;
         function zoom(direction) {
             currentZoom += direction * 10;
@@ -610,6 +620,7 @@
             wrapper.style.transformOrigin = 'center center';
         }
 
+        // Time to head out! Close the guidebook
         function closeGuidebook() {
             debugUI('Closing guidebook...');
             document.body.style.display = "none";
@@ -624,13 +635,13 @@
             });
         }
 
-        // Add sidebar toggle function
+        // Mobile sidebar toggle - makes it responsive!
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('active');
         }
 
-        // Close sidebar when clicking outside on mobile
+        // Make sure everything works on mobile
         document.addEventListener('click', function(event) {
             const sidebar = document.getElementById('sidebar');
             const menuToggle = document.querySelector('.menu-toggle');
@@ -643,7 +654,7 @@
             }
         });
 
-        // Handle window resize
+        // Handle window resizing gracefully
         window.addEventListener('resize', function() {
             const sidebar = document.getElementById('sidebar');
             if (window.innerWidth > 768) {
@@ -651,6 +662,7 @@
             }
         });
 
+        // Initialize everything when the page loads
         async function loadContent() {
             try {
                 const response = await fetch('http://localhost:3000/api/data');
@@ -685,11 +697,11 @@
 
         // Initialize content on load with debug
         document.addEventListener('DOMContentLoaded', function() {
-            debugUI('DOM Content Loaded - UI Hidden');
+            debugUI('Starting up - UI Hidden');
             document.body.style.opacity = '0';
             document.body.style.display = 'none';
             document.body.style.pointerEvents = 'none';
         });
     </script>
 </body>
-</html>  
+</html>

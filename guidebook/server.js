@@ -1,4 +1,3 @@
-
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
@@ -10,7 +9,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('ui'));
 
-// API endpoint to get data.
 app.get('/api/data', async (req, res) => {
     try {
         const data = await fs.readFile('./ui/mockdata.json', 'utf8');
@@ -20,7 +18,6 @@ app.get('/api/data', async (req, res) => {
     }
 });
 
-// API endpoint to save data
 app.post('/api/data', async (req, res) => {
     try {
         await fs.writeFile('./ui/mockdata.json', JSON.stringify(req.body, null, 4));
