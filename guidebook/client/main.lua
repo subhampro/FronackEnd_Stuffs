@@ -6,20 +6,12 @@ local function Debug(msg)
 end
 
 RegisterCommand('closeui', function()
-    Debug('Attempting to close UI...')
-    display = false
-    SetNuiFocus(false, false)
-    SendNUIMessage({
-        type = "ui",
-        status = false
-    })
-    Debug('UI closed and focus reset')
+    SetDisplay(false)
 end, false)
 
 RegisterCommand('help', function()
     Debug('Help command triggered')
     SetDisplay(not display)
-    Debug('Display state: ' .. tostring(display))
 end, false)
 
 RegisterNUICallback('close', function(data, cb)
@@ -46,7 +38,9 @@ function SetDisplay(bool)
         type = "ui",
         status = bool
     })
-    Debug('Display set to: ' .. tostring(bool))
+    if bool then
+        Debug('Opening UI')
+    end
 end
 
 CreateThread(function()

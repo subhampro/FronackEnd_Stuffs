@@ -7,9 +7,8 @@
     <!-- <link rel="stylesheet" href="styles.css"> -->
     <style>
         body {
-            display: none !important; /* Force hide by default */
+            display: none;
             z-index: 999;
-            visibility: hidden; /* Additional hiding */
         }
         :root {
             --primary-color: #00f7ff;
@@ -542,12 +541,11 @@
             
             if (event.data.type === "ui") {
                 if (event.data.status) {
-                    document.body.style.display = "block";
-                    document.body.style.visibility = "visible";
+                    document.body.style.removeProperty('display');
+                    document.body.style.display = "flex"; // Change to flex since body uses flexbox
                     debugUI('UI displayed');
                 } else {
                     document.body.style.display = "none";
-                    document.body.style.visibility = "hidden";
                     debugUI('UI hidden');
                 }
             } else if (event.data.type === "checkUI") {
@@ -612,7 +610,6 @@
         function closeGuidebook() {
             debugUI('Closing guidebook...');
             document.body.style.display = "none";
-            document.body.style.visibility = "hidden";
             fetch(`https://${GetParentResourceName()}/close`, {
                 method: 'POST',
                 headers: {
@@ -690,4 +687,4 @@
         });
     </script>
 </body>
-</html>
+</html>  
