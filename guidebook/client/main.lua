@@ -82,14 +82,34 @@ RegisterNUICallback('uiReady', function(data, cb)
     cb('ok')
 end)
 
+-- Add the getData callback handler
+RegisterNUICallback('getData', function(data, cb)
+    local resourcePath = GetResourcePath(GetCurrentResourceName())
+    local file = io.open(resourcePath .. '/ui/mockdata.json', 'r') -- Changed path to mockdata.json
+    
+    if file then
+        local content = file:read('*all')
+        file:close()
+        Debug('Data loaded successfully')
+        cb(json.decode(content))
+    else
+        Debug('Failed to load data, using fallback')
+        cb({
+            title = "Guidebook",
+            categories = {},
+            points = {}
+        })
+    end
+end)
+
 -- The magic that makes the display work
 function SetDisplay(bool)
     display = bool
     SetNuiFocus(bool, bool)
     SendNUIMessage({
         type = "ui",
-        status = bool
+        status = bool,
+        resourceName = GetCurrentResourceName()
     })
     Debug('Display is now ' .. (bool and 'visible' or 'hidden'))
-    Wait(100) -- Quick pause to let things settle
 end

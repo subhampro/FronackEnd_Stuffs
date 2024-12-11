@@ -639,29 +639,26 @@
             `;
         }
 
-        // Replace the loadFromJSON function
+        // Update loadFromJSON function for FiveM compatibility
         async function loadFromJSON() {
             try {
-                const response = await fetch('data.json');
-                if (!response.ok) throw new Error('Failed to load data');
-                return await response.json();
+                const response = await fetch(`https://${GetParentResourceName()}/getData`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                return data;
             } catch (error) {
-                console.error('Error loading local data:', error);
-                // Return default data if file not found
+                console.error('Error loading data:', error);
                 return {
                     title: "Guidebook",
                     categories: [
                         {
                             id: "welcome",
                             name: "👋 Welcome",
-                            pages: [
-                                {
-                                    id: "welcome",
-                                    label: "Welcome",
-                                    enabled: true,
-                                    content: "<h1>Welcome</h1><p>Welcome to the guidebook.</p>"
-                                }
-                            ]
+                            pages: []
                         }
                     ]
                 };
@@ -762,19 +759,13 @@
             wrapper.style.transformOrigin = 'center center';
         }
 
-        // Time to head out! Close the guidebook
+        // Update closeGuidebook for FiveM
         function closeGuidebook() {
-            debugUI('Closing guidebook...');
-            document.body.style.display = "none";
             fetch(`https://${GetParentResourceName()}/close`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json; charset=UTF-8',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({})
-            }).catch(err => {
-                debugUI('Error closing guidebook: ' + err);
-            });
+            }).catch(err => console.error(err));
         }
 
         // Mobile sidebar toggle - makes it responsive!

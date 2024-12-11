@@ -1,31 +1,38 @@
--- Welcome to our FXServer manifest! This is where all the important stuff gets registered
+-- Hey there! 👋 Welcome to the fancy manifest file where we tell FiveM what's what
 
-fx_version 'cerulean'
-game 'gta5'
+fx_version 'cerulean'  -- Living on the edge with the latest and greatest
+game 'gta5'           -- In case you couldn't guess which game this is for 😉
 
--- Made with ❤️ by SubhaM
+-- Who's responsible for this masterpiece?
 author 'SubhaM'
-description 'Guidebook Resource'
-version '1.0.0'
+description 'A fancy-pants guidebook that makes reading actually fun!'
+version '1.0.0'     -- Starting small but dreaming big
 
--- Let's tell FXServer what files to load
+-- All the cool client stuff (where the magic happens)
 client_scripts {
-    'client/*.lua', -- All our client-side magic
+    'client/main.lua',   -- The brains of the operation
 }
 
+-- Server-side wizardry (keep your secrets safe!)
 server_scripts {
-    'server/*.lua', -- Server-side goodness
-    'config.lua',   -- Main settings
-    'sconfig.lua'   -- Server-specific settings
+    'server/server.lua', -- The puppet master pulling the strings
+    'config.lua',        -- Where all the "should I?" questions are answered
 }
 
--- These files need to be downloaded to the client
+-- These files need to make it to the client (pretty please)
 files {
-    'ui/*.html',    -- Our pretty interface
-    'ui/*.json',    -- Data storage
-    'locales/*.lua', -- Language stuff
-    'data.json'     -- Add this line to include JSON files
+    'ui/guidebook.html',      -- The pretty face of our operation
+    'ui/guidebook-admin.html', -- Where the cool kids hang out
+    'ui/mockdata.json',       -- Because everyone needs a backup plan
 }
 
--- This is where our UI lives
-ui_page 'ui/guidebook.html'
+-- The star of the show
+ui_page 'ui/guidebook.html'   -- First impressions matter!
+
+-- Need friends to play with? Uncomment these!
+-- dependencies {
+--     'mysql-async',    -- Because raw SQL is scary
+--     'es_extended'     -- The backbone of every proper server
+-- }
+
+-- If something breaks, it's not a bug, it's a feature! 😅
