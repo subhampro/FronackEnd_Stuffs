@@ -106,5 +106,11 @@ function SetDisplay(bool)
         status = bool,
         resourceName = GetCurrentResourceName()
     })
+    
+    -- Request data when UI opens
+    if bool then
+        TriggerServerEvent('guidebook:getData')
+    end
+    
     Debug('Display is now ' .. (bool and 'visible' or 'hidden'))
 end

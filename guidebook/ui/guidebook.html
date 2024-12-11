@@ -558,17 +558,12 @@
                     document.body.style.pointerEvents = "none";
                     debugUI('UI hidden');
                 }
-            } else if (event.data.type === "checkUI") {
-                fetch(`https://${GetParentResourceName()}/uiReady`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json; charset=UTF-8',
-                    },
-                    body: JSON.stringify({})
-                }).catch(err => console.error(err));
             } else if (event.data.type === "updateData") {
-                // Handle received data
-                updateContent(event.data.data);
+                debugUI('Received data update');
+                if (event.data.data) {
+                    updateContent(event.data.data);
+                    debugUI('Content updated with new data');
+                }
             }
         });
 
@@ -826,7 +821,12 @@
 
         // New function to update content
         function updateContent(data) {
-            if (!data || !data.categories) return;
+            debugUI('Updating content with data:', data);
+            
+            if (!data || !data.categories) {
+                debugUI('Invalid data format');
+                return;
+            }
             
             const sidebar = document.getElementById('sidebar');
             sidebar.innerHTML = `
@@ -844,6 +844,8 @@
                     </div>
                 `).join('')}
             `;
+            
+            debugUI('Sidebar updated successfully');
         }
     </script>
 </body>

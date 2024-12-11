@@ -5,7 +5,7 @@ local function Debug(msg)
     print('^5[Guidebook Server]^7 ' .. msg)
 end
 
--- Handle data requests
+-- Improved data handling
 RegisterNetEvent('guidebook:getData')
 AddEventHandler('guidebook:getData', function()
     local source = source
@@ -15,21 +15,23 @@ AddEventHandler('guidebook:getData', function()
     if file then
         local content = file:read('*all')
         file:close()
+        
+        -- Improved error handling for JSON decode
         local success, decodedData = pcall(json.decode, content)
         if success then
+            Debug('Sending data to client...')
             TriggerClientEvent('guidebook:receiveData', source, decodedData)
-            Debug('Data sent to client')
         else
-            Debug('Failed to decode mockdata.json')
+            Debug('Failed to decode JSON, using fallback')
             TriggerClientEvent('guidebook:receiveData', source, {
-                title = "Guidebook",
+                title = "Error Loading Data",
                 categories = {}
             })
         end
     else
-        Debug('Failed to load mockdata.json')
+        Debug('mockdata.json not found at: ' .. resourcePath .. '/ui/mockdata.json')
         TriggerClientEvent('guidebook:receiveData', source, {
-            title = "Guidebook",
+            title = "Error: Data File Missing",
             categories = {}
         })
     end
