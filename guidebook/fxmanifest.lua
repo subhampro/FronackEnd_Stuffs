@@ -8,31 +8,23 @@ author 'SubhaM'
 description 'A fancy-pants guidebook that makes reading actually fun!'
 version '1.0.0'     -- Starting small but dreaming big
 
--- All the cool client stuff (where the magic happens)
+-- All the cool stuff we need
 client_scripts {
     'client/main.lua',   -- The brains of the operation
+    'config.lua'         -- Your friendly neighborhood config file
 }
 
--- Server-side wizardry (keep your secrets safe!)
 server_scripts {
-    'server/server.lua', -- The puppet master pulling the strings
-    'config.lua',        -- Where all the "should I?" questions are answered
+    'server/server.lua'  -- The puppet master pulling the strings
 }
 
--- These files need to make it to the client (pretty please)
 files {
-    'ui/guidebook.html',      -- The pretty face of our operation
-    'ui/guidebook-admin.html', -- Where the cool kids hang out
-    'ui/mockdata.json',       -- Because everyone needs a backup plan
+    'ui/guidebook.html',  
+    'ui/guidebook-admin.html', -- Where the cool kids hang out    -- The pretty face of our operation
+    'ui/mockdata.json',       -- Our trusty data backup
+    'locales/*.lua'           -- Making the world a better place, one translation at a time
 }
 
--- The star of the show
 ui_page 'ui/guidebook.html'   -- First impressions matter!
-
--- Need friends to play with? Uncomment these!
--- dependencies {
---     'mysql-async',    -- Because raw SQL is scary
---     'es_extended'     -- The backbone of every proper server
--- }
 
 -- If something breaks, it's not a bug, it's a feature! 😅

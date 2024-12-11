@@ -41,7 +41,7 @@ AddEventHandler('guidebook:serverStatus', function(status)
     Debug('Server status updated: ' .. (status and 'Online' or 'Offline'))
 end)
 
--- Check if our Node.js server is running
+-- Check if server is ready (simplified)
 function CheckServerStatus()
     TriggerServerEvent('guidebook:checkServer')
 end
