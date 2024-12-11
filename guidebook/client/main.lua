@@ -1,4 +1,5 @@
 local display = false
+local serverReady = false
 
 -- Hey, this is just a simple debug function to help us track what's happening
 local function Debug(msg)
@@ -17,6 +18,15 @@ CreateThread(function()
     TriggerEvent('chat:addSuggestion', '/help', 'Open the guidebook')
     TriggerEvent('chat:addSuggestion', '/closeui', 'Force close UI if stuck')
     Debug('All good! Resource is up and running with commands ready to go')
+    
+    Wait(1000)
+    CheckServerStatus()
+    
+    -- Periodically check server status
+    while true do
+        Wait(30000) -- Check every 30 seconds
+        CheckServerStatus()
+    end
 end)
 
 -- Quick escape hatch if the UI gets stuck
@@ -24,9 +34,32 @@ RegisterCommand('closeui', function()
     SetDisplay(false)
 end, false)
 
+-- Add server status event handler
+RegisterNetEvent('guidebook:serverStatus')
+AddEventHandler('guidebook:serverStatus', function(status)
+    serverReady = status
+    Debug('Server status updated: ' .. (status and 'Online' or 'Offline'))
+end)
+
+-- Check if our Node.js server is running
+function CheckServerStatus()
+    TriggerServerEvent('guidebook:checkServer')
+end
+
 -- The main command to open/close the guidebook
 RegisterCommand('help', function()
-    Debug('Someone wants help!')
+    Debug('Help command triggered')
+    
+    if not serverReady then
+        TriggerEvent('chat:addMessage', {
+            color = {255, 0, 0},
+            multiline = true,
+            args = {"System", "Guidebook server is starting up. Please wait..."}
+        })
+        CheckServerStatus()
+        return
+    end
+    
     SetDisplay(not display)
 end, false)
 

@@ -23,7 +23,8 @@ server_scripts {
 files {
     'ui/*.html',    -- Our pretty interface
     'ui/*.json',    -- Data storage
-    'locales/*.lua' -- Language stuff
+    'locales/*.lua', -- Language stuff
+    'data.json'     -- Add this line to include JSON files
 }
 
 -- This is where our UI lives

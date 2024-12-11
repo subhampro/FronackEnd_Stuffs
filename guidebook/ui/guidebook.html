@@ -583,12 +583,154 @@
             }
         }
 
-        // Load up page content when clicked
+        // Enhanced fetch with retry mechanism and timeout
+        async function fetchWithRetry(url, options = {}, retries = 3) {
+            const timeout = options.timeout || 5000;
+            
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), timeout);
+                    
+                    const response = await fetch(url, {
+                        ...options,
+                        signal: controller.signal,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        }
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    return await response.json();
+                } catch (error) {
+                    debugUI(`Fetch attempt ${i + 1} failed: ${error.message}`);
+                    if (i === retries - 1) throw error;
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                }
+            }
+        }
+
+        // Show loading state in the main content area
+        function showLoading() {
+            document.getElementById('main').innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <h2>Loading...</h2>
+                    <p>Connecting to guidebook server...</p>
+                </div>
+            `;
+        }
+
+        // Show error state in the main content area
+        function showError(error) {
+            document.getElementById('main').innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <h2>Connection Error</h2>
+                    <p>Unable to connect to the guidebook server: ${error}</p>
+                    <button onclick="retryConnection()" class="control-btn" style="display: inline-block; margin-top: 10px;">
+                        Retry Connection
+                    </button>
+                </div>
+            `;
+        }
+
+        // Replace the loadFromJSON function
+        async function loadFromJSON() {
+            try {
+                const response = await fetch('data.json');
+                if (!response.ok) throw new Error('Failed to load data');
+                return await response.json();
+            } catch (error) {
+                console.error('Error loading local data:', error);
+                // Return default data if file not found
+                return {
+                    title: "Guidebook",
+                    categories: [
+                        {
+                            id: "welcome",
+                            name: "👋 Welcome",
+                            pages: [
+                                {
+                                    id: "welcome",
+                                    label: "Welcome",
+                                    enabled: true,
+                                    content: "<h1>Welcome</h1><p>Welcome to the guidebook.</p>"
+                                }
+                            ]
+                        }
+                    ]
+                };
+            }
+        }
+
+        // Replace the saveToJSON function
+        async function saveToJSON(data) {
+            // In local mode, we'll just log the data
+            console.log('Data update (local mode):', data);
+            return data;
+        }
+
+        // Modified loadContent function
+        async function loadContent() {
+            showLoading();
+            try {
+                const data = await loadFromJSON();
+                const sidebar = document.getElementById('sidebar');
+                
+                if (!data || !data.categories) {
+                    throw new Error('Invalid data format');
+                }
+
+                sidebar.innerHTML = `
+                    <h1>${data.title || 'Guidebook'}</h1>
+                    ${data.categories.map(category => `
+                        <div class="category" onclick="toggleSubcategories('${category.id}Subcategories', this)">
+                            <h2>${category.name} <span class="dropdown-arrow">▾</span></h2>
+                            <div id="${category.id}Subcategories" class="subcategory">
+                                ${category.pages.filter(page => page.enabled).map(page => `
+                                    <div class="page" onclick="loadPage('${page.id}', '${category.id}')">
+                                        <h3>${page.label}</h3>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+                
+                // Show default content
+                document.getElementById('main').innerHTML = `
+                    <h2>Welcome to the Guidebook</h2>
+                    <p>Select a category from the left to get started.</p>
+                `;
+            } catch (error) {
+                console.error('Error loading content:', error);
+                document.getElementById('main').innerHTML = `
+                    <h2>Error</h2>
+                    <p>Unable to load guidebook content.</p>
+                `;
+            }
+        }
+
+        // Add retry connection function
+        async function retryConnection() {
+            debugUI('Retrying connection...');
+            try {
+                await loadContent();
+                debugUI('Connection restored!');
+            } catch (error) {
+                debugUI('Retry failed: ' + error);
+            }
+        }
+
+        // Modified page loading function
         async function loadPage(pageId, categoryId) {
             try {
-                const response = await fetch('http://localhost:3000/api/data');
-                const data = await response.json();
-                
+                const data = await loadFromJSON();
                 const category = data.categories.find(c => c.id === categoryId);
                 const page = category?.pages.find(p => p.id === pageId);
                 
