@@ -1,9 +1,24 @@
-print('Server script loaded')
+--[[
+    🎮 FiveM Guidebook Server
+    ------------------------
+    The backend mastermind that keeps everything running
+    Created by someone who drinks too much coffee
 
--- Debug helper
+    Pro tips:
+    - Don't touch what you don't understand
+    - If it works, don't fix it
+    - If you break it, pretend you were never here
+--]]
+
+-- Our trusty debug function, because print statements are for rookies
 local function Debug(msg)
     print('^5[Guidebook Server]^7 ' .. msg)
 end
+
+-- Event handlers below ⬇️
+-- Handle with care, they're more fragile than my self-esteem
+
+print('Server script loaded')
 
 -- Improved data handling
 RegisterNetEvent('guidebook:getData')

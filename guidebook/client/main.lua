@@ -1,7 +1,18 @@
+--[[
+    📱 FiveM Guidebook Client
+    ------------------------
+    The front-end warrior that makes everything look pretty
+    
+    Warning: Contains more variables than my ex's mood swings
+    Handle with care and lots of caffeine ☕
+--]]
+
+-- Keeping track of our UI state
+-- Because boolean variables are the only stable thing in this code
 local display = false
 local serverReady = false
 
--- Hey, this is just a simple debug function to help us track what's happening
+-- Debug function that's probably used more than actual code
 local function Debug(msg)
     print('^3[Guidebook Debug]^7 ' .. msg)
 end
