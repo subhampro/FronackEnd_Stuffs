@@ -2,7 +2,7 @@ local display = false
 
 RegisterCommand('help', function()
     SetDisplay(not display)
-end)
+end, false)
 
 RegisterNUICallback('close', function(data, cb)
     SetDisplay(false)
