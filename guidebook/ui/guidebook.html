@@ -531,12 +531,21 @@
         </div>
     </div>
     <script>
+        // Add debug function
+        function debugUI(msg) {
+            console.log('[Guidebook UI Debug]', msg);
+        }
+
         window.addEventListener('message', function(event) {
+            debugUI('Message received: ' + event.data.type);
+            
             if (event.data.type === "ui") {
                 if (event.data.status) {
                     document.body.style.display = "block";
+                    debugUI('UI displayed');
                 } else {
                     document.body.style.display = "none";
+                    debugUI('UI hidden');
                 }
             } else if (event.data.type === "checkUI") {
                 fetch(`https://${GetParentResourceName()}/uiReady`, {
@@ -598,6 +607,7 @@
         }
 
         function closeGuidebook() {
+            debugUI('Closing guidebook...');
             document.body.style.display = "none";
             fetch(`https://${GetParentResourceName()}/close`, {
                 method: 'POST',
@@ -605,7 +615,9 @@
                     'Content-Type': 'application/json; charset=UTF-8',
                 },
                 body: JSON.stringify({})
-            }).catch(err => console.error(err));
+            }).catch(err => {
+                debugUI('Error closing guidebook: ' + err);
+            });
         }
 
         // Add sidebar toggle function
@@ -667,8 +679,9 @@
             }
         }
 
-        // Initialize content on load
+        // Initialize content on load with debug
         document.addEventListener('DOMContentLoaded', function() {
+            debugUI('DOM Content Loaded');
             loadContent();
             // ...any other initialization code...
         });

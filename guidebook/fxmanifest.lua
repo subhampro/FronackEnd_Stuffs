@@ -21,4 +21,4 @@ files {
     'locales/*.lua'
 }
 
-ui_page 'ui/*.html'
+ui_page 'ui/guidebook.html'
