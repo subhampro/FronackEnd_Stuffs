@@ -447,6 +447,133 @@
             align-items: center;
             overflow: auto;
         }
+
+        /* Search Feature Styles */
+        .search-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform-origin: left center;
+        }
+
+        .search-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            background: rgba(10, 25, 41, 0.8);
+            color: var(--primary-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 15px rgba(0, 247, 255, 0.1);
+        }
+
+        .search-btn:hover {
+            background: var(--primary-color);
+            color: var(--secondary-color);
+            box-shadow: 0 0 20px var(--primary-color);
+        }
+
+        .search-input {
+            width: 0;
+            opacity: 0;
+            padding: 10px 15px;
+            border-radius: 25px;
+            border: 2px solid var(--primary-color);
+            background: rgba(10, 25, 41, 0.8);
+            color: var(--text-color);
+            font-size: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(5px);
+        }
+
+        .search-container.active .search-input {
+            width: 250px;
+            opacity: 1;
+        }
+
+        .search-results {
+            display: none;
+            position: absolute;
+            right: 30px;
+            top: 80px;
+            width: 300px;
+            max-height: 70vh;
+            background: rgba(10, 25, 41, 0.95);
+            border: 2px solid var(--primary-color);
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            animation: slideInRight 0.3s ease-out;
+            box-shadow: 0 0 30px rgba(0, 247, 255, 0.15);
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(0, 247, 255, 0.05);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 247, 255, 0.1);
+        }
+
+        .search-result-item:hover {
+            transform: translateX(5px);
+            background: rgba(0, 247, 255, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .result-category {
+            font-size: 0.8em;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .result-title {
+            font-size: 1em;
+            margin-bottom: 5px;
+        }
+
+        .result-preview {
+            font-size: 0.85em;
+            opacity: 0.7;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .highlight {
+            background: rgba(0, 247, 255, 0.2);
+            padding: 0 3px;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -536,6 +663,11 @@
             </div>
         </div>
     </div>
+    <div class="search-container">
+        <button class="search-btn" onclick="toggleSearch()">🔍</button>
+        <input type="text" class="search-input" placeholder="Search guidebook..." onkeyup="handleSearch(this.value)">
+    </div>
+    <div class="search-results"></div>
     <script>
         // Hey! Let's keep track of some important stuff
         function debugUI(msg) {
@@ -895,6 +1027,100 @@
                 },
                 body: JSON.stringify({ pageId: pageId })
             });
+        }
+
+        // Add these new functions for search
+        function toggleSearch() {
+            const container = document.querySelector('.search-container');
+            const input = document.querySelector('.search-input');
+            container.classList.toggle('active');
+            if (container.classList.contains('active')) {
+                input.focus();
+            } else {
+                input.value = '';
+                handleSearch('');
+            }
+        }
+
+        function handleSearch(query) {
+            const resultsContainer = document.querySelector('.search-results');
+            if (!query.trim()) {
+                resultsContainer.classList.remove('active');
+                return;
+            }
+
+            // Get data from the server
+            fetch(`https://${GetParentResourceName()}/getData`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'search', query: query })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                if (!data || !data.categories) return;
+
+                const results = [];
+                data.categories.forEach(category => {
+                    category.pages.forEach(page => {
+                        if (matchesSearch(page, query)) {
+                            results.push({
+                                category: category.name,
+                                page: page
+                            });
+                        }
+                    });
+                });
+
+                displaySearchResults(results, query);
+            });
+        }
+
+        function matchesSearch(page, query) {
+            const searchText = query.toLowerCase();
+            return (
+                page.label.toLowerCase().includes(searchText) ||
+                (page.content && stripHtml(page.content).toLowerCase().includes(searchText))
+            );
+        }
+
+        function stripHtml(html) {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            return doc.body.textContent || '';
+        }
+
+        function displaySearchResults(results, query) {
+            const resultsContainer = document.querySelector('.search-results');
+            if (results.length === 0) {
+                resultsContainer.innerHTML = `<div class="search-result-item">No results found for "${query}"</div>`;
+            } else {
+                resultsContainer.innerHTML = results.map(result => `
+                    <div class="search-result-item" onclick="loadPage('${result.page.label}')">
+                        <div class="result-category">${result.category}</div>
+                        <div class="result-title">${highlightText(result.page.label, query)}</div>
+                        <div class="result-preview">${getPreview(result.page.content, query)}</div>
+                    </div>
+                `).join('');
+            }
+            resultsContainer.classList.add('active');
+        }
+
+        function highlightText(text, query) {
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        function getPreview(content, query) {
+            if (!content) return '';
+            const plainText = stripHtml(content);
+            const index = plainText.toLowerCase().indexOf(query.toLowerCase());
+            if (index === -1) return plainText.slice(0, 100) + '...';
+            
+            const start = Math.max(0, index - 50);
+            const end = Math.min(plainText.length, index + 50);
+            let preview = plainText.slice(start, end);
+            if (start > 0) preview = '...' + preview;
+            if (end < plainText.length) preview += '...';
+            return highlightText(preview, query);
         }
     </script>
 </body>
