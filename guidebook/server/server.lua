@@ -32,15 +32,14 @@ AddEventHandler('guidebook:getData', function(data)
         local content = file:read('*all')
         file:close()
         
-        -- Improved error handling for JSON decode
         local success, decodedData = pcall(json.decode, content)
-        if success then
+        if success and decodedData then
             if data and data.pageId then
-                -- Find specific page content
-                for _, category in ipairs(decodedData.categories) do
-                    for _, page in ipairs(category.pages) do
+                for _, category in pairs(decodedData.categories or {}) do
+                    for _, page in pairs(category.pages or {}) do
                         if page.label == data.pageId then
                             TriggerClientEvent('guidebook:receiveData', source, {
+                                type = "page",
                                 pageContent = {
                                     label = page.label,
                                     content = page.content
@@ -50,22 +49,32 @@ AddEventHandler('guidebook:getData', function(data)
                         end
                     end
                 end
+                -- Page not found
+                Debug('Page not found: ' .. tostring(data.pageId))
+                TriggerClientEvent('guidebook:receiveData', source, {
+                    type = "error",
+                    error = "Page not found"
+                })
+            else
+                -- Send full data
+                Debug('Sending full data to client...')
+                TriggerClientEvent('guidebook:receiveData', source, {
+                    type = "full",
+                    data = decodedData
+                })
             end
-            -- Send full data if no specific page requested
-            Debug('Sending data to client...')
-            TriggerClientEvent('guidebook:receiveData', source, decodedData)
         else
-            Debug('Failed to decode JSON, using fallback')
+            Debug('JSON decode error')
             TriggerClientEvent('guidebook:receiveData', source, {
-                title = "Error Loading Data",
-                categories = {}
+                type = "error",
+                error = "Invalid data format"
             })
         end
     else
-        Debug('mockdata.json not found at: ' .. resourcePath .. '/ui/mockdata.json')
+        Debug('File not found')
         TriggerClientEvent('guidebook:receiveData', source, {
-            title = "Error: Data File Missing",
-            categories = {}
+            type = "error",
+            error = "Data file missing"
         })
     end
 end)

@@ -729,17 +729,18 @@
                     debugUI('UI hidden');
                 }
             } else if (event.data.type === "updateData") {
-                if (event.data.data.pageContent) {
-                    // Handle specific page content
-                    const mainContent = document.getElementById('main');
-                    mainContent.innerHTML = `
-                        <h2>${event.data.data.pageContent.label}</h2>
-                        <div>${event.data.data.pageContent.content}</div>
-                    `;
-                    mainContent.style.opacity = '1';
-                } else {
+                if (event.data.responseType === "full") {
                     // Handle full data update
                     updateContent(event.data.data);
+                } else if (event.data.responseType === "page") {
+                    // Handle single page content
+                    const mainContent = document.getElementById('main');
+                    if (mainContent && event.data.data) {
+                        mainContent.innerHTML = `
+                            <h2>${event.data.data.label}</h2>
+                            <div>${event.data.data.content}</div>
+                        `;
+                    }
                 }
             }
         });
@@ -1063,7 +1064,11 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ pageId: pageId })
+                body: JSON.stringify({
+                    pageId: pageId
+                })
+            }).catch(error => {
+                debugUI('Error loading page: ' + error);
             });
         }
 
@@ -1171,4 +1176,4 @@
         }
     </script>
 </body>
-</html> 
+</html>

@@ -103,6 +103,21 @@
             color: var(--secondary-color);
             padding: 3px 8px;
             border-radius: 8px;
+            font-size: 0.6em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: badgePulse 2s infinite, badgeFloat 3s ease-in-out infinite;
+        }
+
+        .admin-badge:hover {
+            transform: translateY(-2px) scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        @keyframes badgePulse {
             0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
             50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
             100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }

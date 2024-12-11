@@ -106,10 +106,18 @@ end)
 
 -- Add new event handler for receiving data
 RegisterNetEvent('guidebook:receiveData')
-AddEventHandler('guidebook:receiveData', function(data)
+AddEventHandler('guidebook:receiveData', function(response)
+    if not response then return end
+    
+    if response.type == "error" then
+        Debug('Error: ' .. tostring(response.error))
+        return
+    end
+    
     SendNUIMessage({
         type = "updateData",
-        data = data
+        responseType = response.type,
+        data = response.type == "full" and response.data or response.pageContent
     })
 end)
 
