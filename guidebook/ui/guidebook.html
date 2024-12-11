@@ -538,6 +538,14 @@
                 } else {
                     document.body.style.display = "none";
                 }
+            } else if (event.data.type === "checkUI") {
+                fetch(`https://${GetParentResourceName()}/uiReady`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8',
+                    },
+                    body: JSON.stringify({})
+                }).catch(err => console.error(err));
             }
         });
 
