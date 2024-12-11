@@ -7,8 +7,9 @@
     <!-- <link rel="stylesheet" href="styles.css"> -->
     <style>
         body {
-            display: none;
-            z-index: 999;
+            display: none !important;
+            opacity: 0;
+            pointer-events: none;
         }
         :root {
             --primary-color: #00f7ff;
@@ -682,9 +683,11 @@
 
         // Initialize content on load with debug
         document.addEventListener('DOMContentLoaded', function() {
-            debugUI('DOM Content Loaded - Waiting for command');
-            // Remove loadContent() from here - it will be called when needed
+            debugUI('DOM Content Loaded - UI Hidden');
+            document.body.style.opacity = '0';
+            document.body.style.display = 'none';
+            document.body.style.pointerEvents = 'none';
         });
     </script>
 </body>
-</html>  
+</html>

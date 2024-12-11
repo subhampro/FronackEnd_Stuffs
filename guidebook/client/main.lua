@@ -1,5 +1,13 @@
 local display = false
 
+CreateThread(function()
+    SetDisplay(false) -- Force hide UI on resource start
+    Wait(1000)
+    TriggerEvent('chat:addSuggestion', '/help', 'Open the guidebook')
+    TriggerEvent('chat:addSuggestion', '/closeui', 'Force close UI if stuck')
+    Debug('Resource started and commands registered')
+end)
+
 -- Debug function
 local function Debug(msg)
     print('^3[Guidebook Debug]^7 ' .. msg)
@@ -42,10 +50,3 @@ function SetDisplay(bool)
         Debug('Opening UI')
     end
 end
-
-CreateThread(function()
-    Wait(1000)
-    TriggerEvent('chat:addSuggestion', '/help', 'Open the guidebook')
-    TriggerEvent('chat:addSuggestion', '/closeui', 'Force close UI if stuck')
-    Debug('Resource started and commands registered')
-end)
