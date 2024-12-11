@@ -6,6 +6,10 @@
     <title>Guidebook</title>
     <!-- <link rel="stylesheet" href="styles.css"> -->
     <style>
+        body {
+            display: none;
+            z-index: 999;
+        }
         :root {
             --primary-color: #00f7ff;
             --secondary-color: #0a1929;
@@ -527,6 +531,16 @@
         </div>
     </div>
     <script>
+        window.addEventListener('message', function(event) {
+            if (event.data.type === "ui") {
+                if (event.data.status) {
+                    document.body.style.display = "block";
+                } else {
+                    document.body.style.display = "none";
+                }
+            }
+        });
+
         function toggleSubcategories(id, element) {
             const subcategories = document.getElementById(id);
             element.classList.toggle('active');
@@ -576,12 +590,14 @@
         }
 
         function closeGuidebook() {
-            // For web testing
-            if (window.confirm('Close guidebook?')) {
-                window.close();
-            }
-            // For FiveM implementation
-            // fetch(`https://${GetParentResourceName()}/closeGuidebook`);
+            document.body.style.display = "none";
+            fetch(`https://${GetParentResourceName()}/close`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=UTF-8',
+                },
+                body: JSON.stringify({})
+            }).catch(err => console.error(err));
         }
 
         // Add sidebar toggle function
