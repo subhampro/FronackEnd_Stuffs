@@ -24,7 +24,13 @@ end, false)
 
 RegisterNUICallback('close', function(data, cb)
     Debug('Close callback received from UI')
-    SetDisplay(false)
+    display = false
+    SetNuiFocus(false, false)
+    SendNUIMessage({
+        type = "ui",
+        status = false
+    })
+    Debug('UI closed via close button')
     cb('ok')
 end)
 

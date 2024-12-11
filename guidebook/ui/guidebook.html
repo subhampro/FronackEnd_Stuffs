@@ -612,6 +612,7 @@
         function closeGuidebook() {
             debugUI('Closing guidebook...');
             document.body.style.display = "none";
+            document.body.style.visibility = "hidden";
             fetch(`https://${GetParentResourceName()}/close`, {
                 method: 'POST',
                 headers: {
