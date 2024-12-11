@@ -27,4 +27,4 @@ files {
 }
 
 -- This is where our UI lives
-ui_page 'ui/*.html'
+ui_page 'ui/guidebook.html'
