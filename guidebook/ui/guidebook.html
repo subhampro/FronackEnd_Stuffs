@@ -760,6 +760,100 @@
         .search-result-item {
             padding: 15px;
             border-bottom: 1px solid rgba(0, 247, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background: rgba(0, 247, 255, 0.1);
+            transform: translateX(10px);
+        }
+
+        .result-category {
+            font-size: 0.8em;
+            color: var(--primary-color);
+            opacity: 0.8;
+        }
+
+        .result-title {
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .result-preview {
+            font-size: 0.9em;
+            color: #aaa;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .highlight {
+            background: rgba(0, 247, 255, 0.2);
+            color: var(--primary-color);
+            padding: 0 3px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        @keyframes slideInSearch {
+            0% {
+                top: -100%;
+                opacity: 0;
+            }
+            100% {
+                top: 20px;
+                opacity: 1;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media screen and (max-width: 768px) {
+            .search-results {
+                width: 90%;
+                margin: 0 auto;
+            }
+
+            .search-result-item {
+                padding: 10px;
+            }
+        }
+    </style>
+    <script src="mockdata.js"></script>
+</head>
+<body>
+    <!-- The wrapper helps us with the zoom functionality -->
+    <div class="zoom-wrapper">
+        <div class="zoom-content">
+            <!-- Our fancy tablet-style frame -->
+            <div class="tablet-frame">
+                <!-- Mobile menu toggle button -->
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <div class="tablet-container">
+                    <!-- Control buttons for zoom and close -->
+                    <div class="controls">
+                        <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
+                        <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
+                        <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
+                    </div>
+                    <!-- Left sidebar with navigation -->
+                    <div id="sidebar">
+                        <h1>Guidebook</h1>
+                        <div class="category" onclick="toggleSubcategories('welcomeSubcategories', this)">
+                            <h2>👋 Welcome <span class="dropdown-arrow">▾</span></h2>
+                            <div id="welcomeSubcategories" class="subcategory">
+                                <div class="page" onclick="loadPage('Our City')">
+                                    <h3>Our City</h3>
+                                </div>
                                 <div class="page" onclick="loadPage('VIP')">
                                     <h3>VIP</h3>
                                 </div>
@@ -826,7 +920,7 @@
                             <span class="search-icon">🔍</span>
                             <div class="search-ripple"></div>
                         </button>
-                        <input type="text" class="search-input" placeholder="Search guidebook..." onkeyup="handleSearch(this.value)">
+                        <input type="text" class="search-input" placeholder="Search guidebook..." onkeyup="handleSearch(event)">
                     </div>
                     <div class="search-results"></div>
                 </div>
@@ -1329,45 +1423,54 @@
         }
 
         // Handles search with the precision of a brain surgeon
-        function handleSearch(query) {
+        function handleSearch(event) {
+            const query = event.target.value.trim().toLowerCase();
             const resultsContainer = document.querySelector('.search-results');
-            if (!query.trim()) {
+            
+            if (!query) {
                 resultsContainer.classList.remove('active');
                 return;
             }
 
-            // Get data from the server
-            fetch(`https://${GetParentResourceName()}/getData`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'search', query: query })
-            })
-            .then(resp => resp.json())
-            .then(data => {
-                if (!data || !data.categories) return;
+            const results = searchInData(query);
+            displaySearchResults(results, query);
+        }
 
-                const results = [];
-                data.categories.forEach(category => {
-                    category.pages.forEach(page => {
-                        if (matchesSearch(page, query)) {
-                            results.push({
-                                category: category.name,
-                                page: page
-                            });
-                        }
-                    });
+        function searchInData(query) {
+            const results = [];
+            
+            testData.categories.forEach(category => {
+                category.pages.forEach(page => {
+                    if (matchesSearch(page, query)) {
+                        results.push({
+                            category: category.name,
+                            page: page,
+                            relevance: calculateRelevance(page, query)
+                        });
+                    }
                 });
-
-                displaySearchResults(results, query);
             });
+
+            // Sort by relevance
+            return results.sort((a, b) => b.relevance - a.relevance);
         }
 
         function matchesSearch(page, query) {
             const searchText = query.toLowerCase();
-            return (
-                page.label.toLowerCase().includes(searchText) ||
-                (page.content && stripHtml(page.content).toLowerCase().includes(searchText))
-            );
+            const titleMatch = page.label.toLowerCase().includes(searchText);
+            const contentMatch = stripHtml(page.content).toLowerCase().includes(searchText);
+            return titleMatch || contentMatch;
+        }
+
+        function calculateRelevance(page, query) {
+            let score = 0;
+            const titleMatches = (page.label.toLowerCase().match(new RegExp(query, 'g')) || []).length;
+            const contentMatches = (stripHtml(page.content).toLowerCase().match(new RegExp(query, 'g')) || []).length;
+            
+            score += titleMatches * 10; // Title matches are worth more
+            score += contentMatches;
+            
+            return score;
         }
 
         function stripHtml(html) {
@@ -1377,18 +1480,31 @@
 
         function displaySearchResults(results, query) {
             const resultsContainer = document.querySelector('.search-results');
+            
             if (results.length === 0) {
-                resultsContainer.innerHTML = `<div class="search-result-item">No results found for "${query}"</div>`;
+                resultsContainer.innerHTML = `
+                    <div class="search-result-item">
+                        <div class="result-title">No results found for "${query}"</div>
+                    </div>
+                `;
             } else {
                 resultsContainer.innerHTML = results.map(result => `
-                    <div class="search-result-item" onclick="loadPage('${result.page.label}')">
+                    <div class="search-result-item" onclick="loadSearchResult('${result.page.id}')">
                         <div class="result-category">${result.category}</div>
                         <div class="result-title">${highlightText(result.page.label, query)}</div>
                         <div class="result-preview">${getPreview(result.page.content, query)}</div>
                     </div>
                 `).join('');
             }
+            
             resultsContainer.classList.add('active');
+        }
+
+        function loadSearchResult(pageId) {
+            loadPage(pageId);
+            document.querySelector('.search-results').classList.remove('active');
+            document.querySelector('.search-input').value = '';
+            document.querySelector('.search-container').classList.remove('active');
         }
 
         function highlightText(text, query) {
@@ -1398,15 +1514,19 @@
 
         function getPreview(content, query) {
             if (!content) return '';
+            
             const plainText = stripHtml(content);
             const index = plainText.toLowerCase().indexOf(query.toLowerCase());
+            
             if (index === -1) return plainText.slice(0, 100) + '...';
             
             const start = Math.max(0, index - 50);
             const end = Math.min(plainText.length, index + 50);
             let preview = plainText.slice(start, end);
+            
             if (start > 0) preview = '...' + preview;
             if (end < plainText.length) preview += '...';
+            
             return highlightText(preview, query);
         }
 
@@ -1545,8 +1665,6 @@
                 }
             }
         });
-
-        // ...existing code...
     </script>
 </body>
 </html>
