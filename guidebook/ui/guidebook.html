@@ -733,33 +733,33 @@
         .page-content {
             animation: fadeIn 0.3s ease-out;
         }
-    </style>
-    <script src="mockdata.js"></script>
-</head>
-<body>
-    <!-- The wrapper helps us with the zoom functionality -->
-    <div class="zoom-wrapper">
-        <div class="zoom-content">
-            <!-- Our fancy tablet-style frame -->
-            <div class="tablet-frame">
-                <!-- Mobile menu toggle button -->
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-                <div class="tablet-container">
-                    <!-- Control buttons for zoom and close -->
-                    <div class="controls">
-                        <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
-                        <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
-                        <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
-                    </div>
-                    <!-- Left sidebar with navigation -->
-                    <div id="sidebar">
-                        <h1>Guidebook</h1>
-                        <div class="category" onclick="toggleSubcategories('welcomeSubcategories', this)">
-                            <h2>👋 Welcome <span class="dropdown-arrow">▾</span></h2>
-                            <div id="welcomeSubcategories" class="subcategory">
-                                <div class="page" onclick="loadPage('Our City')">
-                                    <h3>Our City</h3>
-                                </div>
+
+        /* Search Results Styles */
+        .search-results {
+            position: fixed;
+            top: -100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
+            background: rgba(10, 25, 41, 0.95);
+            border: 2px solid var(--primary-color);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 30px rgba(0, 247, 255, 0.2);
+        }
+
+        .search-results.active {
+            top: 20px;
+            animation: slideInSearch 0.5s ease-out;
+        }
+
+        .search-result-item {
+            padding: 15px;
+            border-bottom: 1px solid rgba(0, 247, 255, 0.1);
                                 <div class="page" onclick="loadPage('VIP')">
                                     <h3>VIP</h3>
                                 </div>
