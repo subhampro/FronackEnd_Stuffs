@@ -470,32 +470,91 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
+            background: transparent; /* Remove black background */
         }
 
         .tablet-frame {
-            /* Reduce size to 70% of original */
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 20px;
+            position: relative;
             transform: scale(0.7);
-        }
-
-        .tablet-container {
-            width: 70vw; /* Reduced from 95vw */
-            height: 70vh; /* Reduced from 90vh */
-            max-width: 1200px;
-            max-height: 800px;
-        }
-
-        body {
-            background: transparent !important; /* Make body transparent */
+            box-shadow: 
+                0 0 0 2px #333333,  /* Inner border */
+                0 0 10px rgba(0, 0, 0, 0.5); /* Subtle shadow */
+            animation: tabletAppear 0.5s ease-out;
             overflow: hidden;
         }
 
-        /* Add transition animations */
+        .tablet-frame::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 2px;
+            width: 2px;
+            height: 50px;
+            background: #2a2a2a;
+            transform: translateY(-50%);
+            border-radius: 1px;
+            box-shadow: 
+                inset -1px 0 1px rgba(255, 255, 255, 0.1),
+                inset 1px 0 1px rgba(0, 0, 0, 0.3);
+        }
+
+        .tablet-frame::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background: #2a2a2a;
+            border-radius: 50%;
+            box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .tablet-container {
+            width: 70vw;  /* Reduced width */
+            height: 70vh; /* Reduced height */
+            max-width: 1000px;
+            max-height: 700px;
+            border-radius: 10px;
+            background: var(--secondary-color);
+            box-shadow: 
+                inset 0 0 10px var(--primary-color),
+                0 0 20px rgba(0, 247, 255, 0.2);
+            border: 1px solid var(--primary-color);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .tablet-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent,
+                rgba(255, 255, 255, 0.1) 20%,
+                rgba(255, 255, 255, 0.3) 50%,
+                rgba(255, 255, 255, 0.1) 80%,
+                transparent
+            );
+            animation: scanline 3s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(70vh); }
+        }
+
         @keyframes tabletAppear {
             0% { 
                 opacity: 0;
-                transform: scale(0.5) translateY(50px);
+                transform: scale(0.5) translateY(30px);
             }
             100% { 
                 opacity: 1;
@@ -503,8 +562,13 @@
             }
         }
 
-        .tablet-frame {
-            animation: tabletAppear 0.5s ease-out;
+        body {
+            background: transparent !important; /* Make body transparent */
+            overflow: hidden;
+        }
+
+        #sidebar, #main {
+            background: rgba(10, 25, 41, 0.95);
         }
 
         /* 
