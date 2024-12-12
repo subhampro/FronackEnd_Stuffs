@@ -462,68 +462,41 @@
 
         .zoom-wrapper {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: auto;
-            height: auto;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: transparent; /* Remove black background */
+            background: transparent;
         }
 
         .tablet-frame {
-            background: #1a1a1a;
+            background: var(--secondary-color);
             padding: 15px;
             border-radius: 20px;
             position: relative;
-            transform: scale(0.7);
+            transform-origin: center;
             box-shadow: 
-                0 0 0 2px #333333,  /* Inner border */
-                0 0 10px rgba(0, 0, 0, 0.5); /* Subtle shadow */
+                0 0 0 2px rgba(51, 51, 51, 0.8),
+                0 0 20px rgba(0, 247, 255, 0.3);
             animation: tabletAppear 0.5s ease-out;
             overflow: hidden;
-        }
-
-        .tablet-frame::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 2px;
-            width: 2px;
-            height: 50px;
-            background: #2a2a2a;
-            transform: translateY(-50%);
-            border-radius: 1px;
-            box-shadow: 
-                inset -1px 0 1px rgba(255, 255, 255, 0.1),
-                inset 1px 0 1px rgba(0, 0, 0, 0.3);
-        }
-
-        .tablet-frame::after {
-            content: '';
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 8px;
-            height: 8px;
-            background: #2a2a2a;
-            border-radius: 50%;
-            box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
         }
 
         .tablet-container {
-            width: 70vw;  /* Reduced width */
-            height: 70vh; /* Reduced height */
+            width: 70vw;
+            height: 70vh;
             max-width: 1000px;
             max-height: 700px;
             border-radius: 10px;
             background: var(--secondary-color);
             box-shadow: 
-                inset 0 0 10px var(--primary-color),
-                0 0 20px rgba(0, 247, 255, 0.2);
+                inset 0 0 15px var(--primary-color),
+                0 0 25px rgba(0, 247, 255, 0.4),
+                0 0 35px rgba(0, 247, 255, 0.2);
             border: 1px solid var(--primary-color);
             overflow: hidden;
             position: relative;
@@ -694,95 +667,97 @@
 <body>
     <!-- The wrapper helps us with the zoom functionality -->
     <div class="zoom-wrapper">
-        <!-- Our fancy tablet-style frame -->
-        <div class="tablet-frame">
-            <!-- Mobile menu toggle button -->
-            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-            <div class="tablet-container">
-                <!-- Control buttons for zoom and close -->
-                <div class="controls">
-                    <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
-                    <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
-                    <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
+        <div class="zoom-content">
+            <!-- Our fancy tablet-style frame -->
+            <div class="tablet-frame">
+                <!-- Mobile menu toggle button -->
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <div class="tablet-container">
+                    <!-- Control buttons for zoom and close -->
+                    <div class="controls">
+                        <button class="control-btn" id="zoomIn" onclick="zoom(1)">+</button>
+                        <button class="control-btn" id="zoomOut" onclick="zoom(-1)">-</button>
+                        <button class="control-btn" id="close" onclick="closeGuidebook()">×</button>
+                    </div>
+                    <!-- Left sidebar with navigation -->
+                    <div id="sidebar">
+                        <h1>Guidebook</h1>
+                        <div class="category" onclick="toggleSubcategories('welcomeSubcategories', this)">
+                            <h2>👋 Welcome <span class="dropdown-arrow">▾</span></h2>
+                            <div id="welcomeSubcategories" class="subcategory">
+                                <div class="page" onclick="loadPage('Our City')">
+                                    <h3>Our City</h3>
+                                </div>
+                                <div class="page" onclick="loadPage('VIP')">
+                                    <h3>VIP</h3>
+                                </div>
+                                <div class="page" onclick="loadPage('Website')">
+                                    <h3>Website</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="category" onclick="toggleSubcategories('tutorialsSubcategories', this)">
+                            <h2>📚 Tutorials <span class="dropdown-arrow">▾</span></h2>
+                            <div id="tutorialsSubcategories" class="subcategory">
+                                <div class="page" onclick="loadPage('Buying a Gun')">
+                                    <h3>Buying a Gun</h3>
+                                </div>
+                                <div class="page" onclick="loadPage('Cars and Bikes')">
+                                    <h3>Cars and Bikes</h3>
+                                </div>
+                                <div class="page" onclick="loadPage('Getting a Tattoo')">
+                                    <h3>Getting a Tattoo</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="category" onclick="toggleSubcategories('rulesSubcategories', this)">
+                            <h2>📜 Rules <span class="dropdown-arrow">▾</span></h2>
+                            <div id="rulesSubcategories" class="subcategory">
+                                <div class="page" onclick="loadPage('Server Rules')">
+                                    <h3>Server Rules</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="category" onclick="toggleSubcategories('cityLawsSubcategories', this)">
+                            <h2>⚖️ City Laws <span class="dropdown-arrow">▾</span></h2>
+                            <div id="cityLawsSubcategories" class="subcategory">
+                                <div class="page" onclick="loadPage('City Laws')">
+                                    <h3>City Laws</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="category" onclick="toggleSubcategories('employmentSubcategories', this)">
+                            <h2>💼 Department of Employment <span class="dropdown-arrow">▾</span></h2>
+                            <div id="employmentSubcategories" class="subcategory">
+                                <div class="page" onclick="loadPage('Police')">
+                                    <h3>Police</h3>
+                                </div>
+                                <div class="page" onclick="loadPage('EMS')">
+                                    <h3>EMS</h3>
+                                </div>
+                                <div class="page" onclick="loadPage('Poster Delivery')">
+                                    <h3>Poster Delivery</h3>
+                                </div>
+                                <div class="page" onclick="loadPage('Cashier')">
+                                    <h3>Cashier</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Main content area -->
+                    <div id="main">
+                        <h2>Home</h2>
+                        <p>Welcome to the Guidebook. Select a category from the left to get started.</p>
+                    </div>
+                    <div class="search-container">
+                        <button class="search-btn" onclick="toggleSearch()">
+                            <span class="search-icon">🔍</span>
+                            <div class="search-ripple"></div>
+                        </button>
+                        <input type="text" class="search-input" placeholder="Search guidebook..." onkeyup="handleSearch(this.value)">
+                    </div>
+                    <div class="search-results"></div>
                 </div>
-                <!-- Left sidebar with navigation -->
-                <div id="sidebar">
-                    <h1>Guidebook</h1>
-                    <div class="category" onclick="toggleSubcategories('welcomeSubcategories', this)">
-                        <h2>👋 Welcome <span class="dropdown-arrow">▾</span></h2>
-                        <div id="welcomeSubcategories" class="subcategory">
-                            <div class="page" onclick="loadPage('Our City')">
-                                <h3>Our City</h3>
-                            </div>
-                            <div class="page" onclick="loadPage('VIP')">
-                                <h3>VIP</h3>
-                            </div>
-                            <div class="page" onclick="loadPage('Website')">
-                                <h3>Website</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="category" onclick="toggleSubcategories('tutorialsSubcategories', this)">
-                        <h2>📚 Tutorials <span class="dropdown-arrow">▾</span></h2>
-                        <div id="tutorialsSubcategories" class="subcategory">
-                            <div class="page" onclick="loadPage('Buying a Gun')">
-                                <h3>Buying a Gun</h3>
-                            </div>
-                            <div class="page" onclick="loadPage('Cars and Bikes')">
-                                <h3>Cars and Bikes</h3>
-                            </div>
-                            <div class="page" onclick="loadPage('Getting a Tattoo')">
-                                <h3>Getting a Tattoo</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="category" onclick="toggleSubcategories('rulesSubcategories', this)">
-                        <h2>📜 Rules <span class="dropdown-arrow">▾</span></h2>
-                        <div id="rulesSubcategories" class="subcategory">
-                            <div class="page" onclick="loadPage('Server Rules')">
-                                <h3>Server Rules</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="category" onclick="toggleSubcategories('cityLawsSubcategories', this)">
-                        <h2>⚖️ City Laws <span class="dropdown-arrow">▾</span></h2>
-                        <div id="cityLawsSubcategories" class="subcategory">
-                            <div class="page" onclick="loadPage('City Laws')">
-                                <h3>City Laws</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="category" onclick="toggleSubcategories('employmentSubcategories', this)">
-                        <h2>💼 Department of Employment <span class="dropdown-arrow">▾</span></h2>
-                        <div id="employmentSubcategories" class="subcategory">
-                            <div class="page" onclick="loadPage('Police')">
-                                <h3>Police</h3>
-                            </div>
-                            <div class="page" onclick="loadPage('EMS')">
-                                <h3>EMS</h3>
-                            </div>
-                            <div class="page" onclick="loadPage('Poster Delivery')">
-                                <h3>Poster Delivery</h3>
-                            </div>
-                            <div class="page" onclick="loadPage('Cashier')">
-                                <h3>Cashier</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Main content area -->
-                <div id="main">
-                    <h2>Home</h2>
-                    <p>Welcome to the Guidebook. Select a category from the left to get started.</p>
-                </div>
-                <div class="search-container">
-                    <button class="search-btn" onclick="toggleSearch()">
-                        <span class="search-icon">🔍</span>
-                        <div class="search-ripple"></div>
-                    </button>
-                    <input type="text" class="search-input" placeholder="Search guidebook..." onkeyup="handleSearch(this.value)">
-                </div>
-                <div class="search-results"></div>
             </div>
         </div>
         <!-- Add this div for the warning popup right after the tablet-container div -->
@@ -1017,9 +992,10 @@
             // Limit zoom between 70% and 150%
             currentZoom = Math.min(Math.max(newZoom, 70), 150);
             
-            const wrapper = document.querySelector('.zoom-wrapper');
-            wrapper.style.transform = `scale(${currentZoom/100})`;
-            wrapper.style.transformOrigin = 'center center';
+            const zoomContent = document.querySelector('.tablet-frame');
+            if (zoomContent) {
+                zoomContent.style.transform = `scale(${currentZoom/100})`;
+            }
         }
 
         // Add function to close the warning popup
