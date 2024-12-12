@@ -63,6 +63,7 @@
             background: var(--secondary-color);
             border-radius: 3vh;
             padding: 2vh; /* Consistent padding on all sides */
+            padding-bottom: 1.25vh;
             overflow: hidden;
             box-shadow: 
                 0 0 0 0.2vh rgba(0, 247, 255, 0.3),
@@ -140,13 +141,17 @@
             width: 25%; /* Adjust width as needed */
             overflow-y: auto; /* Enable scrolling */
             max-height: 100%; /* Ensure it takes full height */
-            scrollbar-width: thin;
-            scrollbar-color: var(--primary-color) rgba(0, 247, 255, 0.1);
+            scrollbar-width: none; /* Hide scrollbar */
+            -ms-overflow-style: none;  /* IE and Edge */
             background: rgba(10, 25, 41, 0.9);
             padding: 2vh;
             border-right: 0.1vh solid var(--primary-color);
             animation: slideIn 0.5s ease-out;
             margin: 0; /* Remove any margin */
+        }
+
+        #sidebar::-webkit-scrollbar {
+            display: none; /* Hide scrollbar */
         }
 
         #main {
