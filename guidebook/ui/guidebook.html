@@ -731,6 +731,33 @@
     <script src="mockdata.js"></script>
 </head>
 <body>
+    <script>
+        const isAdmin = window.location.href.includes('guidebook-admin.html');
+        
+        window.addEventListener('message', function(event) {
+            if (event.data.type === "ui") {
+                if (event.data.status) {
+                    // Only show if we're on the correct page for the interface type
+                    if (event.data.isAdmin === isAdmin) {
+                        document.body.style.display = "flex";
+                        document.body.style.opacity = "1";
+                        document.body.style.pointerEvents = "auto";
+                        console.log(`[Guidebook ${isAdmin ? 'Admin' : ''}] UI Displayed`);
+                    }
+                } else {
+                    document.body.style.display = "none";
+                    document.body.style.opacity = "0";
+                    document.body.style.pointerEvents = "none";
+                    console.log(`[Guidebook ${isAdmin ? 'Admin' : ''}] UI Hidden`);
+                }
+            }
+        });
+
+        // Initialize UI state
+        document.body.style.display = "none";
+        document.body.style.opacity = "0";
+        document.body.style.pointerEvents = "none";
+    </script>
     <!-- The wrapper helps us with the zoom functionality -->
     <div class="zoom-wrapper">
         <div class="zoom-content">

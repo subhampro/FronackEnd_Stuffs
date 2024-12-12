@@ -25,5 +25,9 @@ files {
     'ui/mockdata.json'        -- Live data for FiveM
 }
 
--- Use regular guidebook as default UI page
+-- Add the admin interface as a file too
 ui_page 'ui/guidebook.html'
+ui_page 'ui/guidebook-admin.html'
+
+-- Add html file dependencies
+dependency 'ui/guidebook-admin.html'

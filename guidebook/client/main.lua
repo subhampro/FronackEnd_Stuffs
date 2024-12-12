@@ -228,13 +228,16 @@ function SetDisplay(bool)
         end
     end
     
+    -- Update: Add specific UI type
     SendNUIMessage({
         type = "ui",
         status = bool,
+        isAdmin = false, -- Regular guidebook
         resourceName = GetCurrentResourceName()
     })
     
     if bool then
+        Debug('Requesting initial data')
         TriggerServerEvent('guidebook:getData')
     end
     
@@ -263,15 +266,16 @@ function SetAdminDisplay(bool)
         lastAnimState = false
     end
 
-    -- Send NUI message with admin page URL
+    -- Update: Change how we send admin UI message
     SendNUIMessage({
-        type = "loadAdmin",
+        type = "ui",
         status = bool,
-        url = "ui/guidebook-admin.html"
+        isAdmin = true, -- Admin interface
+        resourceName = GetCurrentResourceName()
     })
     
-    -- Request data when opening
     if bool then
+        Debug('Requesting admin data')
         TriggerServerEvent('guidebook:getData', {admin = true})
     end
     
