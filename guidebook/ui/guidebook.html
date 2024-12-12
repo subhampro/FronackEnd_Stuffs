@@ -462,14 +462,49 @@
 
         .zoom-wrapper {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: auto;
+            height: auto;
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: auto;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .tablet-frame {
+            /* Reduce size to 70% of original */
+            transform: scale(0.7);
+        }
+
+        .tablet-container {
+            width: 70vw; /* Reduced from 95vw */
+            height: 70vh; /* Reduced from 90vh */
+            max-width: 1200px;
+            max-height: 800px;
+        }
+
+        body {
+            background: transparent !important; /* Make body transparent */
+            overflow: hidden;
+        }
+
+        /* Add transition animations */
+        @keyframes tabletAppear {
+            0% { 
+                opacity: 0;
+                transform: scale(0.5) translateY(50px);
+            }
+            100% { 
+                opacity: 1;
+                transform: scale(0.7) translateY(0);
+            }
+        }
+
+        .tablet-frame {
+            animation: tabletAppear 0.5s ease-out;
         }
 
         /* 
