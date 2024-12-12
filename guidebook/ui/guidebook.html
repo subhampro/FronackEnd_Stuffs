@@ -58,27 +58,42 @@
         }
 
         .tablet-frame {
-            background: #2a2a2a;
+            width: 1024px; /* Fixed width like real tablet */
+            height: 768px; /* Fixed height like real tablet */
+            background: var(--secondary-color);
             padding: 20px;
-            border-radius: 30px;
-            box-shadow: 
-                0 0 0 10px #1a1a1a,
-                0 20px 40px rgba(0, 0, 0, 0.8);
+            border-radius: 20px;
             position: relative;
-            animation: frameAppear 1s ease-out;
+            transform-origin: center;
+            box-shadow: 
+                0 0 0 2px rgba(0, 247, 255, 0.3),
+                0 0 30px rgba(0, 247, 255, 0.3),
+                inset 0 0 20px rgba(0, 247, 255, 0.2);
+            overflow: hidden;
+            transition: transform 0.3s ease;
         }
 
         .tablet-frame::before {
             content: '';
             position: absolute;
-            top: 50%;
-            left: 0;
-            width: 3px;
-            height: 80px;
-            background: #1a1a1a;
-            box-shadow: inset 0 0 5px rgba(0, 247, 255, 0.3);
-            border-radius: 3px;
-            transform: translateY(-50%);
+            inset: 0;
+            border-radius: 20px;
+            padding: 2px;
+            background: linear-gradient(
+                45deg,
+                rgba(0, 247, 255, 0.5),
+                rgba(0, 247, 255, 0.2),
+                rgba(255, 0, 247, 0.2),
+                rgba(0, 247, 255, 0.5)
+            );
+            -webkit-mask: 
+                linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+            mask: 
+                linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
         }
 
         .tablet-frame::after {
@@ -94,18 +109,17 @@
         }
 
         .tablet-container {
+            width: 100%;
+            height: 100%;
             background: var(--secondary-color);
-            width: 95vw;
-            height: 90vh;
-            border-radius: 20px;
-            box-shadow: 0 0 20px var(--primary-color),
-                        inset 0 0 20px rgba(0, 247, 255, 0.3);
-            display: flex;
+            border-radius: 15px;
+            overflow: hidden;
             position: relative;
-            overflow: hidden; /* Hide scrollbar */
-            backdrop-filter: blur(10px);
-            border: 2px solid var(--primary-color);
-            animation: powerOn 1s ease-out;
+            border: 1px solid rgba(0, 247, 255, 0.5);
+            box-shadow: 
+                0 0 20px rgba(0, 247, 255, 0.4),
+                0 0 40px rgba(0, 247, 255, 0.2),
+                inset 0 0 15px rgba(0, 247, 255, 0.3);
         }
 
         #sidebar {
@@ -121,10 +135,14 @@
         }
 
         #main {
-            width: 75%; /* Adjusted to match new sidebar width */
-            padding: 30px;
-            background: rgba(10, 25, 41, 0.7);
+            height: calc(100% - 60px);
             overflow-y: auto;
+            overflow-x: hidden;
+            padding: 30px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) rgba(0, 247, 255, 0.1);
+            width: 75%; /* Adjusted to match new sidebar width */
+            background: rgba(10, 25, 41, 0.7);
             animation: fadeIn 0.5s ease-out;
         }
 
@@ -356,7 +374,7 @@
 
         @media screen and (max-width: 1200px) {
             .tablet-frame {
-                padding: 15px;
+                transform: scale(0.8);
             }
 
             .tablet-container {
@@ -378,6 +396,7 @@
             }
 
             .tablet-frame {
+                transform: scale(0.6);
                 padding: 10px;
             }
 
@@ -438,6 +457,10 @@
         }
 
         @media screen and (max-width: 480px) {
+            .tablet-frame {
+                transform: scale(0.4);
+            }
+
             .tablet-frame::before,
             .tablet-frame::after {
                 display: none;
@@ -473,25 +496,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: transparent !important;
-            backdrop-filter: none !important;
-        }
-
-        .tablet-frame {
-            background: var(--secondary-color);
-            padding: 15px;
-            border-radius: 20px;
-            position: relative;
-            transform-origin: center !important;
-            max-width: 80vw; /* Limit maximum width */
-            max-height: 80vh; /* Limit maximum height */
-            aspect-ratio: 16/9; /* Maintain aspect ratio */
-            box-shadow: 
-                0 0 0 2px rgba(51, 51, 51, 0.8),
-                0 0 20px rgba(0, 247, 255, 0.3);
-            animation: tabletAppear 0.5s ease-out;
-            overflow: hidden;
-            transition: transform 0.3s ease;
+            background: transparent;
         }
 
         .tablet-container {

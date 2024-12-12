@@ -21,6 +21,9 @@ local isAnimPlaying = false
 -- Add this variable to track animation state
 local lastAnimState = false
 
+-- Add this at the top with other variables
+local animationThread = nil
+
 -- Debug function that's probably used more than actual code
 local function Debug(msg)
     print('^3[Guidebook Debug]^7 ' .. msg)
@@ -135,11 +138,8 @@ function SetDisplay(bool)
     display = bool
     SetNuiFocus(bool, bool)
     
-    -- Always clean up existing animation first
-    RemoveTablet()
-    
     if bool then
-        -- Only play animation if not already playing
+        -- Start animation
         LoadTabletAnimation()
         AttachTablet()
         
@@ -148,10 +148,37 @@ function SetDisplay(bool)
             TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
             isAnimPlaying = true
             lastAnimState = true
+            
+            -- Start animation check thread
+            if not animationThread then
+                animationThread = CreateThread(function()
+                    while display do
+                        Wait(1000)
+                        local ped = PlayerPedId()
+                        if IsPedDeadOrDying(ped, 1) then
+                            RemoveTablet()
+                            isAnimPlaying = false
+                        elseif not isAnimPlaying and not IsPedDeadOrDying(ped, 1) and lastAnimState then
+                            LoadTabletAnimation()
+                            AttachTablet()
+                            TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
+                            isAnimPlaying = true
+                        end
+                    end
+                    animationThread = nil
+                end)
+            end
         end
     else
+        -- Stop animation and clean up
+        RemoveTablet()
         isAnimPlaying = false
         lastAnimState = false
+        
+        -- Clear animation thread
+        if animationThread then
+            animationThread = nil
+        end
     end
     
     SendNUIMessage({
@@ -200,6 +227,7 @@ function AttachTablet()
     end
 end
 
+-- Update RemoveTablet function
 function RemoveTablet()
     if tabletProp then
         DeleteObject(tabletProp)
@@ -210,26 +238,10 @@ function RemoveTablet()
         local ped = PlayerPedId()
         if not IsPedDeadOrDying(ped, 1) then
             StopAnimTask(ped, tabletDict, tabletAnim, 1.0)
+            ClearPedTasks(ped) -- Add this to ensure animation stops
         end
         isAnimPlaying = false
     end
 end
 
--- Add animation check thread
-CreateThread(function()
-    while true do
-        Wait(1000)
-        if display then
-            local ped = PlayerPedId()
-            if IsPedDeadOrDying(ped, 1) then
-                RemoveTablet()
-                isAnimPlaying = false
-            elseif not isAnimPlaying and not IsPedDeadOrDying(ped, 1) and lastAnimState then
-                LoadTabletAnimation()
-                AttachTablet()
-                TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
-                isAnimPlaying = true
-            end
-        end
-    end
-end)
+-- Remove the existing animation check thread since we now handle it in SetDisplay
