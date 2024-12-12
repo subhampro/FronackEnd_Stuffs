@@ -135,13 +135,12 @@
         }
 
         #main {
-            width: calc(75% - 60px); /* Account for padding */
-            height: calc(100% - 60px);
+            width: 85%;
             padding: 30px;
-            background: rgba(10, 25, 41, 0.95);
+            background: rgba(10, 25, 41, 0.7);
             overflow-y: auto;
-            overflow-x: hidden;
-            position: relative;
+            animation: fadeIn 0.5s ease-out;
+            opacity: 1; /* Ensure content is visible */
         }
 
         .category {
@@ -743,7 +742,7 @@
                     0 0 5px var(--primary-color),
                     0 0 10px var(--primary-color),
                     0 0 20px var(--primary-color),
-                    0 0 30px var(--primary-color),
+                    0 0 30px var (--primary-color),
                     inset 0 0 15px rgba(0, 247, 255, 0.5);
             }
             50% { 
@@ -773,6 +772,10 @@
 
         .page-content.loading {
             opacity: 0;
+        }
+
+        .page-content {
+            animation: fadeIn 0.3s ease-out;
         }
     </style>
 </head>
@@ -913,6 +916,14 @@
                 if (event.data.responseType === "full") {
                     // Handle full data update
                     updateContent(event.data.data);
+                    
+                    // Show default welcome content
+                    document.getElementById('main').innerHTML = `
+                        <div class="page-content">
+                            <h2>Welcome to the Guidebook</h2>
+                            <p>Select a category from the left to get started.</p>
+                        </div>
+                    `;
                 } else if (event.data.responseType === "page") {
                     const mainContent = document.getElementById('main');
                     if (mainContent && event.data.data) {
@@ -920,7 +931,7 @@
                         setTimeout(() => {
                             mainContent.innerHTML = `
                                 <div class="page-content">
-                                    <h2 style="color: var(--primary-color);">${event.data.data.label}</h2>
+                                    <h2>${event.data.data.label}</h2>
                                     ${event.data.data.content}
                                 </div>
                             `;
@@ -1262,8 +1273,9 @@
             
             // Show loading state
             mainContent.innerHTML = `
-                <div style="text-align: center; padding: 20px;">
+                <div class="page-content" style="text-align: center;">
                     <h2>Loading...</h2>
+                    <p>Please wait</p>
                 </div>
             `;
             
@@ -1275,6 +1287,14 @@
                 body: JSON.stringify({
                     pageId: pageId
                 })
+            }).catch(error => {
+                debugUI('Error loading page: ' + error);
+                mainContent.innerHTML = `
+                    <div class="page-content">
+                        <h2>Error</h2>
+                        <p>Failed to load page content</p>
+                    </div>
+                `;
             });
         }
 
