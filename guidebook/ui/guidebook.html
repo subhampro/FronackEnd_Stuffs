@@ -580,7 +580,7 @@
             position: absolute;
             bottom: calc(100% + 8vh);
             left: 50%;
-            transform: translateX(-50%);
+            transform: translateX(-50%) translateY(203%);
             width: 40vh;
             max-height: 40vh;
             background: rgba(10, 25, 41, 0.95);
@@ -593,16 +593,24 @@
             visibility: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 0 3vh rgba(0, 247, 255, 0.2);
+            z-index: 102; /* Ensure it is above the blur overlay */
         }
 
         .search-results.active {
             opacity: 1;
             visibility: visible;
-            transform: translateX(-50%);
+            width: 31vw;
+            transform: translateX(-49%) translateY(124%);
             animation: slideInSearch 0.5s ease-out;
-            opacity: 1;
-            visibility: visible;
-            animation: slideInSearch 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-results::-webkit-scrollbar {
+            width: 0; /* Hide scrollbar */
+        }
+
+        .search-results {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
         }
 
         .search-result-item {
