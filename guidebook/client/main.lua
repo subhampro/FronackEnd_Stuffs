@@ -176,7 +176,7 @@ function SetDisplay(bool)
         AttachTablet()
         
         local ped = PlayerPedId()
-        if not isAnimPlaying and not IsPedDeadOrDying(ped, 1) then
+        if not isAnimPlaying and not IsPedDeadOrDying(ped, true) then
             TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
             isAnimPlaying = true
             lastAnimState = true
@@ -187,10 +187,10 @@ function SetDisplay(bool)
                     while display do
                         Wait(1000)
                         local ped = PlayerPedId()
-                        if IsPedDeadOrDying(ped, 1) then
+                        if IsPedDeadOrDying(ped, true) then
                             RemoveTablet()
                             isAnimPlaying = false
-                        elseif not isAnimPlaying and not IsPedDeadOrDying(ped, 1) and lastAnimState then
+                        elseif not isAnimPlaying and not IsPedDeadOrDying(ped, true) and lastAnimState then
                             LoadTabletAnimation()
                             AttachTablet()
                             TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
