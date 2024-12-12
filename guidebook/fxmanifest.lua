@@ -22,7 +22,6 @@ files {
     'ui/guidebook.html',      -- Our pretty interface
     'ui/guidebook-admin.html', -- Where the cool kids hang out
     'ui/mockdata.json',       -- Default content
-    'locales/*.lua'           -- Translations
 }
 
 -- Add this line to ensure the JSON file is loaded
