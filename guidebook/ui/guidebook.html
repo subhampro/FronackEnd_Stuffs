@@ -1261,7 +1261,11 @@
             const mainContent = document.getElementById('main');
             
             // Show loading state
-            mainContent.style.opacity = '0';
+            mainContent.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <h2>Loading...</h2>
+                </div>
+            `;
             
             fetch(`https://${GetParentResourceName()}/getData`, {
                 method: 'POST',
@@ -1271,23 +1275,58 @@
                 body: JSON.stringify({
                     pageId: pageId
                 })
-            })
-            .then(() => {
-                // Content will be updated through the message event handler
-                setTimeout(() => {
-                    mainContent.style.opacity = '1';
-                }, 300);
-            })
-            .catch(error => {
-                debugUI('Error loading page: ' + error);
-                mainContent.innerHTML = `
-                    <div class="page-content">
-                        <h2>Error</h2>
-                        <p>Failed to load content. Please try again.</p>
-                    </div>
-                `;
-                mainContent.style.opacity = '1';
             });
+        }
+
+        // Update message event handler
+        window.addEventListener('message', function(event) {
+            debugUI('Message received: ' + event.data.type);
+            
+            if (event.data.type === "updateData") {
+                if (event.data.responseType === "page") {
+                    const mainContent = document.getElementById('main');
+                    if (mainContent && event.data.data) {
+                        mainContent.style.opacity = '0';
+                        setTimeout(() => {
+                            mainContent.innerHTML = `
+                                <div class="page-content">
+                                    <h2 style="color: var(--primary-color);">${event.data.data.label}</h2>
+                                    ${event.data.data.content}
+                                </div>
+                            `;
+                            mainContent.style.opacity = '1';
+                        }, 300);
+                    }
+                }
+            }
+            // ...rest of the event handler
+        });
+
+        // Fix page link generation in updateContent
+        function updateContent(data) {
+            debugUI('Updating content with data:', data);
+            
+            if (!data || !data.categories) {
+                debugUI('Invalid data format');
+                return;
+            }
+            
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = `
+                <h1>${data.title || 'Guidebook'}</h1>
+                ${data.categories.map(category => `
+                    <div class="category" onclick="toggleSubcategories('${category.id}Subcategories', this)">
+                        <h2>${category.name} <span class="dropdown-arrow">▾</span></h2>
+                        <div id="${category.id}Subcategories" class="subcategory">
+                            ${category.pages.filter(page => page.enabled).map(page => `
+                                <div class="page" onclick="loadPage('${page.id}')">
+                                    <h3>${page.label}</h3>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
         }
 
         /*

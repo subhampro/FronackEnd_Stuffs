@@ -62,7 +62,7 @@ AddEventHandler('guidebook:getData', function(data)
                         Debug('Found page: ' .. page.label)
                         TriggerClientEvent('guidebook:receiveData', source, {
                             type = "page",
-                            pageContent = {
+                            data = {
                                 label = page.label,
                                 content = page.content
                             }
