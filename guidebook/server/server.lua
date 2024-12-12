@@ -35,7 +35,8 @@ AddEventHandler('guidebook:getData', function(data)
     if not file then
         Debug('File not found at path: ' .. filePath)
         TriggerClientEvent('guidebook:receiveData', source, {
-            type = "error",
+            type = "updateData",
+            responseType = "error",
             error = "Data file missing"
         })
         return
@@ -88,9 +89,10 @@ AddEventHandler('guidebook:getData', function(data)
             })
         end
     else
-        Debug('JSON decode error. Content preview: ' .. content:sub(1, 100))
+        Debug('JSON decode error')
         TriggerClientEvent('guidebook:receiveData', source, {
-            type = "error",
+            type = "updateData",
+            responseType = "error",
             error = "Invalid JSON format"
         })
     end
