@@ -40,8 +40,6 @@
             --accent-color: #ff00f7;
             --text-color: #ffffff;
             --sidebar-width: 15%;
-            --sidebar-width-tablet: 25%;
-            --sidebar-width-mobile: 75%;
         }
 
         body {
@@ -387,130 +385,15 @@
             border-radius: 5px;
         }
 
-        @media screen and (max-width: 1200px) {
-            .tablet-frame {
-                transform: scale(0.8);
-            }
-
-            .tablet-container {
-                width: 98vw;
-            }
-
-            #sidebar {
-                width: 30%;
-            }
-
-            #main {
-                width: 70%;
-            }
-        }
-
-        @media screen and (max-width: 768px) {
-            body {
-                padding: 1vh;
-            }
-
-            .tablet-frame {
-                transform: scale(0.6);
-                padding: 1vh;
-                padding-bottom: 8vh; /* Slightly reduced padding for mobile */
-            }
-
-            .tablet-container {
-                width: 100vw;
-                height: 100vh;
-                border-radius: 1.5vh;
-            }
-
-            #sidebar {
-                width: 40%;
-                position: absolute;
-                left: -75%;
-                height: 100%;
-                transition: left 0.3s ease;
-                z-index: 10;
-            }
-
-            #sidebar.active {
-                left: 0;
-            }
-
-            #main {
-                width: 100%;
-            }
-
-            .controls {
-                top: 1vh;
-                right: 1vh;
-            }
-
-            .control-btn {
-                width: 3.5vh;
-                height: 3.5vh;
-                font-size: 1.6vh;
-            }
-
-            .menu-toggle {
-                display: block;
-                position: absolute;
-                top: 2vh;
-                left: 2vh;
-                z-index: 20;
-                color: var(--primary-color);
-                background: none;
-                border: none;
-                font-size: 2.4vh;
-                cursor: pointer;
-            }
-
-            .category {
-                padding: 0.8vh;
-            }
-
-            .page {
-                padding: 0.6vh 0.8vh;
-            }
-
-            .search-container {
-                bottom: -5vh;
-            }
-
-            .search-btn {
-                width: 6vh;
-                height: 6vh;
-                font-size: 2vh;
-            }
-
-            .search-input {
-                height: 4vh;
-                font-size: 1.6vh;
-            }
-
-            .search-container.active .search-input {
-                width: 30vh;
-            }
-        }
-
-        @media screen and (max-width: 480px) {
-            .tablet-frame {
-                transform: scale(0.4);
-            }
-
-            .tablet-frame::before,
-            .tablet-frame::after {
-                display: none;
-            }
-
-            h1 {
-                font-size: 1.5em;
-            }
-
-            .category h2 {
-                font-size: 0.85em;
-            }
-
-            .page h3 {
+        @media screen and (max-width: 1280px) {
+            .category h2, .page h3 {
                 font-size: 0.8em;
+            }
+        }
+
+        @media screen and (max-width: 1024px) {
+            .category h2, .page h3 {
+                font-size: 0.7em;
             }
         }
 
@@ -782,15 +665,6 @@
             }
         }
 
-        /* Mobile Responsive */
-        @media screen and (max-width: 768px) {
-            /* Remove mobile-specific styles */
-        }
-
-        @media screen and (max-width: 480px) {
-            /* Remove mobile-specific styles */
-        }
-
         /* Add blur overlay when search is active */
         .search-overlay {
             position: absolute;
@@ -824,12 +698,6 @@
             }
         }
 
-        @media screen and (max-width: 720px) {
-            .category h2, .page h3 {
-                font-size: 0.6em;
-            }
-        }
-
         /* Add new animation for search button activation */
         @keyframes searchPulse {
             0% { transform: scale(1); }
@@ -851,8 +719,6 @@
         <div class="zoom-content">
             <!-- Our fancy tablet-style frame -->
             <div class="tablet-frame">
-                <!-- Mobile menu toggle button -->
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
                 <div class="tablet-container">
                     <div class="search-overlay"></div>
                     <!-- Control buttons for zoom and close -->
@@ -1196,33 +1062,6 @@
                 body: JSON.stringify({})
             }).catch(err => console.error(err));
         }
-
-        // Mobile sidebar toggle - makes it responsive!
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('active');
-        }
-
-        // Make sure everything works on mobile
-        document.addEventListener('click', function(event) {
-            const sidebar = document.getElementById('sidebar');
-            const menuToggle = document.querySelector('.menu-toggle');
-            
-            if (window.innerWidth <= 768 && 
-                !sidebar.contains(event.target) && 
-                !menuToggle.contains(event.target) &&
-                sidebar.classList.contains('active')) {
-                sidebar.classList.remove('active');
-            }
-        });
-
-        // Handle window resizing gracefully
-        window.addEventListener('resize', function() {
-            const sidebar = document.getElementById('sidebar');
-            if (window.innerWidth > 768) {
-                sidebar.classList.remove('active');
-            }
-        });
 
         // Initialize everything when the page loads
         async function loadContent() {
