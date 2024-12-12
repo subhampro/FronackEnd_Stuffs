@@ -95,6 +95,11 @@ AddEventHandler('guidebook:getData', function(data)
             error = "Invalid JSON format"
         })
     end
+
+    -- Add admin check
+    if data and data.admin then
+        Debug('Admin UI requested data')
+    end
 end)
 
 -- Data saving functionality

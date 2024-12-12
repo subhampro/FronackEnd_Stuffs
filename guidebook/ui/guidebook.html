@@ -1588,5 +1588,15 @@
             }
         });
     </script>
+    <script>
+        window.addEventListener('message', function(event) {
+            if (event.data.type === "loadAdmin") {
+                // Only load admin page if we're not already on it
+                if (!window.location.href.includes('guidebook-admin.html') && event.data.status) {
+                    window.location.href = event.data.url;
+                }
+            }
+        });
+    </script>
 </body>
 </html>

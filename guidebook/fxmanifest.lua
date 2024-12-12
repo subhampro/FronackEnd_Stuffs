@@ -19,12 +19,11 @@ server_scripts {
 
 -- Web UI files
 files {
-    'ui/guidebook.html',      -- Our pretty interface
+    'ui/guidebook.html',      -- Regular interface
     'ui/guidebook-admin.html', -- Admin interface
-    'ui/mockdata.json',       -- Live data for FiveM
+    'ui/mockdata.js',         -- Development data
+    'ui/mockdata.json'        -- Live data for FiveM
 }
 
-ui_pages {
-    'ui/guidebook.html',      -- Main UI page
-    'ui/guidebook-admin.html' -- Admin UI page
-}
+-- Use regular guidebook as default UI page
+ui_page 'ui/guidebook.html'

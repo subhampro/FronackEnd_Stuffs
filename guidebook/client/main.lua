@@ -74,7 +74,10 @@ RegisterCommand('helpadmin', function()
         return
     end
     
-    SetAdminDisplay(not adminDisplay)
+    -- Toggle admin display instead of regular display
+    display = false -- Hide regular UI if open
+    SetDisplay(false) -- Reset regular UI state
+    SetAdminDisplay(not adminDisplay) -- Toggle admin UI
 end, false)
 
 -- Add server status event handler
@@ -108,7 +111,7 @@ end, false)
 
 -- Modify the close callback to ensure animation stops
 RegisterNUICallback('close', function(data, cb)
-    Debug('Closing tablet...')
+    Debug('Closing UI...')
     display = false
     adminDisplay = false
     SetNuiFocus(false, false)
@@ -253,50 +256,38 @@ function SetAdminDisplay(bool)
             TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
             isAnimPlaying = true
             lastAnimState = true
-            
-            if not animationThread then
-                animationThread = CreateThread(function()
-                    while adminDisplay do
-                        Wait(1000)
-                        local ped = PlayerPedId()
-                        if IsPedDeadOrDying(ped, true) then
-                            RemoveTablet()
-                            isAnimPlaying = false
-                        elseif not isAnimPlaying and not IsPedDeadOrDying(ped, true) and lastAnimState then
-                            LoadTabletAnimation()
-                            AttachTablet()
-                            TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
-                            isAnimPlaying = true
-                        end
-                    end
-                    animationThread = nil
-                end)
-            end
         end
     else
         RemoveTablet()
         isAnimPlaying = false
         lastAnimState = false
-        
-        if animationThread then
-            animationThread = nil
-        end
     end
 
-    -- Send NUI message to open admin interface
+    -- Send NUI message with admin page URL
     SendNUIMessage({
-        type = "ui",
+        type = "loadAdmin",
         status = bool,
-        isAdmin = true,
-        resourceName = GetCurrentResourceName()
+        url = "ui/guidebook-admin.html"
     })
     
+    -- Request data when opening
     if bool then
-        TriggerServerEvent('guidebook:getData')
+        TriggerServerEvent('guidebook:getData', {admin = true})
     end
     
     Debug('Admin Display is now ' .. (bool and 'visible' or 'hidden'))
 end
+
+-- Add handler for loading admin UI separately
+RegisterNUICallback('loadAdminUI', function(data, cb)
+    -- This will be called when the admin page needs to be loaded
+    SendNUIMessage({
+        type = "loadAdmin",
+        status = true,
+        url = "ui/guidebook-admin.html"
+    })
+    cb('ok')
+end)
 
 -- Add cleanup on resource stop
 AddEventHandler('onResourceStop', function(resourceName)
@@ -349,3 +340,15 @@ function RemoveTablet()
 end
 
 -- Remove the existing animation check thread since we now handle it in SetDisplay
+
+-- Add new callback for switching between admin and regular UI
+RegisterNUICallback('switchUI', function(data, cb)
+    if data.admin then
+        SetDisplay(false)
+        SetAdminDisplay(true)
+    else
+        SetAdminDisplay(false)
+        SetDisplay(true)
+    end
+    cb('ok')
+end)
