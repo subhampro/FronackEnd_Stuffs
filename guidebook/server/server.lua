@@ -61,7 +61,8 @@ AddEventHandler('guidebook:getData', function(data)
                     if page.id == data.pageId or page.label == data.pageId then
                         Debug('Found page: ' .. page.label)
                         TriggerClientEvent('guidebook:receiveData', source, {
-                            type = "page",
+                            type = "updateData",
+                            responseType = "page",
                             data = {
                                 label = page.label,
                                 content = page.content
@@ -81,7 +82,8 @@ AddEventHandler('guidebook:getData', function(data)
             -- Send full data
             Debug('Sending full data to client...')
             TriggerClientEvent('guidebook:receiveData', source, {
-                type = "full",
+                type = "updateData",
+                responseType = "full",
                 data = decodedData
             })
         end

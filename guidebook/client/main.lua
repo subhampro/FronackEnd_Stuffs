@@ -155,13 +155,18 @@ AddEventHandler('guidebook:receiveData', function(response)
     
     if response.type == "error" then
         Debug('Error: ' .. tostring(response.error))
+        SendNUIMessage({
+            type = "updateData",
+            responseType = "error",
+            error = response.error
+        })
         return
     end
     
     SendNUIMessage({
-        type = "updateData",
-        responseType = response.type,
-        data = response.type == "full" and response.data or response.pageContent
+        type = response.type,
+        responseType = response.responseType,
+        data = response.data
     })
 end)
 

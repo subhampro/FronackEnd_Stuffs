@@ -870,18 +870,28 @@
                     debugUI('UI hidden');
                 }
             } else if (event.data.type === "updateData") {
-                if (event.data.responseType === "full") {
-                    // Handle full data update
-                    updateContent(event.data.data);
-                } else if (event.data.responseType === "page") {
-                    // Handle single page content - Simplified version that works
+                if (event.data.responseType === "error") {
                     const mainContent = document.getElementById('main');
-                    if (mainContent && event.data.data) {
+                    mainContent.innerHTML = `
+                        <div class="page-content">
+                            <h2 style="color: #ff4747;">Error</h2>
+                            <p>${event.data.error || 'Failed to load content'}</p>
+                        </div>
+                    `;
+                } else if (event.data.responseType === "full") {
+                    updateContent(event.data.data);
+                } else if (event.data.responseType === "page" && event.data.data) {
+                    const mainContent = document.getElementById('main');
+                    mainContent.style.opacity = '0';
+                    setTimeout(() => {
                         mainContent.innerHTML = `
-                            <h2>${event.data.data.label}</h2>
-                            <div>${event.data.data.content}</div>
+                            <div class="page-content">
+                                <h2 style="color: var(--primary-color);">${event.data.data.label}</h2>
+                                ${event.data.data.content}
+                            </div>
                         `;
-                    }
+                        mainContent.style.opacity = '1';
+                    }, 300);
                 }
             }
         });
@@ -1471,22 +1481,28 @@
                     debugUI('UI hidden');
                 }
             } else if (event.data.type === "updateData") {
-                if (event.data.responseType === "full") {
-                    updateContent(event.data.data);
-                } else if (event.data.responseType === "page") {
+                if (event.data.responseType === "error") {
                     const mainContent = document.getElementById('main');
-                    if (mainContent && event.data.data) {
-                        mainContent.style.opacity = '0';
-                        setTimeout(() => {
-                            mainContent.innerHTML = `
-                                <div class="page-content">
-                                    <h2 style="color: var(--primary-color);">${event.data.data.label}</h2>
-                                    ${event.data.data.content}
-                                </div>
-                            `;
-                            mainContent.style.opacity = '1';
-                        }, 300);
-                    }
+                    mainContent.innerHTML = `
+                        <div class="page-content">
+                            <h2 style="color: #ff4747;">Error</h2>
+                            <p>${event.data.error || 'Failed to load content'}</p>
+                        </div>
+                    `;
+                } else if (event.data.responseType === "full") {
+                    updateContent(event.data.data);
+                } else if (event.data.responseType === "page" && event.data.data) {
+                    const mainContent = document.getElementById('main');
+                    mainContent.style.opacity = '0';
+                    setTimeout(() => {
+                        mainContent.innerHTML = `
+                            <div class="page-content">
+                                <h2 style="color: var(--primary-color);">${event.data.data.label}</h2>
+                                ${event.data.data.content}
+                            </div>
+                        `;
+                        mainContent.style.opacity = '1';
+                    }, 300);
                 }
             }
         });
@@ -1506,26 +1522,26 @@
                     </div>
                 `;
                 mainContent.style.opacity = '1';
+                
+                // Request the page content
+                fetch(`https://${GetParentResourceName()}/getData`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        pageId: pageId
+                    })
+                }).catch(error => {
+                    debugUI('Error loading page: ' + error);
+                    mainContent.innerHTML = `
+                        <div class="page-content">
+                            <h2 style="color: #ff4747;">Error</h2>
+                            <p>Failed to load page content</p>
+                        </div>
+                    `;
+                });
             }, 300);
-            
-            // Request the page content
-            fetch(`https://${GetParentResourceName()}/getData`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    pageId: pageId
-                })
-            }).catch(error => {
-                debugUI('Error loading page: ' + error);
-                mainContent.innerHTML = `
-                    <div class="page-content">
-                        <h2>Error</h2>
-                        <p>Failed to load page content</p>
-                    </div>
-                `;
-            });
         }
 
         // ...existing code...
