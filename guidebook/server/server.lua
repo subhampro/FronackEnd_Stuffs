@@ -35,8 +35,7 @@ AddEventHandler('guidebook:getData', function(data)
     if not file then
         Debug('File not found at path: ' .. filePath)
         TriggerClientEvent('guidebook:receiveData', source, {
-            type = "updateData",
-            responseType = "error",
+            type = "error",
             error = "Data file missing"
         })
         return
@@ -58,8 +57,8 @@ AddEventHandler('guidebook:getData', function(data)
             Debug('Looking for page: ' .. data.pageId)
             for _, category in pairs(decodedData.categories or {}) do
                 for _, page in pairs(category.pages or {}) do
-                    -- Changed to match by ID or label
-                    if page.id == data.pageId or page.label == data.pageId then
+                    -- Changed to match by label only
+                    if page.label == data.pageId then
                         Debug('Found page: ' .. page.label)
                         TriggerClientEvent('guidebook:receiveData', source, {
                             type = "updateData",

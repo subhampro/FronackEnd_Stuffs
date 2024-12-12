@@ -153,21 +153,7 @@ RegisterNetEvent('guidebook:receiveData')
 AddEventHandler('guidebook:receiveData', function(response)
     if not response then return end
     
-    if response.type == "error" then
-        Debug('Error: ' .. tostring(response.error))
-        SendNUIMessage({
-            type = "updateData",
-            responseType = "error",
-            error = response.error
-        })
-        return
-    end
-    
-    SendNUIMessage({
-        type = response.type,
-        responseType = response.responseType,
-        data = response.data
-    })
+    SendNUIMessage(response)
 end)
 
 -- The magic that makes the display work

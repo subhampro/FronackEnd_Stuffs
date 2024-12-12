@@ -1249,24 +1249,35 @@
         window.addEventListener('message', function(event) {
             debugUI('Message received: ' + event.data.type);
             
-            if (event.data.type === "updateData") {
-                if (event.data.responseType === "page") {
+            if (event.data.type === "ui") {
+                if (event.data.status) {
+                    document.body.style.display = "flex";
+                    document.body.style.opacity = "1";
+                    document.body.style.pointerEvents = "auto";
+                    debugUI('UI displayed');
+                } else {
+                    document.body.style.display = "none";
+                    document.body.style.opacity = "0";
+                    document.body.style.pointerEvents = "none";
+                    debugUI('UI hidden');
+                }
+            } else if (event.data.type === "updateData") {
+                if (event.data.responseType === "full") {
+                    updateContent(event.data.data);
+                } else if (event.data.responseType === "page" && event.data.data) {
                     const mainContent = document.getElementById('main');
-                    if (mainContent && event.data.data) {
-                        mainContent.style.opacity = '0';
-                        setTimeout(() => {
-                            mainContent.innerHTML = `
-                                <div class="page-content">
-                                    <h2 style="color: var(--primary-color);">${event.data.data.label}</h2>
-                                    ${event.data.data.content}
-                                </div>
-                            `;
-                            mainContent.style.opacity = '1';
-                        }, 300);
-                    }
+                    mainContent.style.opacity = '0';
+                    setTimeout(() => {
+                        mainContent.innerHTML = `
+                            <div class="page-content">
+                                <h2>${event.data.data.label}</h2>
+                                ${event.data.data.content}
+                            </div>
+                        `;
+                        mainContent.style.opacity = '1';
+                    }, 300);
                 }
             }
-            // ...rest of the event handler
         });
 
         // Fix page link generation in updateContent
@@ -1416,55 +1427,83 @@
             });
         }
 
-        // Update loadPage function to work in both environments 
+        // Update loadPage function to properly handle both environments
         function loadPage(pageId) {
             debugUI('Loading page: ' + pageId);
+            const mainContent = document.getElementById('main');
             
-            if (isDevelopment) {
-                // Use mock data in browser
-                const mainContent = document.getElementById('main');
-                const mockPage = mockResponses[pageId];
+            // Show loading state
+            mainContent.style.opacity = '0';
+            setTimeout(() => {
+                mainContent.innerHTML = `
+                    <div class="page-content" style="text-align: center;">
+                        <h2>Loading...</h2>
+                        <p>Please wait</p>
+                    </div>
+                `;
+                mainContent.style.opacity = '1';
                 
-                if (mockPage) {
-                    mainContent.innerHTML = `
-                        <div class="page-content">
-                            <h2>${mockPage.label}</h2>
-                            ${mockPage.content}
-                        </div>
-                    `;
+                if (isDevelopment) {
+                    // Use mock data in browser
+                    const mockPage = mockResponses[pageId] || testData.categories.flatMap(c => c.pages).find(p => p.label === pageId);
+                    if (mockPage) {
+                        setTimeout(() => {
+                            mainContent.innerHTML = `
+                                <div class="page-content">
+                                    <h2>${mockPage.label}</h2>
+                                    ${mockPage.content}
+                                </div>
+                            `;
+                        }, 300);
+                    } else {
+                        mainContent.innerHTML = `
+                            <div class="page-content">
+                                <h2>Error</h2>
+                                <p>Page not found</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // FiveM environment
+                    fetch(`https://${GetParentResourceName()}/getData`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            pageId: pageId
+                        })
+                    }).then(response => response.json())
+                      .then(data => {
+                          if (data && data.type === "updateData" && data.responseType === "page") {
+                              mainContent.innerHTML = `
+                                  <div class="page-content">
+                                      <h2>${data.data.label}</h2>
+                                      ${data.data.content}
+                                  </div>
+                              `;
+                          } else {
+                              mainContent.innerHTML = `
+                                  <div class="page-content">
+                                      <h2>Error</h2>
+                                      <p>Failed to load page content</p>
+                                  </div>
+                              `;
+                          }
+                      }).catch(error => {
+                          debugUI('Error loading page: ' + error);
+                          mainContent.innerHTML = `
+                              <div class="page-content">
+                                  <h2>Error</h2>
+                                  <p>Failed to load page content</p>
+                              </div>
+                          `;
+                      });
                 }
-            } else {
-                // Normal FiveM behavior
-                fetch(`https://${GetParentResourceName()}/getData`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        pageId: pageId
-                    })
-                }).catch(error => {
-                    debugUI('Error loading page: ' + error);
-                });
-            }
+            }, 300);
         }
 
-        // Update closeGuidebook for both environments
-        function closeGuidebook() {
-            if (isDevelopment) {
-                console.log('Close clicked (development mode)');
-            } else {
-                fetch(`https://${GetParentResourceName()}/close`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                }).catch(err => console.error(err));
-            }
-        }
-
-        // ...existing code...
-
-        // Update the message event handler to properly handle page content
+        // Update the message handler
         window.addEventListener('message', function(event) {
             debugUI('Message received: ' + event.data.type);
             
@@ -1481,15 +1520,7 @@
                     debugUI('UI hidden');
                 }
             } else if (event.data.type === "updateData") {
-                if (event.data.responseType === "error") {
-                    const mainContent = document.getElementById('main');
-                    mainContent.innerHTML = `
-                        <div class="page-content">
-                            <h2 style="color: #ff4747;">Error</h2>
-                            <p>${event.data.error || 'Failed to load content'}</p>
-                        </div>
-                    `;
-                } else if (event.data.responseType === "full") {
+                if (event.data.responseType === "full") {
                     updateContent(event.data.data);
                 } else if (event.data.responseType === "page" && event.data.data) {
                     const mainContent = document.getElementById('main');
@@ -1497,52 +1528,23 @@
                     setTimeout(() => {
                         mainContent.innerHTML = `
                             <div class="page-content">
-                                <h2 style="color: var(--primary-color);">${event.data.data.label}</h2>
+                                <h2>${event.data.data.label}</h2>
                                 ${event.data.data.content}
                             </div>
                         `;
                         mainContent.style.opacity = '1';
                     }, 300);
-                }
-            }
-        });
-
-        // Update the loadPage function to show loading state
-        function loadPage(pageId) {
-            debugUI('Loading page: ' + pageId);
-            const mainContent = document.getElementById('main');
-            
-            // Show loading state
-            mainContent.style.opacity = '0';
-            setTimeout(() => {
-                mainContent.innerHTML = `
-                    <div class="page-content" style="text-align: center;">
-                        <h2>Loading...</h2>
-                        <p>Please wait</p>
-                    </div>
-                `;
-                mainContent.style.opacity = '1';
-                
-                // Request the page content
-                fetch(`https://${GetParentResourceName()}/getData`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        pageId: pageId
-                    })
-                }).catch(error => {
-                    debugUI('Error loading page: ' + error);
+                } else if (event.data.responseType === "error") {
+                    const mainContent = document.getElementById('main');
                     mainContent.innerHTML = `
                         <div class="page-content">
                             <h2 style="color: #ff4747;">Error</h2>
-                            <p>Failed to load page content</p>
+                            <p>${event.data.error || 'Failed to load content'}</p>
                         </div>
                     `;
-                });
-            }, 300);
-        }
+                }
+            }
+        });
 
         // ...existing code...
     </script>
