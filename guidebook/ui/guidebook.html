@@ -614,7 +614,7 @@
             opacity: 0;
             padding: 0 20px;
             border-radius: 25px;
-            border: 2px solid var(--primary-color);
+            border: 2px solid var (--primary-color);
             background: rgba(10, 25, 41, 0.8);
             color: var(--text-color);
             font-size: 16px;
@@ -742,7 +742,7 @@
                     0 0 5px var(--primary-color),
                     0 0 10px var(--primary-color),
                     0 0 20px var(--primary-color),
-                    0 0 30px var (--primary-color),
+                    0 0 30px var(--primary-color),
                     inset 0 0 15px rgba(0, 247, 255, 0.5);
             }
             50% { 
@@ -918,12 +918,17 @@
                     updateContent(event.data.data);
                     
                     // Show default welcome content
-                    document.getElementById('main').innerHTML = `
-                        <div class="page-content">
-                            <h2>Welcome to the Guidebook</h2>
-                            <p>Select a category from the left to get started.</p>
-                        </div>
-                    `;
+                    const mainContent = document.getElementById('main');
+                    mainContent.style.opacity = '0';
+                    setTimeout(() => {
+                        mainContent.innerHTML = `
+                            <div class="page-content">
+                                <h2>Welcome to the Guidebook</h2>
+                                <p>Select a category from the left to get started.</p>
+                            </div>
+                        `;
+                        mainContent.style.opacity = '1';
+                    }, 300);
                 } else if (event.data.responseType === "page") {
                     const mainContent = document.getElementById('main');
                     if (mainContent && event.data.data) {
