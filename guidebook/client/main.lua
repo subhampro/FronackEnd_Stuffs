@@ -86,16 +86,39 @@ RegisterCommand('help', function()
     SetDisplay(not display)
 end, false)
 
--- Handle the 'close' button click from the UI
+-- Modify the close callback to ensure animation stops
 RegisterNUICallback('close', function(data, cb)
-    Debug('Alright, closing time!')
+    Debug('Closing tablet...')
     display = false
     SetNuiFocus(false, false)
+    
+    -- Force stop animation and remove prop
+    local ped = PlayerPedId()
+    ClearPedTasks(ped)
+    ClearPedSecondaryTask(ped)
+    RemoveTablet()
+    
+    -- Reset all animation states
+    isAnimPlaying = false
+    lastAnimState = false
+    if animationThread then
+        animationThread = nil
+    end
+    
     SendNUIMessage({
         type = "ui",
         status = false
     })
-    Debug('See ya later!')
+    
+    -- Double check cleanup after a small delay
+    SetTimeout(500, function()
+        if tabletProp then
+            DeleteObject(tabletProp)
+            tabletProp = nil
+        end
+        ClearPedTasks(PlayerPedId())
+    end)
+    
     cb('ok')
 end)
 
@@ -227,19 +250,19 @@ function AttachTablet()
     end
 end
 
--- Update RemoveTablet function
+-- Modify RemoveTablet function for better cleanup
 function RemoveTablet()
     if tabletProp then
         DeleteObject(tabletProp)
         tabletProp = nil
     end
     
+    local ped = PlayerPedId()
+    ClearPedTasks(ped)
+    ClearPedSecondaryTask(ped)
+    
     if isAnimPlaying then
-        local ped = PlayerPedId()
-        if not IsPedDeadOrDying(ped, 1) then
-            StopAnimTask(ped, tabletDict, tabletAnim, 1.0)
-            ClearPedTasks(ped) -- Add this to ensure animation stops
-        end
+        StopAnimTask(ped, tabletDict, tabletAnim, 1.0)
         isAnimPlaying = false
     end
 end

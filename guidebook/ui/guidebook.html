@@ -676,6 +676,96 @@
             padding: 0 3px;
             border-radius: 3px;
         }
+
+        /* Fixed tablet size regardless of content */
+        .zoom-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: transparent !important;
+            pointer-events: auto;
+        }
+
+        .tablet-frame {
+            width: 1024px;
+            height: 768px;
+            position: relative;
+            transform-origin: center;
+            background: var(--secondary-color);
+            border-radius: 25px;
+            padding: 20px;
+            overflow: hidden;
+            /* Enhanced neon effect */
+            box-shadow: 
+                0 0 2px #fff,
+                0 0 5px var(--primary-color),
+                0 0 10px var(--primary-color),
+                0 0 20px var(--primary-color),
+                0 0 30px var(--primary-color),
+                inset 0 0 15px rgba(0, 247, 255, 0.5);
+            animation: neonPulse 2s infinite;
+        }
+
+        /* Remove black corners */
+        .tablet-frame::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(45deg, 
+                rgba(0, 247, 255, 0.5), 
+                rgba(0, 247, 255, 0.2), 
+                rgba(255, 0, 247, 0.2), 
+                rgba(0, 247, 255, 0.5)
+            );
+            border-radius: 25px;
+            z-index: -1;
+            animation: borderRotate 4s linear infinite;
+        }
+
+        .tablet-container {
+            width: 100%;
+            height: 100%;
+            background: var(--secondary-color);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(0, 247, 255, 0.5);
+        }
+
+        /* Enhanced neon animations */
+        @keyframes neonPulse {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 2px #fff,
+                    0 0 5px var(--primary-color),
+                    0 0 10px var(--primary-color),
+                    0 0 20px var(--primary-color),
+                    0 0 30px var(--primary-color),
+                    inset 0 0 15px rgba(0, 247, 255, 0.5);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 3px #fff,
+                    0 0 8px var(--primary-color),
+                    0 0 15px var(--primary-color),
+                    0 0 25px var(--primary-color),
+                    0 0 35px var(--primary-color),
+                    inset 0 0 20px rgba(0, 247, 255, 0.7);
+            }
+        }
+
+        @keyframes borderRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Rest of your existing styles */
+        // ...existing code...
     </style>
 </head>
 <body>
