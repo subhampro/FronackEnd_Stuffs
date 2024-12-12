@@ -252,3 +252,5 @@ const mockResponses = {
 // Make available for browser testing
 window.testData = testData;
 window.mockResponses = mockResponses;
+
+console.log('[Guidebook Admin] mockdata.js loaded, testData available:', window.testData);

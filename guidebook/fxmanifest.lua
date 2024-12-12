@@ -20,8 +20,11 @@ server_scripts {
 -- Web UI files
 files {
     'ui/guidebook.html',      -- Our pretty interface
-    'ui/guidebook-admin.html', -- Where the cool kids hang out
-    'ui/mockdata.json',       -- Default content
+    'ui/guidebook-admin.html', -- Admin interface
+    'ui/mockdata.json',       -- Live data for FiveM
 }
 
-ui_page 'ui/guidebook.html'
+ui_pages {
+    'ui/guidebook.html',      -- Main UI page
+    'ui/guidebook-admin.html' -- Admin UI page
+}

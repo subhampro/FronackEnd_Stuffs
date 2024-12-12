@@ -24,6 +24,9 @@ local lastAnimState = false
 -- Add this at the top with other variables
 local animationThread = nil
 
+-- Add admin UI state
+local adminDisplay = false
+
 -- Debug function that's probably used more than actual code
 local function Debug(msg)
     print('^3[Guidebook Debug]^7 ' .. msg)
@@ -55,6 +58,23 @@ end)
 -- Quick escape hatch if the UI gets stuck
 RegisterCommand('closeui', function()
     SetDisplay(false)
+end, false)
+
+-- Add admin command
+RegisterCommand('helpadmin', function()
+    Debug('Admin command triggered')
+    
+    if not serverReady then
+        TriggerEvent('chat:addMessage', {
+            color = {255, 0, 0},
+            multiline = true,
+            args = {"System", "Guidebook server is starting up. Please wait..."}
+        })
+        CheckServerStatus()
+        return
+    end
+    
+    SetAdminDisplay(not adminDisplay)
 end, false)
 
 -- Add server status event handler
@@ -90,6 +110,7 @@ end, false)
 RegisterNUICallback('close', function(data, cb)
     Debug('Closing tablet...')
     display = false
+    adminDisplay = false
     SetNuiFocus(false, false)
     
     -- Force stop animation and remove prop
@@ -215,6 +236,66 @@ function SetDisplay(bool)
     end
     
     Debug('Display is now ' .. (bool and 'visible' or 'hidden'))
+end
+
+-- Add admin display function
+function SetAdminDisplay(bool)
+    adminDisplay = bool
+    SetNuiFocus(bool, bool)
+    
+    -- Trigger same tablet animation as regular guidebook
+    if bool then
+        LoadTabletAnimation()
+        AttachTablet()
+        
+        local ped = PlayerPedId()
+        if not isAnimPlaying and not IsPedDeadOrDying(ped, true) then
+            TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
+            isAnimPlaying = true
+            lastAnimState = true
+            
+            if not animationThread then
+                animationThread = CreateThread(function()
+                    while adminDisplay do
+                        Wait(1000)
+                        local ped = PlayerPedId()
+                        if IsPedDeadOrDying(ped, true) then
+                            RemoveTablet()
+                            isAnimPlaying = false
+                        elseif not isAnimPlaying and not IsPedDeadOrDying(ped, true) and lastAnimState then
+                            LoadTabletAnimation()
+                            AttachTablet()
+                            TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
+                            isAnimPlaying = true
+                        end
+                    end
+                    animationThread = nil
+                end)
+            end
+        end
+    else
+        RemoveTablet()
+        isAnimPlaying = false
+        lastAnimState = false
+        
+        if animationThread then
+            animationThread = nil
+        end
+    end
+
+    -- Send NUI message to open admin interface
+    SendNUIMessage({
+        type = "ui",
+        status = bool,
+        isAdmin = true,
+        resourceName = GetCurrentResourceName()
+    })
+    
+    if bool then
+        TriggerServerEvent('guidebook:getData')
+    end
+    
+    Debug('Admin Display is now ' .. (bool and 'visible' or 'hidden'))
 end
 
 -- Add cleanup on resource stop

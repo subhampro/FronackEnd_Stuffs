@@ -722,7 +722,7 @@
             background: rgba(0, 247, 255, 0.05);
             padding: 30px;
             border-radius: 15px;
-            border: 1px solid var(--primary-color);
+            border: 1px solid var (--primary-color);
             margin-bottom: 30px;
             width: 80%;  /* Reduced width */
             max-width: 1000px;  /* Maximum width */
@@ -1275,6 +1275,69 @@
             /* ...rest of existing search-results styles... */
         }
     </style>
+    <!-- Include mockdata.js before main script -->
+    <script src="mockdata.js"></script>
+    <script>
+    // Add this debug helper at the start of your script
+    function debugAdmin(msg) {
+        console.log('[Guidebook Admin]', msg);
+    }
+
+    // Modify the loadFromJSON function
+    async function loadFromJSON() {
+        if (isDevelopment) {
+            debugAdmin('Development mode: Using mockdata.js');
+            if (window.testData) {
+                debugAdmin('Loaded test data:', window.testData);
+                return window.testData;
+            } else {
+                debugAdmin('No test data found!');
+                return {
+                    title: "Guidebook",
+                    categories: [],
+                    points: []
+                };
+            }
+        } else {
+            // FiveM environment code remains the same
+            try {
+                const response = await fetch(`https://${GetParentResourceName()}/getData`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error loading data:', error);
+                return null;
+            }
+        }
+    }
+
+    // Modify the DOMContentLoaded event handler
+    document.addEventListener('DOMContentLoaded', async function() {
+        debugAdmin('Page loaded, initializing...');
+        const isDevelopment = !window.invokeNative;
+        debugAdmin(`Running in ${isDevelopment ? 'development' : 'FiveM'} mode`);
+
+        if (isDevelopment) {
+            document.body.style.display = "flex";
+            document.body.style.opacity = "1";
+            document.body.style.pointerEvents = "auto";
+            
+            // Load initial data
+            const data = await loadFromJSON();
+            debugAdmin('Initial data loaded:', data);
+            
+            if (data && data.categories) {
+                loadCategories();
+            }
+        }
+    });
+    // ...rest of existing code...
+</script>
 </head>
 <body>
     <!-- The admin panel interface -->
@@ -1878,38 +1941,63 @@
         }
 
         function closeGuidebook() {
-            if (window.confirm('Close guidebook?')) {
-                window.close();
+            if (isDevelopment) {
+                if (window.confirm('Close guidebook?')) {
+                    window.close();
+                }
+            } else {
+                fetch(`https://${GetParentResourceName()}/close`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                }).catch(err => console.error(err));
             }
         }
 
         async function loadFromJSON() {
-            try {
-                const response = await fetch('http://localhost:3000/api/data');
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('Error loading data:', error);
-                return null;
+            if (isDevelopment) {
+                // In browser environment, use mockdata.js
+                return window.testData;
+            } else {
+                // In FiveM environment
+                try {
+                    const response = await fetch(`https://${GetParentResourceName()}/getData`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    return null;
+                }
             }
         }
 
         async function saveToJSON(data) {
-            try {
-                const response = await fetch('http://localhost:3000/api/data', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                if (!response.ok) throw new Error('Failed to save data');
+            if (isDevelopment) {
+                // In browser environment, just log the data
+                console.log('Save data (development):', data);
+                window.testData = data;
                 return data;
-            } catch (error) {
-                console.error('Error saving data:', error);
-                alert('Error saving data');
-                return null;
+            } else {
+                // In FiveM environment
+                try {
+                    await fetch(`https://${GetParentResourceName()}/saveData`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    return data;
+                } catch (error) {
+                    console.error('Error saving data:', error);
+                    alert('Error saving data');
+                    return null;
+                }
             }
         }
 
@@ -2010,6 +2098,54 @@
         });
 
         loadSection('categories');
+
+        // Add development mode detection
+        const isDevelopment = !window.invokeNative;
+
+        // Mock FiveM functions for browser testing
+        if (isDevelopment) {
+            window.GetParentResourceName = () => 'guidebook';
+            
+            // Show UI immediately in dev mode
+            document.addEventListener('DOMContentLoaded', function() {
+                document.body.style.display = "flex";
+                document.body.style.opacity = "1";
+                document.body.style.pointerEvents = "auto";
+                loadSection('categories');
+            });
+        }
+
+        // Add message event handler for FiveM
+        window.addEventListener('message', function(event) {
+            if (event.data.type === "ui") {
+                if (event.data.status) {
+                    document.body.style.display = "flex";
+                    document.body.style.opacity = "1";
+                    document.body.style.pointerEvents = "auto";
+                    loadSection('categories');
+                } else {
+                    document.body.style.display = "none";
+                    document.body.style.opacity = "0";
+                    document.body.style.pointerEvents = "none";
+                }
+            } else if (event.data.type === "updateData" && event.data.responseType === "full") {
+                // Handle incoming data from FiveM
+                const data = event.data.data;
+                if (data) {
+                    loadCategories();
+                }
+            }
+        });
+
+        // Initialize based on environment
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!isDevelopment) {
+                // FiveM environment - start hidden
+                document.body.style.display = "none";
+                document.body.style.opacity = "0";
+                document.body.style.pointerEvents = "none";
+            }
+        });
     </script>
 </body>
 </html>

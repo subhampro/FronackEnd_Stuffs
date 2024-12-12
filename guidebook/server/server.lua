@@ -100,15 +100,45 @@ end)
 -- Data saving functionality
 RegisterNetEvent('guidebook:saveData')
 AddEventHandler('guidebook:saveData', function(data)
-    local resourcePath = GetResourcePath(GetCurrentResourceName())
-    local file = io.open(resourcePath .. '/data.json', 'w')
+    if not data then 
+        Debug('No data provided to save')
+        return 
+    end
     
+    local resourcePath = GetResourcePath(GetCurrentResourceName())
+    local filePath = resourcePath .. '/ui/mockdata.json'
+    
+    -- Backup existing file first
+    local backupPath = resourcePath .. '/ui/mockdata.backup.json'
+    local currentFile = io.open(filePath, 'r')
+    if currentFile then
+        local currentContent = currentFile:read('*all')
+        currentFile:close()
+        
+        local backupFile = io.open(backupPath, 'w')
+        if backupFile then
+            backupFile:write(currentContent)
+            backupFile:close()
+            Debug('Created backup of existing data')
+        end
+    end
+    
+    -- Save new data
+    local file = io.open(filePath, 'w')
     if file then
-        file:write(json.encode(data))
+        local content = json.encode(data)
+        file:write(content)
         file:close()
-        Debug('Data saved successfully')
+        Debug('Data saved successfully to mockdata.json')
+        
+        -- Notify all clients to refresh their data
+        TriggerClientEvent('guidebook:receiveData', -1, {
+            type = "updateData",
+            responseType = "full",
+            data = data
+        })
     else
-        Debug('Failed to save data')
+        Debug('Failed to save data to mockdata.json')
     end
 end)
 
