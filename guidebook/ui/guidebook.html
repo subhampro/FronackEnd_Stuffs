@@ -1445,7 +1445,7 @@
                 
                 if (isDevelopment) {
                     // Use mock data in browser
-                    const mockPage = mockResponses[pageId] || testData.categories.flatMap(c => c.pages).find(p => p.label === pageId);
+                    const mockPage = mockResponses[pageId] || testData.categories.flatMap(c => c.pages).find(p => p.id === pageId);
                     if (mockPage) {
                         setTimeout(() => {
                             mainContent.innerHTML = `
