@@ -54,9 +54,11 @@ AddEventHandler('guidebook:getData', function(data)
     local success, decodedData = pcall(json.decode, content)
     if success and decodedData then
         if data and data.pageId then
+            Debug('Looking for page: ' .. data.pageId)
             for _, category in pairs(decodedData.categories or {}) do
                 for _, page in pairs(category.pages or {}) do
-                    if page.label == data.pageId then
+                    -- Changed to match by ID or label
+                    if page.id == data.pageId or page.label == data.pageId then
                         Debug('Found page: ' .. page.label)
                         TriggerClientEvent('guidebook:receiveData', source, {
                             type = "page",

@@ -128,14 +128,23 @@ RegisterNUICallback('uiReady', function(data, cb)
     cb('ok')
 end)
 
--- Modified getData callback handler
+-- Update the getData callback handler to properly pass the page ID
 RegisterNUICallback('getData', function(data, cb)
     if not serverReady then
         cb({ error = "Server not ready" })
         return
     end
     
-    TriggerServerEvent('guidebook:getData', data)
+    -- Fix: Ensure we're passing the pageId correctly
+    if data.pageId then
+        Debug('Requesting page: ' .. data.pageId)
+        TriggerServerEvent('guidebook:getData', {
+            pageId = data.pageId,
+            type = 'page'
+        })
+    else
+        TriggerServerEvent('guidebook:getData')
+    end
     cb({})
 end)
 

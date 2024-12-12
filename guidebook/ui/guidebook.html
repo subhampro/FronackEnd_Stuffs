@@ -920,8 +920,8 @@
                         setTimeout(() => {
                             mainContent.innerHTML = `
                                 <div class="page-content">
-                                    <h2>${event.data.data.label}</h2>
-                                    <div>${event.data.data.content}</div>
+                                    <h2 style="color: var(--primary-color);">${event.data.data.label}</h2>
+                                    ${event.data.data.content}
                                 </div>
                             `;
                             mainContent.style.opacity = '1';
@@ -1214,7 +1214,7 @@
                         <h2>${category.name} <span class="dropdown-arrow">▾</span></h2>
                         <div id="${category.id}Subcategories" class="subcategory">
                             ${category.pages.filter(page => page.enabled).map(page => `
-                                <div class="page" onclick="loadPage('${page.label}')">
+                                <div class="page" onclick="loadPage('${page.id}')">
                                     <h3>${page.label}</h3>
                                 </div>
                             `).join('')}
@@ -1243,7 +1243,7 @@
                         <h2>${category.name} <span class="dropdown-arrow">▾</span></h2>
                         <div id="${category.id}Subcategories" class="subcategory">
                             ${category.pages.filter(page => page.enabled).map(page => `
-                                <div class="page" onclick="loadPage('${page.label}')">
+                                <div class="page" onclick="loadPage('${page.id}')">
                                     <h3>${page.label}</h3>
                                 </div>
                             `).join('')}
