@@ -135,15 +135,13 @@
         }
 
         #main {
+            width: calc(75% - 60px); /* Account for padding */
             height: calc(100% - 60px);
+            padding: 30px;
+            background: rgba(10, 25, 41, 0.95);
             overflow-y: auto;
             overflow-x: hidden;
-            padding: 30px;
-            scrollbar-width: thin;
-            scrollbar-color: var(--primary-color) rgba(0, 247, 255, 0.1);
-            width: 75%; /* Adjusted to match new sidebar width */
-            background: rgba(10, 25, 41, 0.7);
-            animation: fadeIn 0.5s ease-out;
+            position: relative;
         }
 
         .category {
@@ -765,7 +763,17 @@
         }
 
         /* Rest of your existing styles */
-        // ...existing code...
+        /* ...existing code... */
+
+        /* Add content transition */
+        .page-content {
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .page-content.loading {
+            opacity: 0;
+        }
     </style>
 </head>
 <body>
@@ -906,13 +914,18 @@
                     // Handle full data update
                     updateContent(event.data.data);
                 } else if (event.data.responseType === "page") {
-                    // Handle single page content
                     const mainContent = document.getElementById('main');
                     if (mainContent && event.data.data) {
-                        mainContent.innerHTML = `
-                            <h2>${event.data.data.label}</h2>
-                            <div>${event.data.data.content}</div>
-                        `;
+                        mainContent.style.opacity = '0';
+                        setTimeout(() => {
+                            mainContent.innerHTML = `
+                                <div class="page-content">
+                                    <h2>${event.data.data.label}</h2>
+                                    <div>${event.data.data.content}</div>
+                                </div>
+                            `;
+                            mainContent.style.opacity = '1';
+                        }, 300);
                     }
                 }
             }
@@ -1245,6 +1258,10 @@
         // Fix the loadPage function
         function loadPage(pageId) {
             debugUI('Loading page: ' + pageId);
+            const mainContent = document.getElementById('main');
+            
+            // Show loading state
+            mainContent.style.opacity = '0';
             
             fetch(`https://${GetParentResourceName()}/getData`, {
                 method: 'POST',
@@ -1254,8 +1271,22 @@
                 body: JSON.stringify({
                     pageId: pageId
                 })
-            }).catch(error => {
+            })
+            .then(() => {
+                // Content will be updated through the message event handler
+                setTimeout(() => {
+                    mainContent.style.opacity = '1';
+                }, 300);
+            })
+            .catch(error => {
                 debugUI('Error loading page: ' + error);
+                mainContent.innerHTML = `
+                    <div class="page-content">
+                        <h2>Error</h2>
+                        <p>Failed to load content. Please try again.</p>
+                    </div>
+                `;
+                mainContent.style.opacity = '1';
             });
         }
 

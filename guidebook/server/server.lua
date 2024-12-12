@@ -57,6 +57,7 @@ AddEventHandler('guidebook:getData', function(data)
             for _, category in pairs(decodedData.categories or {}) do
                 for _, page in pairs(category.pages or {}) do
                     if page.label == data.pageId then
+                        Debug('Found page: ' .. page.label)
                         TriggerClientEvent('guidebook:receiveData', source, {
                             type = "page",
                             pageContent = {
