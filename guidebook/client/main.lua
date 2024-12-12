@@ -12,6 +12,12 @@
 local display = false
 local serverReady = false
 
+-- Add these variables at the top
+local tabletProp = nil
+local tabletDict = "amb@code_human_in_bus_passenger_idles@female@tablet@base"
+local tabletAnim = "base"
+local isAnimPlaying = false
+
 -- Debug function that's probably used more than actual code
 local function Debug(msg)
     print('^3[Guidebook Debug]^7 ' .. msg)
@@ -125,16 +131,76 @@ end)
 function SetDisplay(bool)
     display = bool
     SetNuiFocus(bool, bool)
+    
+    if bool then
+        -- Load and play animation
+        LoadTabletAnimation()
+        AttachTablet()
+        
+        local ped = PlayerPedId()
+        if not isAnimPlaying then
+            TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
+            isAnimPlaying = true
+        end
+    else
+        -- Clean up animation and prop
+        RemoveTablet()
+    end
+    
     SendNUIMessage({
         type = "ui",
         status = bool,
         resourceName = GetCurrentResourceName()
     })
     
-    -- Request data when UI opens
     if bool then
         TriggerServerEvent('guidebook:getData')
     end
     
     Debug('Display is now ' .. (bool and 'visible' or 'hidden'))
+end
+
+-- Add cleanup on resource stop
+AddEventHandler('onResourceStop', function(resourceName)
+    if (GetCurrentResourceName() ~= resourceName) then
+        return
+    end
+    RemoveTablet()
+end)
+
+-- Add this function after existing variables
+function LoadTabletAnimation()
+    RequestAnimDict(tabletDict)
+    while not HasAnimDictLoaded(tabletDict) do
+        Wait(100)
+    end
+end
+
+-- Add tablet prop management functions
+function AttachTablet()
+    if not tabletProp then
+        RequestModel(`prop_cs_tablet`)
+        while not HasModelLoaded(`prop_cs_tablet`) do
+            Wait(100)
+        end
+        
+        local ped = PlayerPedId()
+        local bone = GetPedBoneIndex(ped, 28422) -- Right hand bone
+        
+        tabletProp = CreateObject(`prop_cs_tablet`, 0.0, 0.0, 0.0, true, true, true)
+        AttachEntityToEntity(tabletProp, ped, bone, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, true, false, true, 1, true)
+        SetModelAsNoLongerNeeded(`prop_cs_tablet`)
+    end
+end
+
+function RemoveTablet()
+    if tabletProp then
+        DeleteObject(tabletProp)
+        tabletProp = nil
+    end
+    
+    if isAnimPlaying then
+        StopAnimTask(PlayerPedId(), tabletDict, tabletAnim, 1.0)
+        isAnimPlaying = false
+    end
 end

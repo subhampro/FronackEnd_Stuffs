@@ -686,6 +686,12 @@
                 <div class="search-results"></div>
             </div>
         </div>
+        <!-- Add this div for the warning popup right after the tablet-container div -->
+        <div id="zoom-warning" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 25, 41, 0.95); padding: 20px; border-radius: 10px; border: 2px solid var(--primary-color); z-index: 9999; text-align: center; box-shadow: 0 0 20px rgba(0, 247, 255, 0.3);">
+            <h3 style="color: var(--primary-color); margin-bottom: 15px;">Maximum Zoom Reached</h3>
+            <p style="color: #fff; margin-bottom: 20px;">You cannot zoom in any further.</p>
+            <button onclick="closeZoomWarning()" class="control-btn" style="display: inline-block;">OK</button>
+        </div>
     </div>
     <script>
         /*
@@ -901,12 +907,25 @@
         // Handle the zoom in/out feature
         let currentZoom = 100;
         function zoom(direction) {
-            currentZoom += direction * 10;
-            currentZoom = Math.min(Math.max(currentZoom, 70), 150);
+            const newZoom = currentZoom + (direction * 10);
+            
+            // Check if trying to zoom in beyond 150%
+            if (direction > 0 && currentZoom >= 150) {
+                document.getElementById('zoom-warning').style.display = 'block';
+                return;
+            }
+            
+            // Limit zoom between 70% and 150%
+            currentZoom = Math.min(Math.max(newZoom, 70), 150);
             
             const wrapper = document.querySelector('.zoom-wrapper');
             wrapper.style.transform = `scale(${currentZoom/100})`;
             wrapper.style.transformOrigin = 'center center';
+        }
+
+        // Add function to close the warning popup
+        function closeZoomWarning() {
+            document.getElementById('zoom-warning').style.display = 'none';
         }
 
         // Update closeGuidebook for FiveM
