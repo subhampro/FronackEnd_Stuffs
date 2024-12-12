@@ -62,7 +62,7 @@
             transform-origin: center;
             background: var(--secondary-color);
             border-radius: 3vh;
-            padding: 2vh 2vh 10vh 2vh; /* Increased bottom padding for bezel */
+            padding: 2vh; /* Consistent padding on all sides */
             overflow: hidden;
             box-shadow: 
                 0 0 0 0.2vh rgba(0, 247, 255, 0.3),
@@ -513,7 +513,7 @@
                 inset 0 0 1vh rgba(0, 247, 255, 0.2);
             position: relative;
             overflow: hidden;
-            margin-bottom: 0.5vh; /* Added small margin */
+            margin-bottom: -6.5vh;
         }
 
         .search-btn::after {
@@ -717,6 +717,10 @@
             animation: searchPulse 2s infinite;
             background: var(--primary-color);
             color: var(--secondary-color);
+        }
+
+        .search-icon {
+            margin-bottom: 80%;
         }
     </style>
     <script src="mockdata.js"></script>
