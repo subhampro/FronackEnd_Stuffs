@@ -1,53 +1,74 @@
 const testData = {
-    title: "Guidebook",
-    categories: [
+    "title": "Guidebook",
+    "categories": [
         {
-            id: "welcome",
-            name: "🌟 Welcome",
-            pages: [
+            "id": "welcome",
+            "name": "🌟 Welcome",
+            "pages": [
                 {
-                    id: "welcome-intro",
-                    label: "Introduction",
-                    key: "intro",
-                    categoryId: "welcome",
-                    order: "1", 
-                    enabled: true,
-                    content: "<div style='background: rgba(0, 247, 255, 0.1); padding: 20px; border-radius: 15px;'><h2 style='color: #00f7ff; text-align: center;'>Welcome to Our Roleplay Server! 🌟</h2><p style='color: #ffffff; font-size: 16px;'>We're thrilled to have you join our immersive roleplay community. This guidebook will help you understand everything you need to know about roleplay and our server.</p><div style='margin: 20px 0; padding: 15px; background: rgba(255, 215, 0, 0.1); border-radius: 10px;'><h3 style='color: #ffd700'>Server Features ✨</h3><ul style='color: #ffffff'><li>Realistic Economy System</li><li>Custom Jobs & Businesses</li><li>Player Housing</li><li>Advanced Criminal System</li><li>Active Staff Support</li></ul></div></div>"
+                    "id": "welcome-intro",
+                    "label": "Introduction",
+                    "key": "intro",
+                    "categoryId": "welcome",
+                    "order": "1",
+                    "enabled": true,
+                    "content": "<div style='background: rgba(0, 247, 255, 0.1); padding: 20px; border-radius: 15px;'><h2 style='color: #00f7ff; text-align: center;'>Welcome to Our Roleplay Server! 🌟</h2><p style='color: #ffffff; font-size: 16px;'>We're thrilled to have you join our immersive roleplay community. This guidebook will help you understand everything you need to know about roleplay and our server.</p><div style='margin: 20px 0; padding: 15px; background: rgba(255, 215, 0, 0.1); border-radius: 10px;'><h3 style='color: #ffd700'>Server Features ✨</h3><ul style='color: #ffffff'><li>Realistic Economy System</li><li>Custom Jobs & Businesses</li><li>Player Housing</li><li>Advanced Criminal System</li><li>Active Staff Support</li></ul></div></div>"
                 }
             ]
         },
-        // Add more test categories and pages as needed
-    ],
-    points: [
         {
-            id: "spawn",
-            label: "City Spawn",
-            key: "spawn-point",
-            textSize: 1.2,
-            drawDistance: 50,
-            textColor: "#00f7ff",
-            font: 4,
-            content: "Welcome to Los Santos! Visit the Town Hall to get started."
+            "id": "rp-basics",
+            "name": "📚 Roleplay Basics",
+            "pages": [
+                {
+                    "id": "rp-rules",
+                    "label": "Roleplay Rules",
+                    "key": "rp-rules",
+                    "categoryId": "rp-basics",
+                    "order": "1",
+                    "enabled": true,
+                    "content": "<div style='background: rgba(255, 0, 247, 0.1); padding: 20px; border-radius: 15px;'><h2 style='color: #ff00f7'>Essential RP Rules 📜</h2><div class='rule-section'><h3 style='color: #00f7ff'>1. Value Your Life (VDL)</h3><p>Always act as if you have one life. Avoid unrealistic actions that would be fatal in real life.</p></div><div class='rule-section'><h3 style='color: #00f7ff'>2. No Powergaming</h3><p>Don't force actions on other players or perform impossible feats.</p></div><div class='rule-section'><h3 style='color: #00f7ff'>3. No Metagaming</h3><p>Don't use out-of-character information in roleplay.</p></div><div class='rule-section'><h3 style='color: #00f7ff'>4. Stay In Character</h3><p>Maintain your character's personality and story at all times.</p></div></div>"
+                }
+            ]
         },
         {
-            id: "police-dept",
-            label: "Police Department", 
-            key: "pd-point",
-            textSize: 1.2,
-            drawDistance: 40,
-            textColor: "#0066ff",
-            font: 4,
-            content: "Los Santos Police Department - Protecting & Serving"
+            "id": "jobs",
+            "name": "💼 Jobs & Careers",
+            "pages": [
+                {
+                    "id": "legal-jobs",
+                    "label": "Legal Careers",
+                    "key": "legal-jobs",
+                    "categoryId": "jobs",
+                    "order": "1",
+                    "enabled": true,
+                    "content": "<div style='background: rgba(0, 247, 255, 0.1); padding: 20px; border-radius: 15px;'><h2 style='color: #00f7ff'>Legal Career Paths 👔</h2><div class='job-card' style='background: rgba(255, 255, 255, 0.1); padding: 15px; margin: 10px 0; border-radius: 10px;'><h3 style='color: #ffd700'>Police Department 👮</h3><p>Protect and serve the city. Advance from Cadet to Chief.</p></div><div class='job-card' style='background: rgba(255, 255, 255, 0.1); padding: 15px; margin: 10px 0; border-radius: 10px;'><h3 style='color: #ffd700'>Medical Services 🚑</h3><p>Save lives as an EMT or doctor.</p></div><div class='job-card' style='background: rgba(255, 255, 255, 0.1); padding: 15px; margin: 10px 0; border-radius: 10px;'><h3 style='color: #ffd700'>Mechanic 🔧</h3><p>Run your own garage and repair vehicles.</p></div></div>"
+                },
+                {
+                    "id": "criminal-activities",
+                    "label": "Criminal Activities",
+                    "key": "illegal-jobs",
+                    "categoryId": "jobs",
+                    "order": "2",
+                    "enabled": true,
+                    "content": "<div style='background: rgba(255, 0, 247, 0.1); padding: 20px; border-radius: 15px;'><h2 style='color: #ff00f7'>Criminal Activities 🦹</h2><p style='color: #ffd700; font-style: italic;'>Warning: All criminal activities carry risks and consequences!</p><div class='crime-section'><h3 style='color: #00f7ff'>Robbery Systems</h3><p>From small stores to major banks</p></div><div class='crime-section'><h3 style='color: #00f7ff'>Drug Operations</h3><p>Complex drug manufacturing and distribution networks</p></div><div class='crime-section'><h3 style='color: #00f7ff'>Black Market</h3><p>Underground trading of illegal goods</p></div></div>"
+                }
+            ]
         },
         {
-            id: "hospital",
-            label: "Hospital",
-            key: "hospital-point", 
-            textSize: 1.2,
-            drawDistance: 40,
-            textColor: "#ff4444",
-            font: 4,
-            content: "Los Santos Medical Center - Emergency Services Available"
+            "id": "economy",
+            "name": "💰 Economy Guide",
+            "pages": [
+                {
+                    "id": "money-guide",
+                    "label": "Making Money",
+                    "key": "money-making",
+                    "categoryId": "economy",
+                    "order": "1",
+                    "enabled": true,
+                    "content": "<div style='background: rgba(0, 247, 255, 0.1); padding: 20px; border-radius: 15px;'><h2 style='color: #00f7ff'>Money Making Guide 💸</h2><div class='money-section'><h3 style='color: #ffd700'>Starting Out</h3><ul><li>Delivery Jobs: Easy starter income</li><li>Taxi Service: Flexible hours</li><li>Fishing: Peaceful money-making</li></ul></div><div class='money-section'><h3 style='color: #ffd700'>Advanced Income</h3><ul><li>Business Ownership</li><li>Real Estate Investment</li><li>Stock Market Trading</li></ul></div><div class='money-section'><h3 style='color: #ffd700'>Tips & Tricks</h3><p>Diversify your income sources and always save for investments!</p></div></div>"
+                }
+            ]
         },
         {
             "id": "housing",
@@ -208,7 +229,7 @@ const testData = {
                 }
             ]
         }
-    ]
+    ],
 };
 
 // Mock responses for browser development
