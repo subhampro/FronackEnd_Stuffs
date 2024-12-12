@@ -109,6 +109,8 @@
         }
 
         .tablet-container {
+            display: flex; /* Use flexbox for layout */
+            flex-direction: row; /* Ensure sidebar and main content are side by side */
             width: 100%;
             height: 100%;
             background: var(--secondary-color);
@@ -123,7 +125,7 @@
         }
 
         #sidebar {
-            width: 25%; /* Increased from 15% */
+            width: 25%; /* Adjust width as needed */
             overflow-y: auto; /* Enable scrolling */
             max-height: 100%; /* Ensure it takes full height */
             scrollbar-width: thin;
@@ -135,7 +137,7 @@
         }
 
         #main {
-            width: 85%;
+            flex: 1; /* Take up remaining space */
             padding: 30px;
             background: rgba(10, 25, 41, 0.7);
             overflow-y: auto;
@@ -778,6 +780,7 @@
             animation: fadeIn 0.3s ease-out;
         }
     </style>
+    <script src="mockdata.js"></script>
 </head>
 <body>
     <!-- The wrapper helps us with the zoom functionality -->
@@ -916,32 +919,14 @@
                 if (event.data.responseType === "full") {
                     // Handle full data update
                     updateContent(event.data.data);
-                    
-                    // Show default welcome content
-                    const mainContent = document.getElementById('main');
-                    mainContent.style.opacity = '0';
-                    setTimeout(() => {
-                        mainContent.innerHTML = `
-                            <div class="page-content">
-                                <h2>Welcome to the Guidebook</h2>
-                                <p>Select a category from the left to get started.</p>
-                            </div>
-                        `;
-                        mainContent.style.opacity = '1';
-                    }, 300);
                 } else if (event.data.responseType === "page") {
+                    // Handle single page content - Simplified version that works
                     const mainContent = document.getElementById('main');
                     if (mainContent && event.data.data) {
-                        mainContent.style.opacity = '0';
-                        setTimeout(() => {
-                            mainContent.innerHTML = `
-                                <div class="page-content">
-                                    <h2>${event.data.data.label}</h2>
-                                    ${event.data.data.content}
-                                </div>
-                            `;
-                            mainContent.style.opacity = '1';
-                        }, 300);
+                        mainContent.innerHTML = `
+                            <h2>${event.data.data.label}</h2>
+                            <div>${event.data.data.content}</div>
+                        `;
                     }
                 }
             }
@@ -1087,28 +1072,21 @@
             }
         }
 
-        // Modified page loading function
-        async function loadPage(pageId, categoryId) {
-            try {
-                const data = await loadFromJSON();
-                const category = data.categories.find(c => c.id === categoryId);
-                const page = category?.pages.find(p => p.id === pageId);
-                
-                if (page) {
-                    const mainContent = document.getElementById('main');
-                    mainContent.style.opacity = '0';
-                    
-                    setTimeout(() => {
-                        mainContent.innerHTML = `
-                            <h2>${page.label}</h2>
-                            <div>${page.content}</div>
-                        `;
-                        mainContent.style.opacity = '1';
-                    }, 300);
-                }
-            } catch (error) {
-                console.error('Error loading page:', error);
-            }
+        // Simplify the loadPage function to match working version
+        function loadPage(pageId) {
+            debugUI('Loading page: ' + pageId);
+            
+            fetch(`https://${GetParentResourceName()}/getData`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    pageId: pageId
+                })
+            }).catch(error => {
+                debugUI('Error loading page: ' + error);
+            });
         }
 
         // Handle the zoom in/out feature
@@ -1456,6 +1434,71 @@
             if (end < plainText.length) preview += '...';
             return highlightText(preview, query);
         }
+
+        // Add development mode detection
+        const isDevelopment = !window.invokeNative;
+
+        // Mock FiveM functions for browser testing
+        if (isDevelopment) {
+            const GetParentResourceName = () => 'guidebook';
+            window.GetParentResourceName = GetParentResourceName;
+            
+            // Show UI immediately in dev mode
+            document.addEventListener('DOMContentLoaded', function() {
+                document.body.style.display = "flex";
+                document.body.style.opacity = "1";
+                document.body.style.pointerEvents = "auto";
+                updateContent(testData);
+            });
+        }
+
+        // Update loadPage function to work in both environments 
+        function loadPage(pageId) {
+            debugUI('Loading page: ' + pageId);
+            
+            if (isDevelopment) {
+                // Use mock data in browser
+                const mainContent = document.getElementById('main');
+                const mockPage = mockResponses[pageId];
+                
+                if (mockPage) {
+                    mainContent.innerHTML = `
+                        <div class="page-content">
+                            <h2>${mockPage.label}</h2>
+                            ${mockPage.content}
+                        </div>
+                    `;
+                }
+            } else {
+                // Normal FiveM behavior
+                fetch(`https://${GetParentResourceName()}/getData`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        pageId: pageId
+                    })
+                }).catch(error => {
+                    debugUI('Error loading page: ' + error);
+                });
+            }
+        }
+
+        // Update closeGuidebook for both environments
+        function closeGuidebook() {
+            if (isDevelopment) {
+                console.log('Close clicked (development mode)');
+            } else {
+                fetch(`https://${GetParentResourceName()}/close`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                }).catch(err => console.error(err));
+            }
+        }
+
+        // ...rest of your existing code...
     </script>
 </body>
 </html>
