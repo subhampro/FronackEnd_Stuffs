@@ -2166,11 +2166,19 @@
         let categoriesLoaded = false;
         window.addEventListener('message', function(event) {
             if (event.data.type === "ui") {
+                debugAdmin('UI message received: ' + event.data.status + ' (admin: ' + event.data.isAdmin + ')');
+                
                 if (event.data.status) {
-                    document.body.style.display = "flex";
-                    document.body.style.opacity = "1";
-                    document.body.style.pointerEvents = "auto";
-                    loadSection('categories');
+                    if (event.data.isAdmin) {
+                        document.body.style.display = "flex";
+                        document.body.style.opacity = "1";
+                        document.body.style.pointerEvents = "auto";
+                        loadCategories();
+                    } else {
+                        document.body.style.display = "none";
+                        document.body.style.opacity = "0";
+                        document.body.style.pointerEvents = "none";
+                    }
                 } else {
                     document.body.style.display = "none";
                     document.body.style.opacity = "0";

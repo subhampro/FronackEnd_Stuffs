@@ -64,11 +64,11 @@ RegisterCommand('closeui', function()
     SetDisplay(false)
 end, false)
 
--- Update the helpadmin command with proper cleanup and delay
+-- Update the helpadmin command to specifically load admin UI
 RegisterCommand('helpadmin', function()
     Debug('Admin command triggered')
     
-    -- First force cleanup everything
+    -- Force cleanup of UI states first
     display = false
     adminDisplay = false
     SetNuiFocus(false, false)
@@ -76,20 +76,15 @@ RegisterCommand('helpadmin', function()
     isAnimPlaying = false
     lastAnimState = false
     
-    -- Force close all NUI states
+    -- Important: Send cleanup messages in correct order
     SendNUIMessage({
         type = "ui",
-        status = false
-    })
-    SendNUIMessage({
-        type = "switchPage",
-        status = false
+        status = false,
+        isAdmin = false
     })
     
-    -- Important delay for cleanup
-    Wait(500)
+    Wait(500) -- Important delay between cleanup and new state
     
-    -- Check server ready
     if not serverReady then
         TriggerEvent('chat:addMessage', {
             color = {255, 0, 0},
@@ -99,10 +94,30 @@ RegisterCommand('helpadmin', function()
         CheckServerStatus()
         return
     end
-
-    -- Another small delay before setting new state
-    Wait(200)
-    SetAdminDisplay(true) -- Always open admin UI, don't toggle
+    
+    -- Force load admin page
+    SendNUIMessage({
+        type = "loadAdmin",
+        status = true,
+        url = 'guidebook-admin.html'
+    })
+    
+    Wait(200) -- Wait for page load
+    
+    -- Set new admin state
+    SendNUIMessage({
+        type = "ui",
+        status = true,
+        isAdmin = true
+    })
+    
+    Wait(100)
+    
+    -- Set focus and state
+    adminDisplay = true
+    SetNuiFocus(true, true)
+    
+    Debug('Admin Display is now visible')
 end, false)
 
 -- Add server status event handler
@@ -284,7 +299,7 @@ function SetDisplay(bool)
     Debug('Display is now ' .. (bool and 'visible' or 'hidden'))
 end
 
--- Update SetAdminDisplay function with better state handling
+-- Update SetAdminDisplay function
 function SetAdminDisplay(bool)
     -- Force cleanup first
     display = false
@@ -294,15 +309,21 @@ function SetAdminDisplay(bool)
     isAnimPlaying = false
     lastAnimState = false
     
-    -- Important delay for cleanup
     Wait(300)
     
     if bool then
-        -- Set new state
+        -- Set new state with single message
+        SendNUIMessage({
+            type = "ui",
+            status = true,
+            isAdmin = true
+        })
+        
+        Wait(200)
+        
         adminDisplay = true
         SetNuiFocus(true, true)
         
-        -- Load animation and tablet
         LoadTabletAnimation()
         AttachTablet()
         
@@ -312,23 +333,13 @@ function SetAdminDisplay(bool)
             isAnimPlaying = true
             lastAnimState = true
         end
-        
-        -- Delay before sending NUI message
-        Wait(200)
-        SendNUIMessage({
-            type = "switchPage",
-            status = true,
-            page = 'admin'
-        })
     else
         SendNUIMessage({
-            type = "switchPage",
+            type = "ui",
             status = false,
-            page = 'admin'
+            isAdmin = true
         })
     end
-    
-    Debug('Admin Display is now ' .. (bool and 'visible' or 'hidden'))
 end
 
 -- Add handler for loading admin UI separately
