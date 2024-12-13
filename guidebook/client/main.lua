@@ -31,9 +31,6 @@ local adminDisplay = false
 local lastDataRequest = 0
 local DATA_REQUEST_COOLDOWN = 1000 -- 1 second between requests
 
--- Add this variable at the top with other variables
-local isAdminUIOpen = false
-
 -- Debug function that's probably used more than actual code
 local function Debug(msg)
     print('^3[Guidebook Debug]^7 ' .. msg)
@@ -67,10 +64,32 @@ RegisterCommand('closeui', function()
     SetDisplay(false)
 end, false)
 
--- Update the helpadmin command to properly handle UI state
+-- Update the helpadmin command with proper cleanup and delay
 RegisterCommand('helpadmin', function()
     Debug('Admin command triggered')
     
+    -- First force cleanup everything
+    display = false
+    adminDisplay = false
+    SetNuiFocus(false, false)
+    RemoveTablet()
+    isAnimPlaying = false
+    lastAnimState = false
+    
+    -- Force close all NUI states
+    SendNUIMessage({
+        type = "ui",
+        status = false
+    })
+    SendNUIMessage({
+        type = "switchPage",
+        status = false
+    })
+    
+    -- Important delay for cleanup
+    Wait(500)
+    
+    -- Check server ready
     if not serverReady then
         TriggerEvent('chat:addMessage', {
             color = {255, 0, 0},
@@ -81,30 +100,9 @@ RegisterCommand('helpadmin', function()
         return
     end
 
-    -- If UI is stuck, force cleanup
-    if isAdminUIOpen then
-        SetNuiFocus(false, false)
-        display = false
-        adminDisplay = false
-        isAdminUIOpen = false
-        SendNUIMessage({
-            type = "switchPage",
-            status = false,
-            page = 'admin'
-        })
-        Debug('Admin Display is now hidden')
-        return
-    end
-
-    -- Close regular UI if open
-    if display then
-        SetDisplay(false)
-        Wait(200) -- Increased delay before opening admin UI
-    end
-    
-    -- Toggle admin display with proper state tracking
-    isAdminUIOpen = true
-    SetAdminDisplay(true)
+    -- Another small delay before setting new state
+    Wait(200)
+    SetAdminDisplay(true) -- Always open admin UI, don't toggle
 end, false)
 
 -- Add server status event handler
@@ -136,12 +134,11 @@ RegisterCommand('help', function()
     SetDisplay(not display)
 end, false)
 
--- Update close callback to handle admin UI state
+-- Modify the close callback to ensure animation stops
 RegisterNUICallback('close', function(data, cb)
     Debug('Closing UI...')
     display = false
     adminDisplay = false
-    isAdminUIOpen = false
     SetNuiFocus(false, false)
     
     -- Force stop animation and remove prop
@@ -287,42 +284,48 @@ function SetDisplay(bool)
     Debug('Display is now ' .. (bool and 'visible' or 'hidden'))
 end
 
--- Update SetAdminDisplay function
+-- Update SetAdminDisplay function with better state handling
 function SetAdminDisplay(bool)
-    adminDisplay = bool
-    SetNuiFocus(bool, bool)
-    isAdminUIOpen = bool
+    -- Force cleanup first
+    display = false
+    adminDisplay = false
+    SetNuiFocus(false, false)
+    RemoveTablet()
+    isAnimPlaying = false
+    lastAnimState = false
+    
+    -- Important delay for cleanup
+    Wait(300)
     
     if bool then
-        -- Close regular display first
-        display = false
-        SendNUIMessage({
-            type = "ui",
-            status = false
-        })
+        -- Set new state
+        adminDisplay = true
+        SetNuiFocus(true, true)
         
-        Wait(200) -- Increased delay for UI transition
-        
+        -- Load animation and tablet
         LoadTabletAnimation()
         AttachTablet()
         
         local ped = PlayerPedId()
-        if not isAnimPlaying and not IsPedDeadOrDying(ped, true) then
+        if not IsPedDeadOrDying(ped, true) then
             TaskPlayAnim(ped, tabletDict, tabletAnim, 8.0, -8.0, -1, 49, 0, false, false, false)
             isAnimPlaying = true
             lastAnimState = true
         end
-    end
-
-    SendNUIMessage({
-        type = "switchPage",
-        status = bool,
-        page = 'admin'
-    })
-    
-    if bool then
-        Wait(200) -- Wait for page switch
-        TriggerServerEvent('guidebook:getData') -- Request initial data
+        
+        -- Delay before sending NUI message
+        Wait(200)
+        SendNUIMessage({
+            type = "switchPage",
+            status = true,
+            page = 'admin'
+        })
+    else
+        SendNUIMessage({
+            type = "switchPage",
+            status = false,
+            page = 'admin'
+        })
     end
     
     Debug('Admin Display is now ' .. (bool and 'visible' or 'hidden'))
@@ -402,3 +405,27 @@ RegisterNUICallback('switchUI', function(data, cb)
     end
     cb('ok')
 end)
+
+-- Add emergency cleanup command
+RegisterCommand('fixui', function()
+    Debug('Emergency UI cleanup triggered')
+    display = false
+    adminDisplay = false
+    SetNuiFocus(false, false)
+    RemoveTablet()
+    isAnimPlaying = false
+    lastAnimState = false
+    if animationThread then
+        animationThread = nil
+    end
+    
+    -- Force send close message to NUI
+    SendNUIMessage({
+        type = "ui",
+        status = false
+    })
+    SendNUIMessage({
+        type = "switchPage",
+        status = false
+    })
+end, false)

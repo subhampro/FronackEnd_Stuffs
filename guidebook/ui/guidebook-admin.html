@@ -1354,41 +1354,6 @@
         document.body.style.pointerEvents = "none";
     });
 
-    // Add at the start of your script section
-    let initialized = false;
-
-    window.addEventListener('message', function(event) {
-        if (event.data.type === "switchPage") {
-            if (event.data.status) {
-                if (event.data.page === 'regular') {
-                    document.body.style.display = "none";
-                    document.body.style.opacity = "0";
-                    document.body.style.pointerEvents = "none";
-                    window.location.href = 'guidebook.html';
-                    return;
-                }
-                if (!initialized) {
-                    document.body.style.display = "flex";
-                    document.body.style.opacity = "1";
-                    document.body.style.pointerEvents = "auto";
-                    initialized = true;
-                    debugAdmin('Admin UI Initialized');
-                    loadCategories();
-                }
-            } else {
-                document.body.style.display = "none";
-                document.body.style.opacity = "0";
-                document.body.style.pointerEvents = "none";
-                initialized = false;
-            }
-        } else if (event.data.type === "updateData") {
-            if (!initialized) return; // Ignore data updates until initialized
-            if (event.data.responseType === "full") {
-                updateContent(event.data.data);
-            }
-        }
-    });
-
     // Modify the DOMContentLoaded event handler
     document.addEventListener('DOMContentLoaded', async function() {
         debugAdmin('Page loaded, initializing...');
