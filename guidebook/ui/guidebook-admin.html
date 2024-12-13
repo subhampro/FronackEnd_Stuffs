@@ -1351,7 +1351,6 @@
             }
         }
     });
-    // ...rest of existing code...
 </script>
 </head>
 <body>
@@ -1360,11 +1359,17 @@
             if (event.data.type === "switchPage") {
                 if (event.data.status) {
                     if (event.data.page === 'regular') {
+                        document.body.style.display = "none";
+                        document.body.style.opacity = "0";
+                        document.body.style.pointerEvents = "none";
                         window.location.href = 'guidebook.html';
+                        return;
                     }
                     document.body.style.display = "flex";
                     document.body.style.opacity = "1";
                     document.body.style.pointerEvents = "auto";
+                    // Initialize admin page
+                    loadCategories();
                 } else {
                     document.body.style.display = "none";
                     document.body.style.opacity = "0";

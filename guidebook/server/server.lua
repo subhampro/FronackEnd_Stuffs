@@ -26,6 +26,9 @@ AddEventHandler('guidebook:getData', function(data)
     local source = source
     if not source then return end
     
+    Debug('getData called from source: ' .. source)
+    Debug('Data received: ' .. json.encode(data or {}))
+    
     -- Fix the file path to ensure it's correct
     local resourcePath = GetResourcePath(GetCurrentResourceName())
     local filePath = resourcePath .. '/ui/mockdata.json'

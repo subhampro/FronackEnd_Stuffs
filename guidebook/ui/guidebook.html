@@ -43,7 +43,7 @@
         }
 
         body {
-            background: linear-gradient(45deg, #000000, #1a1a1a);
+            background: linear-gradient(45deg, #00000000, #1a1a1a00);
             margin: 0;
             padding: 20px;
             display: flex;
@@ -736,7 +736,12 @@
             if (event.data.type === "switchPage") {
                 if (event.data.status) {
                     if (event.data.page === 'admin') {
+                        // Just update the source directly instead of reloading
+                        document.body.style.display = "none";
+                        document.body.style.opacity = "0";
+                        document.body.style.pointerEvents = "none";
                         window.location.href = 'guidebook-admin.html';
+                        return;
                     }
                     document.body.style.display = "flex";
                     document.body.style.opacity = "1";
@@ -747,7 +752,6 @@
                     document.body.style.pointerEvents = "none";
                 }
             }
-            // ...rest of your existing message handlers...
         });
     </script>
     <script>

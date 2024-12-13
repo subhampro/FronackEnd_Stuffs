@@ -243,7 +243,7 @@ function SetDisplay(bool)
     Debug('Display is now ' .. (bool and 'visible' or 'hidden'))
 end
 
--- Add admin display function
+-- Update SetAdminDisplay function
 function SetAdminDisplay(bool)
     adminDisplay = bool
     SetNuiFocus(bool, bool)
@@ -258,22 +258,17 @@ function SetAdminDisplay(bool)
             isAnimPlaying = true
             lastAnimState = true
         end
-    else
-        RemoveTablet()
-        isAnimPlaying = false
-        lastAnimState = false
+        
+        -- Request data before switching page
+        TriggerServerEvent('guidebook:getData')
+        Wait(100) -- Small delay to ensure data is received
     end
 
-    -- Change: Send iframe message instead of UI message
     SendNUIMessage({
         type = "switchPage",
         status = bool,
         page = 'admin'
     })
-    
-    if bool then
-        TriggerServerEvent('guidebook:getData', {admin = true})
-    end
     
     Debug('Admin Display is now ' .. (bool and 'visible' or 'hidden'))
 end
