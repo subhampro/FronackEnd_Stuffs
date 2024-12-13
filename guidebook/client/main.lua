@@ -230,10 +230,9 @@ function SetDisplay(bool)
     
     -- Update: Add specific UI type
     SendNUIMessage({
-        type = "ui",
+        type = "switchPage",
         status = bool,
-        isAdmin = false, -- Regular guidebook
-        resourceName = GetCurrentResourceName()
+        page = 'regular'
     })
     
     if bool then
@@ -249,7 +248,6 @@ function SetAdminDisplay(bool)
     adminDisplay = bool
     SetNuiFocus(bool, bool)
     
-    -- Trigger same tablet animation as regular guidebook
     if bool then
         LoadTabletAnimation()
         AttachTablet()
@@ -266,16 +264,14 @@ function SetAdminDisplay(bool)
         lastAnimState = false
     end
 
-    -- Update: Change how we send admin UI message
+    -- Change: Send iframe message instead of UI message
     SendNUIMessage({
-        type = "ui",
+        type = "switchPage",
         status = bool,
-        isAdmin = true, -- Admin interface
-        resourceName = GetCurrentResourceName()
+        page = 'admin'
     })
     
     if bool then
-        Debug('Requesting admin data')
         TriggerServerEvent('guidebook:getData', {admin = true})
     end
     

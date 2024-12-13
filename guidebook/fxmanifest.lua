@@ -17,17 +17,20 @@ server_scripts {
     'server/server.lua'  -- Server-side sorcery
 }
 
--- Web UI files
+-- Web UI files (include all required assets)
 files {
     'ui/guidebook.html',      -- Regular interface
     'ui/guidebook-admin.html', -- Admin interface
     'ui/mockdata.js',         -- Development data
-    'ui/mockdata.json'        -- Live data for FiveM
+    'ui/mockdata.json',       -- Live data for FiveM
+    'ui/*.css',              -- Any CSS files
+    'ui/*.js'                -- Any JS files
 }
 
--- Add the admin interface as a file too
+-- Only one ui_page is allowed, we use guidebook.html as main
 ui_page 'ui/guidebook.html'
-ui_page 'ui/guidebook-admin.html'
 
--- Add html file dependencies
-dependency 'ui/guidebook-admin.html'
+-- Dependency declarations
+dependencies {
+    'qb-core' -- If you're using QB-Core framework
+}

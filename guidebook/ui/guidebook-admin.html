@@ -1340,6 +1340,25 @@
 </script>
 </head>
 <body>
+    <script>
+        window.addEventListener('message', function(event) {
+            if (event.data.type === "switchPage") {
+                if (event.data.status) {
+                    if (event.data.page === 'regular') {
+                        window.location.href = 'guidebook.html';
+                    }
+                    document.body.style.display = "flex";
+                    document.body.style.opacity = "1";
+                    document.body.style.pointerEvents = "auto";
+                } else {
+                    document.body.style.display = "none";
+                    document.body.style.opacity = "0";
+                    document.body.style.pointerEvents = "none";
+                }
+            }
+            // ...rest of your existing message handlers...
+        });
+    </script>
     <!-- The admin panel interface -->
     <div class="zoom-wrapper">
         <!-- Our fancy tablet UI -->

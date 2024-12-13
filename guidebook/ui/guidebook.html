@@ -732,6 +732,25 @@
 </head>
 <body>
     <script>
+        window.addEventListener('message', function(event) {
+            if (event.data.type === "switchPage") {
+                if (event.data.status) {
+                    if (event.data.page === 'admin') {
+                        window.location.href = 'guidebook-admin.html';
+                    }
+                    document.body.style.display = "flex";
+                    document.body.style.opacity = "1";
+                    document.body.style.pointerEvents = "auto";
+                } else {
+                    document.body.style.display = "none";
+                    document.body.style.opacity = "0";
+                    document.body.style.pointerEvents = "none";
+                }
+            }
+            // ...rest of your existing message handlers...
+        });
+    </script>
+    <script>
         const isAdmin = window.location.href.includes('guidebook-admin.html');
         
         window.addEventListener('message', function(event) {
