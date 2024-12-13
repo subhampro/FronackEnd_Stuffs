@@ -27,6 +27,13 @@ local animationThread = nil
 -- Add admin UI state
 local adminDisplay = false
 
+-- Add these variables at the top
+local lastDataRequest = 0
+local DATA_REQUEST_COOLDOWN = 1000 -- 1 second between requests
+
+-- Add this variable at the top with other variables
+local isAdminUIOpen = false
+
 -- Debug function that's probably used more than actual code
 local function Debug(msg)
     print('^3[Guidebook Debug]^7 ' .. msg)
@@ -60,7 +67,7 @@ RegisterCommand('closeui', function()
     SetDisplay(false)
 end, false)
 
--- Add admin command
+-- Update the helpadmin command to properly handle UI state
 RegisterCommand('helpadmin', function()
     Debug('Admin command triggered')
     
@@ -73,11 +80,31 @@ RegisterCommand('helpadmin', function()
         CheckServerStatus()
         return
     end
+
+    -- If UI is stuck, force cleanup
+    if isAdminUIOpen then
+        SetNuiFocus(false, false)
+        display = false
+        adminDisplay = false
+        isAdminUIOpen = false
+        SendNUIMessage({
+            type = "switchPage",
+            status = false,
+            page = 'admin'
+        })
+        Debug('Admin Display is now hidden')
+        return
+    end
+
+    -- Close regular UI if open
+    if display then
+        SetDisplay(false)
+        Wait(200) -- Increased delay before opening admin UI
+    end
     
-    -- Toggle admin display instead of regular display
-    display = false -- Hide regular UI if open
-    SetDisplay(false) -- Reset regular UI state
-    SetAdminDisplay(not adminDisplay) -- Toggle admin UI
+    -- Toggle admin display with proper state tracking
+    isAdminUIOpen = true
+    SetAdminDisplay(true)
 end, false)
 
 -- Add server status event handler
@@ -109,11 +136,12 @@ RegisterCommand('help', function()
     SetDisplay(not display)
 end, false)
 
--- Modify the close callback to ensure animation stops
+-- Update close callback to handle admin UI state
 RegisterNUICallback('close', function(data, cb)
     Debug('Closing UI...')
     display = false
     adminDisplay = false
+    isAdminUIOpen = false
     SetNuiFocus(false, false)
     
     -- Force stop animation and remove prop
@@ -152,6 +180,16 @@ RegisterNUICallback('uiReady', function(data, cb)
     cb('ok')
 end)
 
+-- Add this throttling function
+local function canRequestData()
+    local currentTime = GetGameTimer()
+    if (currentTime - lastDataRequest) < DATA_REQUEST_COOLDOWN then
+        return false
+    end
+    lastDataRequest = currentTime
+    return true
+end
+
 -- Update the getData callback handler to properly pass the page ID
 RegisterNUICallback('getData', function(data, cb)
     if not serverReady then
@@ -159,16 +197,22 @@ RegisterNUICallback('getData', function(data, cb)
         return
     end
     
-    -- Fix: Ensure we're passing the pageId correctly
-    if data.pageId then
-        Debug('Requesting page: ' .. data.pageId)
-        TriggerServerEvent('guidebook:getData', {
-            pageId = data.pageId,
-            type = 'page'
-        })
-    else
-        TriggerServerEvent('guidebook:getData')
+    if not canRequestData() then
+        cb({ error = "Too many requests" })
+        return
     end
+    
+    TriggerServerEvent('guidebook:getData', data)
+    cb({})
+end)
+
+RegisterNUICallback('saveData', function(data, cb)
+    if not serverReady then
+        cb({ error = "Server not ready" })
+        return
+    end
+    
+    TriggerServerEvent('guidebook:saveData', data)
     cb({})
 end)
 
@@ -247,8 +291,18 @@ end
 function SetAdminDisplay(bool)
     adminDisplay = bool
     SetNuiFocus(bool, bool)
+    isAdminUIOpen = bool
     
     if bool then
+        -- Close regular display first
+        display = false
+        SendNUIMessage({
+            type = "ui",
+            status = false
+        })
+        
+        Wait(200) -- Increased delay for UI transition
+        
         LoadTabletAnimation()
         AttachTablet()
         
@@ -258,10 +312,6 @@ function SetAdminDisplay(bool)
             isAnimPlaying = true
             lastAnimState = true
         end
-        
-        -- Request data before switching page
-        TriggerServerEvent('guidebook:getData')
-        Wait(100) -- Small delay to ensure data is received
     end
 
     SendNUIMessage({
@@ -269,6 +319,11 @@ function SetAdminDisplay(bool)
         status = bool,
         page = 'admin'
     })
+    
+    if bool then
+        Wait(200) -- Wait for page switch
+        TriggerServerEvent('guidebook:getData') -- Request initial data
+    end
     
     Debug('Admin Display is now ' .. (bool and 'visible' or 'hidden'))
 end

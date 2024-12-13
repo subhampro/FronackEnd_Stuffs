@@ -21,10 +21,7 @@ server_scripts {
 files {
     'ui/guidebook.html',      -- Regular interface
     'ui/guidebook-admin.html', -- Admin interface
-    'ui/mockdata.js',         -- Development data
-    'ui/mockdata.json',       -- Live data for FiveM
-    'ui/*.css',              -- Any CSS files
-    'ui/*.js'                -- Any JS files
+    'ui/mockdata.json'        -- Live data for FiveM
 }
 
 -- Only one ui_page is allowed, we use guidebook.html as main

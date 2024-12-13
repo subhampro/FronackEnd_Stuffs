@@ -740,7 +740,9 @@
                         document.body.style.display = "none";
                         document.body.style.opacity = "0";
                         document.body.style.pointerEvents = "none";
-                        window.location.href = 'guidebook-admin.html';
+                        setTimeout(() => {
+                            window.location.href = 'guidebook-admin.html';
+                        }, 100);
                         return;
                     }
                     document.body.style.display = "flex";

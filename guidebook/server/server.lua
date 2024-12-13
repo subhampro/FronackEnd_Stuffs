@@ -15,6 +15,10 @@ local function Debug(msg)
     print('^5[Guidebook Server]^7 ' .. msg)
 end
 
+-- Add these variables at the top
+local requestCooldowns = {}
+local COOLDOWN_TIME = 1000 -- 1 second cooldown between requests per client
+
 -- Event handlers below ⬇️
 -- Handle with care, they're more fragile than my self-esteem
 
@@ -26,20 +30,41 @@ AddEventHandler('guidebook:getData', function(data)
     local source = source
     if not source then return end
     
-    Debug('getData called from source: ' .. source)
-    Debug('Data received: ' .. json.encode(data or {}))
+    -- Check cooldown
+    local currentTime = GetGameTimer()
+    if requestCooldowns[source] and (currentTime - requestCooldowns[source]) < COOLDOWN_TIME then
+        return -- Still in cooldown, ignore request
+    end
     
-    -- Fix the file path to ensure it's correct
+    -- Update cooldown
+    requestCooldowns[source] = currentTime
+    
+    Debug('getData called from source: ' .. source)
+    
+    -- Use absolute path to mockdata.json
     local resourcePath = GetResourcePath(GetCurrentResourceName())
     local filePath = resourcePath .. '/ui/mockdata.json'
-    Debug('Attempting to read file: ' .. filePath)
+    Debug('Reading file: ' .. filePath)
     
     local file = io.open(filePath, 'r')
     if not file then
-        Debug('File not found at path: ' .. filePath)
+        Debug('Creating default data file')
+        -- Create default data if file doesn't exist
+        local defaultData = {
+            title = "Guidebook",
+            categories = {},
+            points = {}
+        }
+        local newFile = io.open(filePath, 'w')
+        if newFile then
+            newFile:write(json.encode(defaultData))
+            newFile:close()
+        end
+        
         TriggerClientEvent('guidebook:receiveData', source, {
-            type = "error",
-            error = "Data file missing"
+            type = "updateData",
+            responseType = "full",
+            data = defaultData
         })
         return
     end
@@ -98,6 +123,12 @@ AddEventHandler('guidebook:getData', function(data)
             error = "Invalid JSON format"
         })
     end
+end)
+
+-- Add cleanup for player disconnect
+AddEventHandler('playerDropped', function()
+    local source = source
+    requestCooldowns[source] = nil
 end)
 
 -- Data saving functionality
