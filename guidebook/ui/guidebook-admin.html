@@ -1283,38 +1283,53 @@
         console.log('[Guidebook Admin]', msg);
     }
 
-    // Modify the loadFromJSON function
+    // Remove isDevelopment checks and mock data
     async function loadFromJSON() {
-        if (isDevelopment) {
-            debugAdmin('Development mode: Using mockdata.js');
-            if (window.testData) {
-                debugAdmin('Loaded test data:', window.testData);
-                return window.testData;
-            } else {
-                debugAdmin('No test data found!');
-                return {
-                    title: "Guidebook",
-                    categories: [],
-                    points: []
-                };
-            }
-        } else {
-            // FiveM environment code remains the same
-            try {
-                const response = await fetch(`https://${GetParentResourceName()}/getData`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('Error loading data:', error);
-                return null;
-            }
+        try {
+            const response = await fetch(`https://${GetParentResourceName()}/getData`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading data:', error);
+            return null;
         }
     }
+
+    async function saveToJSON(data) {
+        try {
+            await fetch(`https://${GetParentResourceName()}/saveData`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            return data;
+        } catch (error) {
+            console.error('Error saving data:', error);
+            alert('Error saving data');
+            return null;
+        }
+    }
+
+    function closeGuidebook() {
+        fetch(`https://${GetParentResourceName()}/close`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        }).catch(err => console.error(err));
+    }
+
+    // Initialize hidden on load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.style.display = "none";
+        document.body.style.opacity = "0";
+        document.body.style.pointerEvents = "none";
+    });
 
     // Modify the DOMContentLoaded event handler
     document.addEventListener('DOMContentLoaded', async function() {
@@ -1959,65 +1974,44 @@
             document.getElementById('zoom-warning').style.display = 'none';
         }
 
-        function closeGuidebook() {
-            if (isDevelopment) {
-                if (window.confirm('Close guidebook?')) {
-                    window.close();
-                }
-            } else {
-                fetch(`https://${GetParentResourceName()}/close`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                }).catch(err => console.error(err));
-            }
-        }
-
         async function loadFromJSON() {
-            if (isDevelopment) {
-                // In browser environment, use mockdata.js
-                return window.testData;
-            } else {
-                // In FiveM environment
-                try {
-                    const response = await fetch(`https://${GetParentResourceName()}/getData`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    const data = await response.json();
-                    return data;
-                } catch (error) {
-                    console.error('Error loading data:', error);
-                    return null;
-                }
+            try {
+                const response = await fetch(`https://${GetParentResourceName()}/getData`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                return null;
             }
         }
 
         async function saveToJSON(data) {
-            if (isDevelopment) {
-                // In browser environment, just log the data
-                console.log('Save data (development):', data);
-                window.testData = data;
+            try {
+                await fetch(`https://${GetParentResourceName()}/saveData`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
                 return data;
-            } else {
-                // In FiveM environment
-                try {
-                    await fetch(`https://${GetParentResourceName()}/saveData`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(data)
-                    });
-                    return data;
-                } catch (error) {
-                    console.error('Error saving data:', error);
-                    alert('Error saving data');
-                    return null;
-                }
+            } catch (error) {
+                console.error('Error saving data:', error);
+                alert('Error saving data');
+                return null;
             }
+        }
+
+        function closeGuidebook() {
+            fetch(`https://${GetParentResourceName()}/close`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            }).catch(err => console.error(err));
         }
 
         // Add this function to initialize default data if needed
