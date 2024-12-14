@@ -30,99 +30,69 @@ AddEventHandler('guidebook:getData', function(data)
     local source = source
     if not source then return end
     
-    -- Check cooldown
-    local currentTime = GetGameTimer()
-    if requestCooldowns[source] and (currentTime - requestCooldowns[source]) < COOLDOWN_TIME then
-        return -- Still in cooldown, ignore request
-    end
-    
     -- Update cooldown
+    local currentTime = GetGameTimer()
     requestCooldowns[source] = currentTime
     
     Debug('getData called from source: ' .. source)
     
-    -- Use absolute path to mockdata.json
     local resourcePath = GetResourcePath(GetCurrentResourceName())
     local filePath = resourcePath .. '/ui/mockdata.json'
-    Debug('Reading file: ' .. filePath)
-    
     local file = io.open(filePath, 'r')
+    
     if not file then
-        Debug('Creating default data file')
-        -- Create default data if file doesn't exist
-        local defaultData = {
-            title = "Guidebook",
-            categories = {},
-            points = {}
-        }
-        local newFile = io.open(filePath, 'w')
-        if newFile then
-            newFile:write(json.encode(defaultData))
-            newFile:close()
-        end
-        
         TriggerClientEvent('guidebook:receiveData', source, {
             type = "updateData",
-            responseType = "full",
-            data = defaultData
+            responseType = "error",
+            error = "Data file not found"
         })
         return
     end
     
-    -- Read content and remove potential BOM and whitespace
     local content = file:read('*all')
     file:close()
-    
-    -- Remove UTF-8 BOM if present
     content = content:gsub('^\239\187\191', '')
-    -- Trim whitespace
     content = content:gsub('^%s*(.-)%s*$', '%1')
     
-    -- Try to decode JSON
     local success, decodedData = pcall(json.decode, content)
-    if success and decodedData then
-        if data and data.pageId then
-            Debug('Looking for page: ' .. data.pageId)
-            for _, category in pairs(decodedData.categories or {}) do
-                for _, page in pairs(category.pages or {}) do
-                    -- Match by page ID
-                    if page.id == data.pageId then
-                        Debug('Found page: ' .. page.label)
-                        TriggerClientEvent('guidebook:receiveData', source, {
-                            type = "updateData",
-                            responseType = "page",
-                            data = {
-                                label = page.label,
-                                content = page.content
-                            }
-                        })
-                        return
-                    end
-                end
-            end
-            -- Page not found
-            Debug('Page not found: ' .. tostring(data.pageId))
-            TriggerClientEvent('guidebook:receiveData', source, {
-                type = "error",
-                error = "Page not found"
-            })
-        else
-            -- Send full data
-            Debug('Sending full data to client...')
-            TriggerClientEvent('guidebook:receiveData', source, {
-                type = "updateData",
-                responseType = "full",
-                data = decodedData
-            })
-        end
-    else
-        Debug('JSON decode error')
+    if not success or not decodedData then
         TriggerClientEvent('guidebook:receiveData', source, {
             type = "updateData",
             responseType = "error",
             error = "Invalid JSON format"
         })
+        return
     end
+    
+    -- Always send full data for search functionality
+    if not data or not data.pageId then
+        TriggerClientEvent('guidebook:receiveData', source, {
+            type = "updateData",
+            responseType = "full",
+            data = decodedData
+        })
+        return
+    end
+    
+    -- Handle page requests
+    for _, category in pairs(decodedData.categories) do
+        for _, page in pairs(category.pages) do
+            if tostring(page.id) == tostring(data.pageId) then
+                TriggerClientEvent('guidebook:receiveData', source, {
+                    type = "updateData",
+                    responseType = "page",
+                    data = page
+                })
+                return
+            end
+        end
+    end
+    
+    TriggerClientEvent('guidebook:receiveData', source, {
+        type = "updateData",
+        responseType = "error",
+        error = "Page not found"
+    })
 end)
 
 -- Add cleanup for player disconnect

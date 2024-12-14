@@ -498,6 +498,7 @@
             flex-direction: column;
             align-items: center;
             width: auto;
+            backdrop-filter: none;
         }
 
         .search-btn {
@@ -593,7 +594,7 @@
             border-radius: 2vh;
             padding: 2vh;
             overflow-y: auto;
-            backdrop-filter: blur(10px);
+            backdrop-filter: none;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -685,8 +686,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(10, 25, 41, 0.3);
-            backdrop-filter: blur(3px);
+            background: rgba(10, 25, 41, 0.85);
+            backdrop-filter: none;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
@@ -1369,27 +1370,31 @@
                 return;
             }
 
+            // Show loading state
+            displaySearchResults(null, query);
+            
+            // Get results
             const results = await searchInData(query);
             displaySearchResults(results, query);
         }
 
         function searchInData(query) {
             return new Promise((resolve) => {
-                fetch(`https://${GetParentResourceName()}/getData`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(() => {
-                    // Data will be received via message event
-                    // Set up a one-time listener for search results
-                    const searchHandler = function(event) {
-                        if (event.data.type === "updateData" && event.data.responseType === "full") {
-                            const data = event.data.data;
-                            const results = [];
-                            
-                            data.categories.forEach(category => {
+                let searchDataReceived = false;
+                
+                // Set up one-time handler for search results
+                const searchHandler = function(event) {
+                    if (event.data.type === "updateData" && event.data.responseType === "full") {
+                        searchDataReceived = true;
+                        const data = event.data.data;
+                        if (!data || !data.categories) {
+                            resolve([]);
+                            return;
+                        }
+                        
+                        const results = [];
+                        data.categories.forEach(category => {
+                            if (category.pages) {
                                 category.pages.forEach(page => {
                                     if (matchesSearch(page, query)) {
                                         results.push({
@@ -1399,20 +1404,37 @@
                                         });
                                     }
                                 });
-                            });
-                            
-                            // Sort by relevance
-                            resolve(results.sort((a, b) => b.relevance - a.relevance));
-                            window.removeEventListener('message', searchHandler);
-                        }
-                    };
-                    
-                    window.addEventListener('message', searchHandler);
-                })
-                .catch(error => {
-                    console.error('Error searching:', error);
-                    resolve([]);
+                            }
+                        });
+                        
+                        resolve(results.sort((a, b) => b.relevance - a.relevance));
+                        window.removeEventListener('message', searchHandler);
+                    }
+                };
+                
+                window.addEventListener('message', searchHandler);
+                
+                // Request fresh data
+                fetch(`https://${GetParentResourceName()}/getData`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({}) // Request full data
+                }).catch(error => {
+                    console.error('Error in search:', error);
+                    if (!searchDataReceived) {
+                        resolve([]);
+                    }
                 });
+                
+                // Timeout after 5 seconds
+                setTimeout(() => {
+                    if (!searchDataReceived) {
+                        window.removeEventListener('message', searchHandler);
+                        resolve([]);
+                    }
+                }, 5000);
             });
         }
 
@@ -1441,6 +1463,16 @@
 
         function displaySearchResults(results, query) {
             const resultsContainer = document.querySelector('.search-results');
+            
+            if (!results) {
+                resultsContainer.innerHTML = `
+                    <div class="search-result-item">
+                        <div class="result-title">Searching...</div>
+                    </div>
+                `;
+                resultsContainer.classList.add('active');
+                return;
+            }
             
             if (results.length === 0) {
                 resultsContainer.innerHTML = `
@@ -1557,34 +1589,18 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            pageId: pageId
+                            pageId: pageId,
+                            type: 'page'
                         })
-                    }).then(response => response.json())
-                      .then(data => {
-                          if (data && data.type === "updateData" && data.responseType === "page") {
-                              mainContent.innerHTML = `
-                                  <div class="page-content">
-                                      <h2>${data.data.label}</h2>
-                                      ${data.data.content}
-                                  </div>
-                              `;
-                          } else {
-                              mainContent.innerHTML = `
-                                  <div class="page-content">
-                                      <h2>Error</h2>
-                                      <p>Failed to load page content</p>
-                                  </div>
-                              `;
-                          }
-                      }).catch(error => {
-                          debugUI('Error loading page: ' + error);
-                          mainContent.innerHTML = `
-                              <div class="page-content">
-                                  <h2>Error</h2>
-                                  <p>Failed to load page content</p>
-                              </div>
-                          `;
-                      });
+                    }).catch(error => {
+                        debugUI('Error loading page: ' + error);
+                        mainContent.innerHTML = `
+                            <div class="page-content">
+                                <h2>Error</h2>
+                                <p>Failed to load page content</p>
+                            </div>
+                        `;
+                    });
                 }
             }, 300);
         }
@@ -1614,7 +1630,7 @@
                     setTimeout(() => {
                         mainContent.innerHTML = `
                             <div class="page-content">
-                                <h2>${event.data.data.label}</h2>
+                                <h2 style="color: var(--primary-color);">${event.data.data.label}</h2>
                                 ${event.data.data.content}
                             </div>
                         `;
