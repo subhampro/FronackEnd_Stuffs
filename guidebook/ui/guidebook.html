@@ -1360,7 +1360,7 @@
         }
 
         // Handles search with the precision of a brain surgeon
-        function handleSearch(event) {
+        async function handleSearch(event) {
             const query = event.target.value.trim().toLowerCase();
             const resultsContainer = document.querySelector('.search-results');
             
@@ -1369,27 +1369,51 @@
                 return;
             }
 
-            const results = searchInData(query);
+            const results = await searchInData(query);
             displaySearchResults(results, query);
         }
 
         function searchInData(query) {
-            const results = [];
-            
-            testData.categories.forEach(category => {
-                category.pages.forEach(page => {
-                    if (matchesSearch(page, query)) {
-                        results.push({
-                            category: category.name,
-                            page: page,
-                            relevance: calculateRelevance(page, query)
-                        });
+            return new Promise((resolve) => {
+                fetch(`https://${GetParentResourceName()}/getData`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
                     }
+                })
+                .then(() => {
+                    // Data will be received via message event
+                    // Set up a one-time listener for search results
+                    const searchHandler = function(event) {
+                        if (event.data.type === "updateData" && event.data.responseType === "full") {
+                            const data = event.data.data;
+                            const results = [];
+                            
+                            data.categories.forEach(category => {
+                                category.pages.forEach(page => {
+                                    if (matchesSearch(page, query)) {
+                                        results.push({
+                                            category: category.name,
+                                            page: page,
+                                            relevance: calculateRelevance(page, query)
+                                        });
+                                    }
+                                });
+                            });
+                            
+                            // Sort by relevance
+                            resolve(results.sort((a, b) => b.relevance - a.relevance));
+                            window.removeEventListener('message', searchHandler);
+                        }
+                    };
+                    
+                    window.addEventListener('message', searchHandler);
+                })
+                .catch(error => {
+                    console.error('Error searching:', error);
+                    resolve([]);
                 });
             });
-
-            // Sort by relevance
-            return results.sort((a, b) => b.relevance - a.relevance);
         }
 
         function matchesSearch(page, query) {
@@ -1439,6 +1463,10 @@
 
         function loadSearchResult(pageId) {
             loadPage(pageId);
+            closeSearch();
+        }
+
+        function closeSearch() {
             document.querySelector('.search-results').classList.remove('active');
             document.querySelector('.search-input').value = '';
             document.querySelector('.search-container').classList.remove('active');

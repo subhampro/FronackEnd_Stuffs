@@ -202,7 +202,7 @@ local function canRequestData()
     return true
 end
 
--- Update the getData callback handler to properly pass the page ID
+-- Update the getData callback handler to handle search requests
 RegisterNUICallback('getData', function(data, cb)
     if not serverReady then
         cb({ error = "Server not ready" })
@@ -214,7 +214,8 @@ RegisterNUICallback('getData', function(data, cb)
         return
     end
     
-    TriggerServerEvent('guidebook:getData', data)
+    -- Always request full data for search functionality
+    TriggerServerEvent('guidebook:getData', {})
     cb({})
 end)
 
