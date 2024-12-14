@@ -581,35 +581,45 @@
             width: 35vh;
             opacity: 1;
         }
-
         .search-results {
             position: absolute;
-            bottom: calc(100% + 8vh);
+            bottom: 12vh;
             left: 50%;
-            transform: translateX(-50%) translateY(0); /* Adjust initial position */
-            width: 40vh;
-            max-height: 40vh;
+            transform: translateX(-50%);
+            width: 80%;
+            max-height: 50%;
             background: rgba(10, 25, 41, 0.95);
             border: 0.2vh solid var(--primary-color);
-            border-radius: 2vh;
+            border-radius: 1.5vh;
             padding: 2vh;
             overflow-y: auto;
-            backdrop-filter: none;
+            backdrop-filter: blur(10px);
             opacity: 0;
             visibility: hidden;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; /* Add opacity transition */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 0 3vh rgba(0, 247, 255, 0.2);
-            z-index: 102; /* Ensure it is above the blur overlay */
-            top: 0; /* Ensure it stays within the tablet */
+            z-index: 1000;
+            position: absolute;
+            bottom: 12vh;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70%;
+            max-height: 40vh;
+            border-radius: 2vh;
+            opacity: 0;
+            visibility: hidden;
         }
 
         .search-results.active {
             opacity: 1;
             visibility: visible;
-            width: 31vw;
-            transform: translateX(-50%) translateY(0); /* Adjust active position */
-            animation: slideDownSearch 0.5s ease-out; /* Add slide-down animation */
+            transform: translateX(-50%);
+            animation: slideInSearch 0.5s ease-out;
+            opacity: 1;
+            visibility: visible;
+            animation: slideInSearch 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
 
         .search-results::-webkit-scrollbar {
             width: 0; /* Hide scrollbar */
