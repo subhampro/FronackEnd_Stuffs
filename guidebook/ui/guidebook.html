@@ -586,7 +586,7 @@
             position: absolute;
             bottom: calc(100% + 8vh);
             left: 50%;
-            transform: translateX(-50%) translateY(203%);
+            transform: translateX(-50%) translateY(0); /* Adjust initial position */
             width: 40vh;
             max-height: 40vh;
             background: rgba(10, 25, 41, 0.95);
@@ -597,17 +597,18 @@
             backdrop-filter: none;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; /* Add opacity transition */
             box-shadow: 0 0 3vh rgba(0, 247, 255, 0.2);
             z-index: 102; /* Ensure it is above the blur overlay */
+            top: 0; /* Ensure it stays within the tablet */
         }
 
         .search-results.active {
             opacity: 1;
             visibility: visible;
             width: 31vw;
-            transform: translateX(-49%) translateY(124%);
-            animation: slideInSearch 0.5s ease-out;
+            transform: translateX(-50%) translateY(0); /* Adjust active position */
+            animation: slideDownSearch 0.5s ease-out; /* Add slide-down animation */
         }
 
         .search-results::-webkit-scrollbar {
@@ -675,6 +676,17 @@
             }
             100% {
                 top: 20px;
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideDownSearch {
+            0% {
+                transform: translateX(-50%) translateY(-100%);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(-50%) translateY(0);
                 opacity: 1;
             }
         }
