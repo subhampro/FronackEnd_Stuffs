@@ -65,7 +65,7 @@
             padding-top: 3vh;
             padding-left: 1.5vw;
             padding-right: 1.7vw;
-            padding-bottom: 2.8vh;
+            padding-bottom: 2vh;
             overflow: hidden;
             box-shadow: 
                 0 0 0 0.2vh rgba(0, 247, 255, 0.3),
@@ -542,10 +542,12 @@
             box-shadow: 
                 0 0 3vh rgba(0, 247, 255, 0.4),
                 inset 0 0 2vh rgba(0, 247, 255, 0.3);
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .search-btn:active {
             transform: scale(0.95);
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .search-ripple {
@@ -761,6 +763,12 @@
             margin-bottom: 90%;
         }
 
+        /* Add this new style for active state */
+        .search-container.active .search-icon {
+            margin-top: -10px !important;
+            margin-right: 3px;
+            transform: translate(1px, 9px) rotate(-10deg);
+        }
 
     </style>
     <script src="mockdata.js"></script>
