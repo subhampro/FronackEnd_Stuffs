@@ -7,8 +7,8 @@ export default function Game(){
     <h1>Dice Game</h1>
     <div style={styles}>
     { randNum === randNum2 ? <h1>Player Win</h1> : <h1>Computer Win</h1>  }
-    <h2>Player 1 Dice Numver : {randNum} </h2>
-    <h2>Player 2 Dice Numver : {randNum2} </h2>
+    <h2>Player 1 Dice Number : {randNum} </h2>
+    <h2>Player 2 Dice Number : {randNum2} </h2>
 
     </div>
     </>
