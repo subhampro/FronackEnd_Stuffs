@@ -4,11 +4,13 @@ import './index.css'
 import App from './App.jsx'
 import Pro from './Pro.jsx'
 import Game from './Game.jsx'
+import Map from './Map.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     {/* <App /> */}
     {/* <Pro /> */}
-      <Game />
+    {/* <Game /> */}
+    <Map colorss={["red","green","yellow","blue","white","violet"]}/>
   </StrictMode>,
 )
