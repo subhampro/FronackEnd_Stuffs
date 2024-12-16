@@ -6,7 +6,10 @@ export default Hooks;
 function Hooks(){
     let [state , setState] = useState(0);
     useEffect(() => {
-        alert("Test Alert")
+        alert("Page Refreshed!")
+        return () => {
+            alert("Hooks Unmounted From Main Page !") 
+        }
     },[])
    return <>
      <h1>React Hooks</h1> 
