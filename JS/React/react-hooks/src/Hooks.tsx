@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './Hooks.css';
 
 export default Hooks;
 
 function Hooks(){
     let [state , setState] = useState(0);
+    useEffect(() => {
+        alert("Test Alert")
+    },[])
    return <>
      <h1>React Hooks</h1> 
 
