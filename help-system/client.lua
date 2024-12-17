@@ -1,15 +1,21 @@
-local display = false
+local helpDisplay = false
+local adminDisplay = false
 
 RegisterCommand("help", function()
-    SetDisplay("help", not display)
+    SetDisplay("help", not helpDisplay)
 end, false)
 
 RegisterCommand("helpadmin", function()
-    SetDisplay("admin", not display)
+    SetDisplay("admin", not adminDisplay)
 end, false)
 
 function SetDisplay(menuType, bool)
-    display = bool
+    if menuType == "help" then
+        helpDisplay = bool
+    else
+        adminDisplay = bool
+    end
+    
     SetNuiFocus(bool, bool)
     SendNUIMessage({
         type = menuType,
