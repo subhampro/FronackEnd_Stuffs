@@ -1,0 +1,2 @@
+-- You can add server-side logic here if needed
+-- For example, permission checks for the admin menu
