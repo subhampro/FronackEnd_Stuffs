@@ -3,9 +3,12 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import NonStringProps from './NonStringProps'
 import DefaultPropValue from './DefaultPropValue'
-
+import PassingArrays_Obj from './PassingArrays_Obj'
+import Conditionals from './Conditionals'
 function App() {
-  return <DefaultPropValue color={"Green"}/>
+  return <Conditionals condition={true}/>
+  // return <PassingArrays_Obj props={{obj : "value", arr: [1,2,3,4]}}/>
+  // return <DefaultPropValue color={"Green"}/>
   // return   <NonStringProps count={[1,2,3,4,5]} />
 }
 
